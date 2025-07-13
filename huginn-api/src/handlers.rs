@@ -265,7 +265,7 @@ fn convert_profile_to_tcp_info(profile: &TrafficProfile) -> TcpInfo {
         let hours = uptime_data.uptime_seconds / 3600;
         let minutes = (uptime_data.uptime_seconds % 3600) / 60;
         tcp_info.uptime = Some(Uptime {
-            time: format!("0 days, {} hrs, {} min (modulo 0 days)", hours, minutes),
+            time: format!("0 days, {hours} hrs, {minutes} min (modulo 0 days)"),
             freq: "0.00 Hz".to_string(),
         });
     }
@@ -402,7 +402,7 @@ pub async fn get_profile(
             let tcp_info = convert_profile_to_tcp_info(&profile);
             Ok(Json(tcp_info))
         }
-        None => Err(ApiError::not_found(format!("Profile not found: {}", key))),
+        None => Err(ApiError::not_found(format!("Profile not found: {key}"))),
     }
 }
 
@@ -414,7 +414,7 @@ pub async fn delete_profile(
 ) -> Result<StatusCode> {
     match state.remove_profile(&key) {
         Some(_) => Ok(StatusCode::NO_CONTENT),
-        None => Err(ApiError::not_found(format!("Profile not found: {}", key))),
+        None => Err(ApiError::not_found(format!("Profile not found: {key}"))),
     }
 }
 

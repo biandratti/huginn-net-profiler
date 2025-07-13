@@ -36,7 +36,7 @@ pub struct ApiServerConfig {
 impl Default for ApiServerConfig {
     fn default() -> Self {
         Self {
-            bind_addr: SocketAddr::from(([127, 0, 0, 1], 8080)),
+            bind_addr: SocketAddr::from(([127, 0, 0, 1], 3000)),
             interface: "eth0".to_string(),
             enable_collector: true,
             static_dir: Some("static".to_string()),
@@ -56,7 +56,7 @@ pub struct ApiServerArgs {
     pub interface: String,
 
     /// Server bind address
-    #[arg(short = 'b', long, default_value = "127.0.0.1:8080")]
+    #[arg(short = 'b', long, default_value = "127.0.0.1:3000")]
     pub bind: String,
 
     /// Disable network collector (serve static profiles only)
@@ -97,16 +97,20 @@ impl From<ApiServerArgs> for ApiServerConfig {
         let bind_addr = args
             .bind
             .parse()
-            .unwrap_or_else(|_| SocketAddr::from(([127, 0, 0, 1], 8080)));
+            .unwrap_or_else(|_| SocketAddr::from(([127, 0, 0, 1], 3000)));
 
-        let mut collector_config = CollectorConfig::default();
-        collector_config.interface = args.interface.clone();
-        collector_config.buffer_size = args.buffer_size;
-        collector_config.channel_buffer_size = args.buffer_size;
-        collector_config.analyzer.enable_tcp = args.enable_tcp;
-        collector_config.analyzer.enable_http = args.enable_http;
-        collector_config.analyzer.enable_tls = args.enable_tls;
-        collector_config.analyzer.min_quality = args.quality_threshold;
+        let collector_config = CollectorConfig {
+            interface: args.interface.clone(),
+            buffer_size: args.buffer_size,
+            channel_buffer_size: args.buffer_size,
+            analyzer: huginn_core::AnalyzerConfig {
+                enable_tcp: args.enable_tcp,
+                enable_http: args.enable_http,
+                enable_tls: args.enable_tls,
+                min_quality: args.quality_threshold,
+            },
+            ..CollectorConfig::default()
+        };
 
         Self {
             bind_addr,
@@ -190,7 +194,7 @@ impl ApiServer {
 
         axum::serve(listener, app)
             .await
-            .map_err(|e| ApiError::internal(format!("Server error: {}", e)))?;
+            .map_err(|e| ApiError::internal(format!("Server error: {e}")))?;
 
         Ok(())
     }
@@ -227,7 +231,7 @@ impl ApiServer {
                 match collector_handle_clone.get_profiles().await {
                     Ok(profiles) => {
                         if !profiles.is_empty() {
-                            info!("Retrieved {} profiles from collector", profiles.len());
+                            debug!("Retrieved {} profiles from collector", profiles.len());
                             state_clone.update_profiles(profiles);
                         } else {
                             debug!("No profiles available from collector");

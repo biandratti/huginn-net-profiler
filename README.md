@@ -3,7 +3,6 @@
 [![CI](https://github.com/biandratti/huginn-net-profiler/actions/workflows/ci.yml/badge.svg)](https://github.com/biandratti/huginn-net-profiler/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.80+-orange.svg)](https://www.rust-lang.org/)
-[![codecov](https://codecov.io/gh/biandratti/huginn-net-profiler/branch/master/graph/badge.svg)](https://codecov.io/gh/biandratti/huginn-net-profiler)
 
 ## Introduction
 
@@ -63,27 +62,26 @@ Web API server with REST endpoints and WebSocket support.
 
 ### 1. Build All Modules
 ```bash
-cargo build --workspace
+cargo build --workspace --release
 ```
 
 ### 2. Run Web Application
 ```bash
-# Build the release version
-cargo build --release
-
-# Find your network interface (optional)
+# Find your network interface (e.g., ip link show, ifconfig)
 ip link show
 
-# Run with default port 3000
-sudo ./target/release/huginn-net-profiler --interface eth0
+# Run the API server with your interface (defaults to port 3000)
+# Use sudo if required for network capture
+sudo ./target/release/huginn-api --interface eth0
 
-# Note: TLS support coming soon
+# To run on a different port (e.g., 8080)
+# sudo ./target/release/huginn-api --interface eth0 --bind 0.0.0.0:8080
 ```
 
 ### 3. Access the Web Interface
 - Open your browser and go to `http://localhost:3000` (or your custom port)
 - The web interface will show real-time network traffic analysis
-- Replace `eth0` with your network interface name (use `ip link show` to list interfaces)
+- Replace `eth0` with your network interface name.
 
 ## Data Flow
 

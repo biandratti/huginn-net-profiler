@@ -109,10 +109,9 @@ impl CollectorHandle {
             match handle.join() {
                 Ok(result) => result?,
                 Err(e) => {
-                    error!("Bridge thread join error: {:?}", e);
+                    error!("Bridge thread join error: {e:?}");
                     return Err(CollectorError::Unknown(format!(
-                        "Bridge thread panic: {:?}",
-                        e
+                        "Bridge thread panic: {e:?}"
                     )));
                 }
             }
@@ -304,7 +303,7 @@ impl NetworkCollector {
 
                 if is_new_profile {
                     // Insert new profile
-                    info!("Creating new profile for {}", key);
+                    debug!("Creating new profile for {}", key);
                     self.profiles.insert(key, profile);
                 } else {
                     // Merge the new profile data into existing profile

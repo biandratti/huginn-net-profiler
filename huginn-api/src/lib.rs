@@ -24,7 +24,6 @@ mod tests {
 
     #[test]
     fn test_version_is_set() {
-        assert!(!VERSION.is_empty());
         assert!(VERSION.contains('.'));
     }
 
@@ -37,8 +36,10 @@ mod tests {
 
     #[test]
     fn test_server_config_interface() {
-        let mut config = ApiServerConfig::default();
-        config.interface = "wlan0".to_string();
+        let config = ApiServerConfig {
+            interface: "wlan0".to_string(),
+            ..ApiServerConfig::default()
+        };
         assert_eq!(config.interface, "wlan0");
     }
 

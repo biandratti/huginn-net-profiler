@@ -28,7 +28,7 @@ pub struct TrafficProfile {
 }
 
 /// Raw fingerprint data separated by source type
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RawFingerprintData {
     /// SYN packet (from client)
     pub syn: Option<SynPacketData>,
@@ -133,21 +133,6 @@ pub struct OsDetection {
     pub quality: f64,
     /// Network distance (hops)
     pub distance: u8,
-}
-
-impl Default for RawFingerprintData {
-    fn default() -> Self {
-        Self {
-            syn: None,
-            syn_ack: None,
-            mtu: None,
-            uptime: None,
-            http_request: None,
-            http_response: None,
-            tls_client: None,
-            source_ip: None,
-        }
-    }
 }
 
 /// TCP connection analysis

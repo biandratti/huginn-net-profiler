@@ -2,22 +2,22 @@ use huginn_api::server::{run_server_with_config, ApiServerConfig};
 use huginn_collector::CollectorConfig;
 use huginn_core::AnalyzerConfig;
 use std::net::SocketAddr;
-use tracing_subscriber;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
-    let mut collector_config = CollectorConfig::default();
-    collector_config.interface = "wlp0s20f3".to_string();
-    collector_config.buffer_size = 500;
-    collector_config.channel_buffer_size = 1000;
-
-    collector_config.analyzer = AnalyzerConfig {
-        enable_tcp: true,
-        enable_http: true,
-        enable_tls: true,
-        min_quality: 0.3,
+    let collector_config = CollectorConfig {
+        interface: "wlp0s20f3".to_string(),
+        buffer_size: 500,
+        channel_buffer_size: 1000,
+        analyzer: AnalyzerConfig {
+            enable_tcp: true,
+            enable_http: true,
+            enable_tls: true,
+            min_quality: 0.3,
+        },
+        ..CollectorConfig::default()
     };
 
     let config = ApiServerConfig {

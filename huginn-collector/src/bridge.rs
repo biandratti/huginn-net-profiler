@@ -45,10 +45,9 @@ impl ChannelBridge {
                             debug!("Bridge forwarded result to async channel");
                         }
                         Err(e) => {
-                            error!("Bridge failed to send to async channel: {}", e);
+                            error!("Bridge failed to send to async channel: {e}");
                             return Err(CollectorError::channel(format!(
-                                "Failed to send to async channel: {}",
-                                e
+                                "Failed to send to async channel: {e}"
                             )));
                         }
                     }
