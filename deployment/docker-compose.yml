@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: "traefik:v3.1"
+    container_name: "traefik"
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # For local development, we disable the Let's Encrypt resolver.
+      # Traefik will use a self-signed certificate automatically.
+      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # - "--certificatesresolvers.myresolver.acme.email=your-email@domain.com"
+      # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      # Redirect HTTP to HTTPS
+      # - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      # - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik dashboard (optional, remove in production)
+    volumes:
+      # - "./traefik/letsencrypt:/letsencrypt" # Disabled for local development
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - huginn-net
+
+  huginn:
+    build:
+      context: .. # The build context is the project root
+      dockerfile: deployment/Dockerfile # The path to the Dockerfile relative to the context
+    container_name: "huginn"
+    # network_mode: "host" is the key for the collector to see the host's traffic.
+    # The container will share the same network interface as the host machine.
+    network_mode: "host"
+    # Add capabilities for network capture
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    command:
+      # IMPORTANT: Change 'eth0' to the actual network interface of your host machine.
+      # You can find it by running `ip link show` on your host.
+      - "./huginn-api"
+      - "--interface"
+      - "wlp0s20f3"
+      - "--bind"
+      # Bind to a non-conflicting port on the host, e.g., 3000
+      - "0.0.0.0:3000"
+    labels:
+      - "traefik.enable=true"
+      # Rule for web traffic (UI, API, WS).
+      # To access this locally, add `127.0.0.1 huginn.local.com` to your /etc/hosts file.
+      - "traefik.http.routers.huginn.rule=Host(`huginn.local.com`)"
+      - "traefik.http.routers.huginn.entrypoints=websecure"
+      # Enable TLS with Traefik's default (self-signed) certificate for local development
+      - "traefik.http.routers.huginn.tls=true"
+      # The service runs on port 3000 (as per the CMD)
+      - "traefik.http.services.huginn.loadbalancer.server.port=3000"
+    depends_on:
+      - traefik
+
+networks:
+  huginn-net:
+    name: huginn-network 

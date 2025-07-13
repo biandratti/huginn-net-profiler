@@ -20,9 +20,8 @@ This project aims to make advanced profiling accessible and interactive, helping
 huginn-net-profiler/
 ├── huginn-core/          # Core analysis engine
 ├── huginn-collector/     # Network traffic collection
-├── huginn-api/          # Web API server
-├── src/                 # Legacy main application
-└── static/              # Web UI assets
+├── huginn-api/           # Web API server
+└── static/               # Web UI assets
 ```
 
 ## Modules
