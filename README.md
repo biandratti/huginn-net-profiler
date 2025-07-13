@@ -3,7 +3,6 @@
 [![CI](https://github.com/biandratti/huginn-net-profiler/actions/workflows/ci.yml/badge.svg)](https://github.com/biandratti/huginn-net-profiler/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.80+-orange.svg)](https://www.rust-lang.org/)
-[![codecov](https://codecov.io/gh/biandratti/huginn-net-profiler/branch/master/graph/badge.svg)](https://codecov.io/gh/biandratti/huginn-net-profiler)
 
 ## Introduction
 

@@ -50,11 +50,9 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y libpcap-dev
       - name: Run tests
-        run: cargo test --verbose
-      - name: Run tests with all features
-        run: cargo test --verbose --all-features
+        run: cargo test --workspace --all-features --verbose
       - name: Run doc tests
-        run: cargo test --verbose --doc --workspace
+        run: cargo test --doc --workspace --verbose
         
   format:
     runs-on: ubuntu-latest
@@ -125,22 +123,3 @@ jobs:
           if [ -f huginn-api/examples/basic_server_no_collector.rs ]; then
             cargo check --example basic_server_no_collector -p huginn-api
           fi
-                  
-  coverage:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    container:
-      image: xd009642/tarpaulin:develop-nightly
-      options: --security-opt seccomp=unconfined
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate code coverage
-        run: |
-          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
