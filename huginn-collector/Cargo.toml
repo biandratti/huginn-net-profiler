@@ -3,6 +3,7 @@ name = "huginn-collector"
 version = "0.1.0"
 edition = "2021"
 description = "Network traffic collector for Huginn using huginn-net"
+license = "MIT"
 
 [dependencies]
 huginn-core = { path = "../huginn-core" }

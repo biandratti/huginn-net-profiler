@@ -3,6 +3,7 @@ name = "huginn-api"
 version = "0.1.0"
 edition = "2021"
 description = "Web API server for Huginn network profiler"
+license = "MIT"
 
 [dependencies]
 huginn-core = { path = "../huginn-core" }
