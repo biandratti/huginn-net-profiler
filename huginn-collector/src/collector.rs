@@ -304,7 +304,7 @@ impl NetworkCollector {
 
                 if is_new_profile {
                     // Insert new profile
-                    info!("Creating new profile for {}", key);
+                    debug!("Creating new profile for {}", key);
                     self.profiles.insert(key, profile);
                 } else {
                     // Merge the new profile data into existing profile

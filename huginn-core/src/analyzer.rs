@@ -12,7 +12,7 @@ use huginn_net::ObservableTcp;
 use huginn_net::Ttl;
 use std::net::IpAddr;
 use std::str::FromStr;
-use tracing::{debug, info};
+use tracing::debug;
 
 /// Configuration for the Huginn analyzer
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -69,8 +69,8 @@ impl HuginnAnalyzer {
     /// Analyze a fingerprint result and return a traffic profile
     pub fn analyze(&self, result: FingerprintResult) -> Result<Option<TrafficProfile>> {
         // Debug logging to understand what huginn-net is sending
-        info!(
-            "🔍 ANALYZING FingerprintResult: SYN:{} SYN-ACK:{} HTTP-REQ:{} HTTP-RES:{} TLS:{} MTU:{} UPTIME:{}",
+        debug!(
+            "ANALYZING FingerprintResult: SYN:{} SYN-ACK:{} HTTP-REQ:{} HTTP-RES:{} TLS:{} MTU:{} UPTIME:{}",
             result.syn.is_some(),
             result.syn_ack.is_some(),
             result.http_request.is_some(),
@@ -136,11 +136,11 @@ impl HuginnAnalyzer {
         // Extract primary IP from the result (for profile key - grouped by IP only, not port)
         let ip = match self.extract_primary_ip(&result) {
             Ok(ip) => {
-                info!("✅ Primary IP: {}", ip);
+                debug!("Primary IP: {}", ip);
                 ip
             }
             Err(e) => {
-                info!("❌ No valid IP found in result: {}", e);
+                debug!("No valid IP found in result: {}", e);
                 return Ok(None);
             }
         };
@@ -153,8 +153,8 @@ impl HuginnAnalyzer {
 
         // Process SYN packets (client data)
         if let Some(syn) = &result.syn {
-            info!(
-                "📥 Processing SYN packet from {}:{} (CLIENT)",
+            debug!(
+                "Processing SYN packet from {}:{} (CLIENT)",
                 syn.source.ip, syn.source.port
             );
             let syn_data = self.process_syn_packet(syn)?;
@@ -163,8 +163,8 @@ impl HuginnAnalyzer {
             // Create legacy TCP client analysis for backwards compatibility
             if self.config.enable_tcp {
                 if let Some(tcp_analysis) = self.analyze_tcp_syn(syn)? {
-                    info!(
-                        "🔵 TCP CLIENT analysis: OS={}, Quality={:.2}",
+                    debug!(
+                        "TCP CLIENT analysis: OS={}, Quality={:.2}",
                         tcp_analysis.os, tcp_analysis.quality
                     );
                     profile.update_tcp_client(tcp_analysis.clone());
@@ -176,8 +176,8 @@ impl HuginnAnalyzer {
 
         // Process SYN-ACK packets (server data)
         if let Some(syn_ack) = &result.syn_ack {
-            info!(
-                "📤 Processing SYN-ACK packet from {}:{} to {}:{} (SERVER)",
+            debug!(
+                "Processing SYN-ACK packet from {}:{} to {}:{} (SERVER)",
                 syn_ack.source.ip,
                 syn_ack.source.port,
                 syn_ack.destination.ip,
@@ -189,8 +189,8 @@ impl HuginnAnalyzer {
             // Create legacy TCP server analysis for backwards compatibility
             if self.config.enable_tcp {
                 if let Some(tcp_analysis) = self.analyze_tcp_syn_ack(syn_ack)? {
-                    info!(
-                        "🔶 TCP SERVER analysis: OS={}, Quality={:.2}",
+                    debug!(
+                        "TCP SERVER analysis: OS={}, Quality={:.2}",
                         tcp_analysis.os, tcp_analysis.quality
                     );
                     profile.update_tcp_server(tcp_analysis.clone());
@@ -202,8 +202,8 @@ impl HuginnAnalyzer {
 
         // Process HTTP requests (client data)
         if let Some(http_req) = &result.http_request {
-            info!(
-                "🌐📥 Processing HTTP request from {}:{} (CLIENT)",
+            debug!(
+                "Processing HTTP request from {}:{} (CLIENT)",
                 http_req.source.ip, http_req.source.port
             );
             let http_req_data = self.process_http_request(http_req)?;
@@ -220,8 +220,8 @@ impl HuginnAnalyzer {
 
         // Process HTTP responses (server data)
         if let Some(http_res) = &result.http_response {
-            info!(
-                "🌐📤 Processing HTTP response from {}:{} to {}:{} (SERVER)",
+            debug!(
+                "Processing HTTP response from {}:{} to {}:{} (SERVER)",
                 http_res.source.ip,
                 http_res.source.port,
                 http_res.destination.ip,
@@ -233,8 +233,8 @@ impl HuginnAnalyzer {
 
         // Process TLS client data
         if let Some(tls_client) = &result.tls_client {
-            info!(
-                "🔒 Processing TLS client from {}:{}",
+            debug!(
+                "Processing TLS client from {}:{}",
                 tls_client.source.ip, tls_client.source.port
             );
             let tls_data = self.process_tls_client(tls_client)?;
@@ -251,8 +251,8 @@ impl HuginnAnalyzer {
 
         // Process MTU data
         if let Some(mtu) = &result.mtu {
-            info!(
-                "📏 Processing MTU data from {}:{}",
+            debug!(
+                "Processing MTU data from {}:{}",
                 mtu.source.ip, mtu.source.port
             );
             let mtu_data = self.process_mtu_data(mtu)?;
@@ -261,8 +261,8 @@ impl HuginnAnalyzer {
 
         // Process uptime data
         if let Some(uptime) = &result.uptime {
-            info!(
-                "⏱️ Processing uptime data from {}:{}",
+            debug!(
+                "Processing uptime data from {}:{}",
                 uptime.source.ip, uptime.source.port
             );
             let uptime_data = self.process_uptime_data(uptime)?;

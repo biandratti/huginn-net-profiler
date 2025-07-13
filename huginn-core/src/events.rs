@@ -91,7 +91,7 @@ impl EventHandler for LoggingEventHandler {
                 quality,
                 ..
             } => {
-                tracing::info!(
+                tracing::debug!(
                     "TCP analysis for {}:{} - OS: {} (quality: {:.2})",
                     ip,
                     port,
@@ -106,7 +106,7 @@ impl EventHandler for LoggingEventHandler {
                 quality,
                 ..
             } => {
-                tracing::info!(
+                tracing::debug!(
                     "HTTP analysis for {}:{} - Browser: {} (quality: {:.2})",
                     ip,
                     port,
@@ -115,7 +115,7 @@ impl EventHandler for LoggingEventHandler {
                 );
             }
             TrafficEvent::TlsAnalyzed { ip, port, ja4, .. } => {
-                tracing::info!("TLS analysis for {}:{} - JA4: {}", ip, port, ja4);
+                tracing::debug!("TLS analysis for {}:{} - JA4: {}", ip, port, ja4);
             }
             TrafficEvent::AnalysisError {
                 ip, port, error, ..

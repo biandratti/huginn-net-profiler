@@ -24,20 +24,3 @@ arc-swap = "1.7"
 futures = "0.3"
 tower = "0.5"
 axum-test = "17.3.0"
-
-# Legacy package (will be moved to huginn-api later)
-[package]
-name = "huginn-net-profiler"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-axum = { workspace = true }
-tokio = { workspace = true }
-serde = { workspace = true }
-huginn-net = { workspace = true }
-tower-http = { workspace = true }
-clap = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-axum-server-dual-protocol = "0.7.0"
