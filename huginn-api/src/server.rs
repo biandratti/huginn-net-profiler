@@ -99,14 +99,18 @@ impl From<ApiServerArgs> for ApiServerConfig {
             .parse()
             .unwrap_or_else(|_| SocketAddr::from(([127, 0, 0, 1], 3000)));
 
-        let mut collector_config = CollectorConfig::default();
-        collector_config.interface = args.interface.clone();
-        collector_config.buffer_size = args.buffer_size;
-        collector_config.channel_buffer_size = args.buffer_size;
-        collector_config.analyzer.enable_tcp = args.enable_tcp;
-        collector_config.analyzer.enable_http = args.enable_http;
-        collector_config.analyzer.enable_tls = args.enable_tls;
-        collector_config.analyzer.min_quality = args.quality_threshold;
+        let collector_config = CollectorConfig {
+            interface: args.interface.clone(),
+            buffer_size: args.buffer_size,
+            channel_buffer_size: args.buffer_size,
+            analyzer: huginn_core::AnalyzerConfig {
+                enable_tcp: args.enable_tcp,
+                enable_http: args.enable_http,
+                enable_tls: args.enable_tls,
+                min_quality: args.quality_threshold,
+            },
+            ..CollectorConfig::default()
+        };
 
         Self {
             bind_addr,
@@ -190,7 +194,7 @@ impl ApiServer {
 
         axum::serve(listener, app)
             .await
-            .map_err(|e| ApiError::internal(format!("Server error: {}", e)))?;
+            .map_err(|e| ApiError::internal(format!("Server error: {e}")))?;
 
         Ok(())
     }

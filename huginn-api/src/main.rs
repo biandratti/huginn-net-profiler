@@ -1,5 +1,4 @@
 use huginn_api::server::run_server;
-use tracing_subscriber;
 
 #[tokio::main]
 async fn main() {
@@ -8,7 +7,7 @@ async fn main() {
 
     // Run the server
     if let Err(e) = run_server().await {
-        eprintln!("Server error: {}", e);
+        eprintln!("Server error: {e}");
         std::process::exit(1);
     }
 }

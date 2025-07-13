@@ -109,10 +109,9 @@ impl CollectorHandle {
             match handle.join() {
                 Ok(result) => result?,
                 Err(e) => {
-                    error!("Bridge thread join error: {:?}", e);
+                    error!("Bridge thread join error: {e:?}");
                     return Err(CollectorError::Unknown(format!(
-                        "Bridge thread panic: {:?}",
-                        e
+                        "Bridge thread panic: {e:?}"
                     )));
                 }
             }

@@ -86,7 +86,7 @@ async fn handle_websocket(socket: WebSocket, state: AppState) {
                     Ok(update) => {
                         let message = serde_json::json!({
                             "type": "profile_update",
-                            "update": update,
+                            "update": Box::new(update),
                             "stats": state.get_stats(),
                             "timestamp": chrono::Utc::now()
                         });
@@ -265,7 +265,7 @@ pub enum ServerMessage {
 
     #[serde(rename = "profile_update")]
     ProfileUpdate {
-        update: ProfileUpdate,
+        update: Box<ProfileUpdate>,
         stats: crate::state::ProfileStats,
         timestamp: chrono::DateTime<chrono::Utc>,
     },

@@ -294,43 +294,43 @@ impl HuginnAnalyzer {
             // SYN packet: source is the client
             debug!("Extracting IP from SYN packet");
             let ip = IpAddr::from_str(&syn.source.ip.to_string())
-                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {}", e)))?;
+                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {e}")))?;
             Ok(ip)
         } else if let Some(syn_ack) = &result.syn_ack {
             // SYN-ACK packet: destination is the client that initiated the connection
             debug!("Extracting IP from SYN-ACK packet");
             let ip = IpAddr::from_str(&syn_ack.destination.ip.to_string())
-                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {}", e)))?;
+                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {e}")))?;
             Ok(ip)
         } else if let Some(http_req) = &result.http_request {
             // HTTP request: source is the client
             debug!("Extracting IP from HTTP request");
             let ip = IpAddr::from_str(&http_req.source.ip.to_string())
-                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {}", e)))?;
+                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {e}")))?;
             Ok(ip)
         } else if let Some(http_res) = &result.http_response {
             // HTTP response: destination is the client that made the request
             debug!("Extracting IP from HTTP response");
             let ip = IpAddr::from_str(&http_res.destination.ip.to_string())
-                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {}", e)))?;
+                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {e}")))?;
             Ok(ip)
         } else if let Some(tls_client) = &result.tls_client {
             // TLS client: source is the client
             debug!("Extracting IP from TLS client");
             let ip = IpAddr::from_str(&tls_client.source.ip.to_string())
-                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {}", e)))?;
+                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {e}")))?;
             Ok(ip)
         } else if let Some(mtu) = &result.mtu {
             // MTU detection: source is the client
             debug!("Extracting IP from MTU data");
             let ip = IpAddr::from_str(&mtu.source.ip.to_string())
-                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {}", e)))?;
+                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {e}")))?;
             Ok(ip)
         } else if let Some(uptime) = &result.uptime {
             // Uptime detection: source is the client
             debug!("Extracting IP from uptime data");
             let ip = IpAddr::from_str(&uptime.source.ip.to_string())
-                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {}", e)))?;
+                .map_err(|e| HuginnError::invalid_data(format!("Invalid IP: {e}")))?;
             Ok(ip)
         } else {
             debug!("No valid data found in FingerprintResult");
@@ -699,31 +699,31 @@ impl HuginnAnalyzer {
                 IpVersion::Any => "Unknown".to_string(),
             },
             initial_ttl: match sig.ittl {
-                Ttl::Distance(_, hops) => format!("Distance*{}", hops),
-                Ttl::Value(value) => format!("Value*{}", value),
-                Ttl::Bad(value) => format!("Bad*{}", value),
-                Ttl::Guess(value) => format!("Guess*{}", value),
+                Ttl::Distance(_, hops) => format!("Distance*{hops}"),
+                Ttl::Value(value) => format!("Value*{value}"),
+                Ttl::Bad(value) => format!("Bad*{value}"),
+                Ttl::Guess(value) => format!("Guess*{value}"),
             },
             options_length: sig.olen,
             mss: sig.mss,
             window_size: match sig.wsize {
-                WindowSize::Mod(val) => format!("MOD*{}", val),
-                WindowSize::Mss(val) => format!("MSS*{}", val),
-                WindowSize::Mtu(val) => format!("MTU*{}", val),
-                WindowSize::Value(val) => format!("Value*{}", val),
+                WindowSize::Mod(val) => format!("MOD*{val}"),
+                WindowSize::Mss(val) => format!("MSS*{val}"),
+                WindowSize::Mtu(val) => format!("MTU*{val}"),
+                WindowSize::Value(val) => format!("Value*{val}"),
                 WindowSize::Any => "Any".to_string(),
             },
             window_scale: sig.wscale,
             options_layout: sig
                 .olayout
                 .iter()
-                .map(|opt| format!("{:?}", opt))
+                .map(|opt| format!("{opt:?}"))
                 .collect::<Vec<_>>()
                 .join(","),
             quirks: sig
                 .quirks
                 .iter()
-                .map(|quirk| format!("{:?}", quirk))
+                .map(|quirk| format!("{quirk:?}"))
                 .collect::<Vec<_>>()
                 .join(","),
             payload_class: match sig.pclass {
