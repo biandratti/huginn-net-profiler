@@ -92,7 +92,7 @@ jobs:
       - name: Check lint
         run: cargo clippy --all-targets --all-features -- -D warnings
         
-  examples:
+  build-examples:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -125,80 +125,21 @@ jobs:
           if [ -f huginn-api/examples/basic_server_no_collector.rs ]; then
             cargo check --example basic_server_no_collector -p huginn-api
           fi
-          
-  security:
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - name: Cache cargo registry
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-      - name: Install cargo-audit
-        run: cargo install cargo-audit
-      - name: Security audit
-        run: cargo audit
-        
+                  
   coverage:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    container:
+      image: xd009642/tarpaulin:develop-nightly
+      options: --security-opt seccomp=unconfined
     steps:
       - uses: actions/checkout@v4
-      - name: Cache cargo registry
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y libpcap-dev
-      - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin
-      - name: Generate coverage report
-        run: cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./cobertura.xml
-          fail_ci_if_error: false
-          
-  ci-success:
-    runs-on: ubuntu-latest
-    needs: [build, test, format, lint, examples, security]
-    if: always()
-    steps:
-      - name: Check all jobs
+      - name: Generate code coverage
         run: |
-          if [[ "${{ needs.build.result }}" == "success" && \
-                "${{ needs.test.result }}" == "success" && \
-                "${{ needs.format.result }}" == "success" && \
-                "${{ needs.lint.result }}" == "success" && \
-                "${{ needs.examples.result }}" == "success" ]]; then
-            echo "✅ All essential CI checks passed!"
-            echo "Build: ${{ needs.build.result }}"
-            echo "Test: ${{ needs.test.result }}"
-            echo "Format: ${{ needs.format.result }}"
-            echo "Lint: ${{ needs.lint.result }}"
-            echo "Examples: ${{ needs.examples.result }}"
-            echo "Security: ${{ needs.security.result }} (informational only)"
-            exit 0
-          else
-            echo "❌ Some essential CI checks failed!"
-            echo "Build: ${{ needs.build.result }}"
-            echo "Test: ${{ needs.test.result }}"
-            echo "Format: ${{ needs.format.result }}"
-            echo "Lint: ${{ needs.lint.result }}"
-            echo "Examples: ${{ needs.examples.result }}"
-            echo "Security: ${{ needs.security.result }} (informational only)"
-            exit 1
-          fi
+          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
