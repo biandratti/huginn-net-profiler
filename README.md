@@ -97,3 +97,8 @@ huginn-api (REST API & WebSocket)
     ↓
 Web Client / External Applications
 ```
+
+## UI as example
+![Huginn Network Profiler UI](img.png)
+
+The web interface shows real-time network traffic analysis with detailed TCP, HTTP, and TLS profiling information for connected devices.
