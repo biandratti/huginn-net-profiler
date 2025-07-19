@@ -1,5 +1,6 @@
 /target
+/logs
 .idea/
-cobertura.xml
-cert.pem
-key.pem
+
+# Traefik
+/deployment/traefik/letsencrypt
