@@ -8,6 +8,8 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--providers.file.watch=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       # For local development, we disable the Let's Encrypt resolver.
@@ -25,6 +27,7 @@ services:
     volumes:
       # - "./traefik/letsencrypt:/letsencrypt" # Disabled for local development
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik.yml:/etc/traefik/dynamic.yml:ro"
     networks:
       - huginn-net
 
@@ -40,6 +43,9 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    volumes:
+      # Mount the JA4 database from the host
+      - "/home/maximilianobiandratti/Downloads/ja4db.json:/app/ja4db.json:ro"
     command:
       # IMPORTANT: Change 'eth0' to the actual network interface of your host machine.
       # You can find it by running `ip link show` on your host.
@@ -49,16 +55,10 @@ services:
       - "--bind"
       # Bind to a non-conflicting port on the host, e.g., 3000
       - "0.0.0.0:3000"
+      - "--ja4-database"
+      - "/app/ja4db.json"
     labels:
-      - "traefik.enable=true"
-      # Rule for web traffic (UI, API, WS).
-      # To access this locally, add `127.0.0.1 huginn.local.com` to your /etc/hosts file.
-      - "traefik.http.routers.huginn.rule=Host(`huginn.local.com`)"
-      - "traefik.http.routers.huginn.entrypoints=websecure"
-      # Enable TLS with Traefik's default (self-signed) certificate for local development
-      - "traefik.http.routers.huginn.tls=true"
-      # The service runs on port 3000 (as per the CMD)
-      - "traefik.http.services.huginn.loadbalancer.server.port=3000"
+      - "traefik.enable=false"  # Disable Docker provider for this service
     depends_on:
       - traefik
 
