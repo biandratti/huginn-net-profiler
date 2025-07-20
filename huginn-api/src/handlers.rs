@@ -47,6 +47,7 @@ pub struct TcpObserved {
 #[derive(Serialize, Clone)]
 pub struct HttpRequest {
     pub lang: Option<String>,
+    pub user_agent: Option<String>,
     pub diagnosis: String,
     pub browser: String,
     pub quality: String,
@@ -189,9 +190,11 @@ fn convert_profile_to_tcp_info(profile: &TrafficProfile) -> TcpInfo {
             .as_ref()
             .and_then(|al| al.split(',').next())
             .map(|l| l.trim().to_string());
+        let user_agent = http_req_data.user_agent.clone();
 
         tcp_info.http_request = Some(HttpRequest {
             lang,
+            user_agent,
             diagnosis: "none".to_string(),
             browser: "Chrome Android".to_string(), // Extract from User-Agent if available
             quality: format!("{:.2}", http_req_data.quality),

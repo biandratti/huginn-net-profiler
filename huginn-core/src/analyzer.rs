@@ -393,7 +393,7 @@ impl HuginnAnalyzer {
             http_req.sig.horder.iter().map(|h| h.to_string()).collect();
 
         Ok(crate::profile::HttpRequestData {
-            user_agent: self.extract_header_value_from_horder(&horder_strings, "user-agent"),
+            user_agent: self.extract_user_agent_from_signature(&http_req.sig.to_string()),
             accept: self.extract_header_value_from_horder(&horder_strings, "accept"),
             accept_language: self
                 .extract_header_value_from_horder(&horder_strings, "accept-language"),
@@ -591,7 +591,7 @@ impl HuginnAnalyzer {
             http_req.sig.horder.iter().map(|h| h.to_string()).collect();
 
         let request_data = crate::profile::HttpRequestData {
-            user_agent: self.extract_header_value_from_horder(&horder_strings, "user-agent"),
+            user_agent: self.extract_user_agent_from_signature(&http_req.sig.to_string()),
             accept: self.extract_header_value_from_horder(&horder_strings, "accept"),
             accept_language: self
                 .extract_header_value_from_horder(&horder_strings, "accept-language"),
@@ -682,6 +682,22 @@ impl HuginnAnalyzer {
             }
         }
         None
+    }
+
+    /// Extract User-Agent from HTTP signature: "version:headers:absent_headers:user_agent"
+    fn extract_user_agent_from_signature(&self, signature: &str) -> Option<String> {
+        let parts: Vec<&str> = signature.split(':').collect();
+        if parts.len() >= 4 {
+            // User-Agent is typically in the last part after the third colon
+            let user_agent_part = parts[3..].join(":");
+            if !user_agent_part.is_empty() && user_agent_part != "???" {
+                Some(user_agent_part.trim().to_string())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     fn extract_distance(&self, ttl: &Ttl) -> u8 {

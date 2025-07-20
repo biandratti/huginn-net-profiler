@@ -324,6 +324,10 @@ class UIManager {
                             <span class="data-value">${httpReq.browser || 'Unknown'}</span>
                         </div>
                         <div class="data-item">
+                            <span class="data-label">User-Agent:</span>
+                            <span class="data-value">${httpReq.user_agent ? httpReq.user_agent.substring(0, 50) + '...' : 'Unknown'}</span>
+                        </div>
+                        <div class="data-item">
                             <span class="data-label">Quality:</span>
                             <span class="data-value">${httpReq.quality || 'N/A'}</span>
                         </div>
@@ -736,6 +740,10 @@ class UIManager {
                             <div class="detail-item">
                                 <span class="detail-label">Browser:</span>
                                 <span class="detail-value">${httpReq.browser || 'Unknown'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">User-Agent:</span>
+                                <span class="detail-value">${httpReq.user_agent || 'Unknown'}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">Quality:</span>
