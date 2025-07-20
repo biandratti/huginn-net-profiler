@@ -11,7 +11,7 @@ pub struct JA4Entry {
     pub os: Option<String>,
     pub user_agent_string: Option<String>,
     pub certificate_authority: Option<String>,
-    pub observation_count: u32,
+    pub observation_count: Option<u32>,
     pub verified: bool,
     pub notes: Option<String>,
     pub ja4_fingerprint: Option<String>,
@@ -60,7 +60,7 @@ pub enum VerificationStatus {
     /// Exact match found in database (JA4 + User-Agent)
     ExactMatch {
         verified: bool,
-        observation_count: u32,
+        observation_count: Option<u32>,
     },
     /// JA4 found but different User-Agent
     JA4Match { expected_ua: Vec<String> },
@@ -76,7 +76,7 @@ impl JA4Database {
     /// Parse JA4 database from JSON string
     pub fn from_json(json_data: &str) -> Result<Self> {
         let entries: Vec<JA4Entry> = serde_json::from_str(json_data)
-            .map_err(|e| HuginnError::invalid_data(format!("Failed to parse JA4 JSON: {}", e)))?;
+            .map_err(|e| HuginnError::invalid_data(format!("Failed to parse JA4 JSON: {e}")))?;
 
         let mut ja4_to_entries = HashMap::new();
         let mut ua_to_entries = HashMap::new();
@@ -172,7 +172,7 @@ impl JA4Database {
             entry
                 .user_agent_string
                 .as_ref()
-                .map_or(false, |ua| ua == user_agent)
+                .is_some_and(|ua| ua == user_agent)
         })
     }
 
@@ -245,8 +245,7 @@ impl JA4Database {
                 0.7
             } else {
                 anomalies.push(format!(
-                    "Application mismatch: JA4 suggests {:?}, User-Agent suggests {:?}",
-                    ja4_apps, ua_apps
+                    "Application mismatch: JA4 suggests {ja4_apps:?}, User-Agent suggests {ua_apps:?}"
                 ));
                 0.2
             };

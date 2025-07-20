@@ -317,10 +317,10 @@ impl ApiServer {
     async fn load_ja4_database(&mut self, ja4_path: &str) -> Result<()> {
         let json_content = tokio::fs::read_to_string(ja4_path)
             .await
-            .map_err(|e| ApiError::internal(format!("Failed to read JA4 database file: {}", e)))?;
+            .map_err(|e| ApiError::internal(format!("Failed to read JA4 database file: {e}")))?;
 
         let ja4_database = JA4Database::from_json(&json_content)
-            .map_err(|e| ApiError::internal(format!("Failed to parse JA4 database: {}", e)))?;
+            .map_err(|e| ApiError::internal(format!("Failed to parse JA4 database: {e}")))?;
 
         let stats = ja4_database.get_stats();
         info!("Loaded JA4 database with {} entries", stats.total_entries);

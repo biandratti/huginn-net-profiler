@@ -1,7 +1,7 @@
 use huginn_core::{ConsistencyAnalysis, JA4Database};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Ejemplo de JSON de la base de datos JA4 (versión simplificada)
+    // JA4 database example
     let ja4_json = r#"[
         {
             "application": "Chromium Browser",
@@ -86,7 +86,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn print_analysis(test_name: &str, analysis: &ConsistencyAnalysis) {
-    println!("  Test: {}", test_name);
+    println!("  Test: {test_name}");
     println!(
         "  Consistent: {} (confidence: {:.2})",
         analysis.is_consistent, analysis.confidence
@@ -97,7 +97,7 @@ fn print_analysis(test_name: &str, analysis: &ConsistencyAnalysis) {
     }
 
     if let Some(detected) = &analysis.detected_application {
-        println!("  Detected app: {}", detected);
+        println!("  Detected app: {detected}");
     }
 
     if !analysis.anomalies.is_empty() {
