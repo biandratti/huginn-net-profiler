@@ -27,6 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         static_dir: Some("static".to_string()),
         enable_cors: true,
         collector_config,
+        ja4_database_path: Some("ja4_database.json".to_string()),
     };
 
     tracing::info!("Starting Huginn API server...");

@@ -6,12 +6,14 @@
 pub mod analyzer;
 pub mod error;
 pub mod events;
+pub mod ja4;
 pub mod profile;
 
 // Re-export main types
 pub use analyzer::{AnalyzerConfig, HuginnAnalyzer};
 pub use error::{HuginnError, Result};
 pub use events::{EventHandler, LoggingEventHandler, TrafficEvent};
+pub use ja4::{ConsistencyAnalysis, JA4Database, JA4DatabaseStats, JA4Entry, VerificationStatus};
 pub use profile::{HttpAnalysis, TcpAnalysis, TlsAnalysis, TrafficProfile};
 
 // Re-export huginn-net types for convenience

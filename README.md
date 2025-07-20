@@ -71,10 +71,10 @@ ip link show
 
 # Run the API server with your interface (defaults to port 3000)
 # Use sudo if required for network capture
-sudo ./target/release/huginn-api --interface eth0
+sudo ./target/release/huginn-api --interface eth0 --ja4-database path/to/ja4_database.json
 
 # To run on a different port (e.g., 8080)
-# sudo ./target/release/huginn-api --interface eth0 --bind 0.0.0.0:8080
+# sudo ./target/release/huginn-api --interface eth0 --bind 0.0.0.0:8080 --ja4-database path/to/ja4_database.json
 ```
 
 ### 3. Access the Web Interface

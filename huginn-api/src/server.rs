@@ -7,6 +7,7 @@ use crate::{
 use axum::{routing::get, Router};
 use clap::Parser;
 use huginn_collector::{CollectorConfig, NetworkCollector};
+use huginn_core::JA4Database;
 use std::net::SocketAddr;
 // use tower::ServiceBuilder;
 use tower_http::{
@@ -31,6 +32,8 @@ pub struct ApiServerConfig {
     pub enable_cors: bool,
     /// Collector configuration
     pub collector_config: CollectorConfig,
+    /// JA4 database file path
+    pub ja4_database_path: Option<String>,
 }
 
 impl Default for ApiServerConfig {
@@ -42,6 +45,7 @@ impl Default for ApiServerConfig {
             static_dir: Some("static".to_string()),
             enable_cors: true,
             collector_config: CollectorConfig::default(),
+            ja4_database_path: None,
         }
     }
 }
@@ -90,6 +94,10 @@ pub struct ApiServerArgs {
     /// Buffer size for profile processing
     #[arg(long, default_value = "1000")]
     pub buffer_size: usize,
+
+    /// Path to JA4 database JSON file for TLS client validation
+    #[arg(long)]
+    pub ja4_database: Option<String>,
 }
 
 impl From<ApiServerArgs> for ApiServerConfig {
@@ -123,6 +131,7 @@ impl From<ApiServerArgs> for ApiServerConfig {
             },
             enable_cors: !args.no_cors,
             collector_config,
+            ja4_database_path: args.ja4_database,
         }
     }
 }
@@ -150,6 +159,21 @@ impl ApiServer {
     /// Start the API server
     pub async fn start(mut self) -> Result<()> {
         info!("Starting Huginn API server on {}", self.config.bind_addr);
+
+        // Load JA4 database if provided
+        if let Some(ja4_path) = &self.config.ja4_database_path {
+            info!("Loading JA4 database from: {}", ja4_path);
+            let ja4_path = ja4_path.clone();
+            match self.load_ja4_database(&ja4_path).await {
+                Ok(()) => info!("JA4 database loaded successfully"),
+                Err(e) => {
+                    error!("Failed to load JA4 database: {}", e);
+                    warn!("Continuing without JA4 validation");
+                }
+            }
+        } else {
+            info!("No JA4 database provided, validation disabled");
+        }
 
         // Start network collector if enabled
         if self.config.enable_collector {
@@ -287,6 +311,28 @@ impl ApiServer {
         }
 
         router
+    }
+
+    /// Load JA4 database from file
+    async fn load_ja4_database(&mut self, ja4_path: &str) -> Result<()> {
+        let json_content = tokio::fs::read_to_string(ja4_path)
+            .await
+            .map_err(|e| ApiError::internal(format!("Failed to read JA4 database file: {}", e)))?;
+
+        let ja4_database = JA4Database::from_json(&json_content)
+            .map_err(|e| ApiError::internal(format!("Failed to parse JA4 database: {}", e)))?;
+
+        let stats = ja4_database.get_stats();
+        info!("Loaded JA4 database with {} entries", stats.total_entries);
+        info!(
+            "  Unique JA4 fingerprints: {}",
+            stats.unique_ja4_fingerprints
+        );
+        info!("  Unique User-Agents: {}", stats.unique_user_agents);
+        info!("  Verified entries: {}", stats.verified_entries);
+
+        self.state.set_ja4_database(ja4_database);
+        Ok(())
     }
 }
 

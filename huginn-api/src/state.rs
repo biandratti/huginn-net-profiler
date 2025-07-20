@@ -1,6 +1,6 @@
 use arc_swap::ArcSwap;
 use huginn_collector::CollectorHandle;
-use huginn_core::TrafficProfile;
+use huginn_core::{JA4Database, TrafficProfile};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -14,6 +14,8 @@ pub struct AppState {
     pub updates_tx: broadcast::Sender<ProfileUpdate>,
     /// Optional collector handle for management
     pub collector_handle: Option<Arc<CollectorHandle>>,
+    /// Optional JA4 database for validation
+    pub ja4_database: Option<Arc<JA4Database>>,
 }
 
 /// Update event for real-time notifications
@@ -52,6 +54,7 @@ impl AppState {
             profiles: Arc::new(ArcSwap::new(Arc::new(HashMap::new()))),
             updates_tx,
             collector_handle: None,
+            ja4_database: None,
         }
     }
 
@@ -60,6 +63,11 @@ impl AppState {
         let mut state = Self::new();
         state.collector_handle = Some(Arc::new(collector_handle));
         state
+    }
+
+    /// Set JA4 database for validation
+    pub fn set_ja4_database(&mut self, ja4_database: JA4Database) {
+        self.ja4_database = Some(Arc::new(ja4_database));
     }
 
     /// Get all profiles
