@@ -1,6 +1,7 @@
 /target
 /logs
 .idea/
+certs/
 
 # Traefik
 /deployment/traefik/letsencrypt

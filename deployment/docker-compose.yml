@@ -12,14 +12,8 @@ services:
       - "--providers.file.watch=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # For local development, we disable the Let's Encrypt resolver.
-      # Traefik will use a self-signed certificate automatically.
-      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      # - "--certificatesresolvers.myresolver.acme.email=your-email@domain.com"
-      # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-      # Redirect HTTP to HTTPS
-      # - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      # - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # For local development with self-signed certificates
+      - "--log.level=DEBUG"
     ports:
       - "80:80"
       - "443:443"
@@ -28,6 +22,9 @@ services:
       # - "./traefik/letsencrypt:/letsencrypt" # Disabled for local development
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./traefik.yml:/etc/traefik/dynamic.yml:ro"
+      # Mount SSL certificates
+      - "./certs/huginn.local.com+2.pem:/etc/ssl/certs/huginn.local.com+2.pem:ro"
+      - "./certs/huginn.local.com+2-key.pem:/etc/ssl/private/huginn.local.com+2-key.pem:ro"
     networks:
       - huginn-net
 
@@ -44,8 +41,8 @@ services:
       - NET_ADMIN
       - NET_RAW
     volumes:
-      # Mount the JA4 database from the host
-      - "/home/maximilianobiandratti/Downloads/ja4db.json:/app/ja4db.json:ro"
+      # Mount the custom JA4 test database
+      - "./ja4_test_database.json:/app/ja4db.json:ro"
     command:
       # IMPORTANT: Change 'eth0' to the actual network interface of your host machine.
       # You can find it by running `ip link show` on your host.

@@ -220,19 +220,19 @@ impl AppState {
             if profile.tls.is_some() {
                 tls_count += 1;
             }
-            
+
             // Calculate JA4 statistics
             if let Some(ja4_validation) = &profile.ja4_validation {
                 ja4_validated_count += 1;
                 ja4_confidence_sum += ja4_validation.confidence;
-                
+
                 if ja4_validation.is_consistent {
                     ja4_consistent_count += 1;
                 } else {
                     ja4_suspicious_count += 1;
                 }
             }
-            
+
             if profile.metadata.completeness >= 1.0 {
                 complete_count += 1;
             }

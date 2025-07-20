@@ -322,8 +322,16 @@ impl NetworkCollector {
                 } else {
                     // Merge the new profile data into existing profile
                     debug!("Updating existing profile for {}", key);
-                    let existing = self.profiles.get_mut(&key).unwrap();
-                    Self::merge_profiles(existing, profile);
+
+                    // Extract profile from HashMap to avoid borrow checker issues
+                    let mut existing = self.profiles.remove(&key).unwrap();
+                    Self::merge_profiles(&mut existing, profile);
+
+                    // Perform JA4 validation after merging (TLS and HTTP may arrive separately)
+                    self.analyzer.perform_ja4_validation(&mut existing);
+
+                    // Reinsert the validated profile
+                    self.profiles.insert(key, existing);
                 }
 
                 debug!(

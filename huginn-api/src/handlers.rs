@@ -5,7 +5,7 @@ use axum::{
     http::StatusCode,
     response::Json,
 };
-use huginn_core::{TrafficProfile, ConsistencyAnalysis, VerificationStatus};
+use huginn_core::{ConsistencyAnalysis, TrafficProfile, VerificationStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -123,13 +123,9 @@ pub enum JA4VerificationStatus {
         observation_count: Option<u32>,
     },
     #[serde(rename = "ja4_match")]
-    JA4Match { 
-        expected_ua: Vec<String> 
-    },
+    JA4Match { expected_ua: Vec<String> },
     #[serde(rename = "user_agent_match")]
-    UserAgentMatch { 
-        expected_ja4: Vec<String> 
-    },
+    UserAgentMatch { expected_ja4: Vec<String> },
     #[serde(rename = "no_match")]
     NoMatch,
     #[serde(rename = "insufficient_data")]
@@ -318,17 +314,16 @@ fn convert_profile_to_tcp_info(profile: &TrafficProfile) -> TcpInfo {
 /// Convert huginn-core ConsistencyAnalysis to API JA4ValidationInfo
 fn convert_ja4_validation(analysis: &ConsistencyAnalysis) -> JA4ValidationInfo {
     let verification_status = match &analysis.verification_status {
-        VerificationStatus::ExactMatch { verified, observation_count } => {
-            JA4VerificationStatus::ExactMatch {
-                verified: *verified,
-                observation_count: *observation_count,
-            }
-        }
-        VerificationStatus::JA4Match { expected_ua } => {
-            JA4VerificationStatus::JA4Match {
-                expected_ua: expected_ua.clone(),
-            }
-        }
+        VerificationStatus::ExactMatch {
+            verified,
+            observation_count,
+        } => JA4VerificationStatus::ExactMatch {
+            verified: *verified,
+            observation_count: *observation_count,
+        },
+        VerificationStatus::JA4Match { expected_ua } => JA4VerificationStatus::JA4Match {
+            expected_ua: expected_ua.clone(),
+        },
         VerificationStatus::UserAgentMatch { expected_ja4 } => {
             JA4VerificationStatus::UserAgentMatch {
                 expected_ja4: expected_ja4.clone(),
@@ -652,7 +647,9 @@ pub async fn search_profiles(
             if search_term == "consistent" && ja4_validation.is_consistent {
                 relevance += 0.4;
                 matches += 1;
-            } else if (search_term == "suspicious" || search_term == "inconsistent") && !ja4_validation.is_consistent {
+            } else if (search_term == "suspicious" || search_term == "inconsistent")
+                && !ja4_validation.is_consistent
+            {
                 relevance += 0.4;
                 matches += 1;
             }
