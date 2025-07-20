@@ -6,6 +6,8 @@ class UIManager {
         this.currentFilter = 'all';
         this.searchQuery = '';
         this.isModalOpen = false;
+        this.myProfileMode = false;
+        this.myProfileData = null;
         this.activityFeed = [];
         this.maxActivityItems = 100;
         
@@ -42,6 +44,7 @@ class UIManager {
             searchInput: document.getElementById('searchInput'),
             searchBtn: document.getElementById('searchBtn'),
             filterType: document.getElementById('filterType'),
+            myProfile: document.getElementById('myProfile'),
             clearProfiles: document.getElementById('clearProfiles'),
             refreshProfiles: document.getElementById('refreshProfiles'),
             
@@ -84,10 +87,14 @@ class UIManager {
         // Filter functionality
         this.elements.filterType?.addEventListener('change', (e) => {
             this.currentFilter = e.target.value;
+            this.exitMyProfileMode();
             this.filterProfiles();
         });
 
-        // Control buttons
+        this.elements.myProfile?.addEventListener('click', () => {
+            this.showMyProfile();
+        });
+
         this.elements.clearProfiles?.addEventListener('click', () => {
             this.clearAllProfiles();
         });
@@ -216,7 +223,18 @@ class UIManager {
             this.showEmptyState();
         } else {
             this.hideEmptyState();
-            this.renderProfiles(profiles);
+            
+            // If in My Profile mode, maintain the filter
+            if (this.myProfileMode && this.myProfileData) {
+                // Update my profile data if it exists in new data
+                const myProfileKey = Object.keys(this.myProfileData)[0];
+                if (profiles[myProfileKey]) {
+                    this.myProfileData[myProfileKey] = profiles[myProfileKey];
+                }
+                this.renderProfiles(this.myProfileData);
+            } else {
+                this.renderProfiles(profiles);
+            }
         }
     }
 
@@ -1451,7 +1469,191 @@ class UIManager {
         if (!this.elements.searchInput) return;
 
         this.searchQuery = this.elements.searchInput.value.trim();
+        
+        // Exit My Profile mode unless the search is specifically for "My Profile"
+        if (!this.searchQuery.startsWith('My Profile')) {
+            this.exitMyProfileMode();
+        }
+        
         this.filterProfiles();
+    }
+
+    // Show only my profile
+    async showMyProfile() {
+        try {
+            // Get both public and local IPs
+            const publicIP = await this.getPublicIP();
+            const localIP = await this.getLocalIP();
+            
+            const candidateIPs = [publicIP, localIP].filter(Boolean);
+            
+            if (candidateIPs.length === 0) {
+                alert('❌ Could not detect any IP address');
+                return;
+            }
+
+            // Check if we have profiles
+            if (!this.currentProfiles || this.currentProfiles.size === 0) {
+                alert('❌ No profiles available yet.\n\nMake sure the collector is running and you\'ve generated some network traffic first.');
+                return;
+            }
+
+            // Find my profile using any candidate IP
+            const profilesObject = Object.fromEntries(this.currentProfiles);
+            
+            let myProfile = null;
+            let matchedIP = null;
+            
+            // Try to find exact matches first
+            for (const candidateIP of candidateIPs) {
+                myProfile = Object.entries(profilesObject).find(([key, profile]) => {
+                    return key === candidateIP || profile.source_ip === candidateIP;
+                });
+                if (myProfile) {
+                    matchedIP = candidateIP;
+                    break;
+                }
+            }
+            
+            // If no exact match, try partial matches
+            if (!myProfile) {
+                for (const candidateIP of candidateIPs) {
+                    myProfile = Object.entries(profilesObject).find(([key, profile]) => {
+                        return key.includes(candidateIP) || candidateIP.includes(key) ||
+                               (profile.source_ip && (profile.source_ip.includes(candidateIP) || candidateIP.includes(profile.source_ip)));
+                    });
+                    if (myProfile) {
+                        matchedIP = candidateIP;
+                        break;
+                    }
+                }
+            }
+
+            if (!myProfile) {
+                // Offer manual selection
+                const profileKeys = Object.keys(profilesObject);
+                const manualChoice = confirm(`❌ No automatic match found for your IPs: ${candidateIPs.join(', ')}\n\nAvailable profiles: ${profileKeys.join(', ')}\n\nWould you like to manually select your profile?`);
+                
+                if (manualChoice && profileKeys.length > 0) {
+                    // For now, let's assume the user wants the first local IP profile
+                    const localProfile = profileKeys.find(key => key.startsWith('192.168.') || key.startsWith('10.') || key.startsWith('172.'));
+                    if (localProfile) {
+                        myProfile = [localProfile, profilesObject[localProfile]];
+                        matchedIP = localProfile;
+                    } else {
+                        alert('❌ No suitable local profile found.');
+                        return;
+                    }
+                } else {
+                    return;
+                }
+            }
+
+            // Activate My Profile mode
+            this.myProfileMode = true;
+            this.myProfileData = { [myProfile[0]]: myProfile[1] };
+            
+            // Show only my profile
+            this.renderProfiles(this.myProfileData);
+            
+            // Update UI indicators
+            if (this.elements.filterType) {
+                this.elements.filterType.value = 'all'; // Reset filter dropdown
+            }
+            
+            if (this.elements.searchInput) {
+                this.elements.searchInput.value = `My Profile (${myProfile[0]})`;
+            }
+            
+            // Update My Profile button to show active state
+            if (this.elements.myProfile) {
+                this.elements.myProfile.textContent = '👤 My Profile (Active)';
+                this.elements.myProfile.classList.add('btn-active');
+            }
+            
+        } catch (error) {
+            console.error('Error showing my profile:', error);
+            alert('❌ Error detecting your profile. Please try again.');
+        }
+    }
+
+    // Exit My Profile mode and return to normal view
+    exitMyProfileMode() {
+        if (this.myProfileMode) {
+            this.myProfileMode = false;
+            this.myProfileData = null;
+            
+            // Reset search input if it was showing "My Profile"
+            if (this.elements.searchInput && this.elements.searchInput.value.startsWith('My Profile')) {
+                this.elements.searchInput.value = '';
+                this.searchQuery = '';
+            }
+            
+            // Reset My Profile button to normal state
+            if (this.elements.myProfile) {
+                this.elements.myProfile.textContent = '👤 My Profile';
+                this.elements.myProfile.classList.remove('btn-active');
+            }
+        }
+    }
+
+    // Get public IP address
+    async getPublicIP() {
+        try {
+            const response = await fetch('https://api.ipify.org?format=json');
+            const data = await response.json();
+            return data.ip || null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    // Get client IP address (try both public and local)
+    async getClientIP() {
+        const publicIP = await this.getPublicIP();
+        if (publicIP) return publicIP;
+        
+        const localIP = await this.getLocalIP();
+        return localIP;
+    }
+
+    // Get local IP using WebRTC
+    getLocalIP() {
+        return new Promise((resolve) => {
+            const pc = new RTCPeerConnection({
+                iceServers: [{urls: 'stun:stun.l.google.com:19302'}]
+            });
+
+            let resolved = false;
+            pc.createDataChannel('');
+            pc.createOffer().then(offer => pc.setLocalDescription(offer));
+
+            pc.onicecandidate = (event) => {
+                if (event.candidate && !resolved) {
+                    const candidate = event.candidate.candidate;
+                    
+                    // Look for IPv4 addresses
+                    const ipMatch = candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+                    if (ipMatch) {
+                        const ip = ipMatch[1];
+                        // Skip localhost and weird IPs
+                        if (ip !== '127.0.0.1' && !ip.startsWith('169.254.')) {
+                            resolved = true;
+                            pc.close();
+                            resolve(ip);
+                        }
+                    }
+                }
+            };
+
+            // Timeout after 5 seconds
+            setTimeout(() => {
+                if (!resolved) {
+                    pc.close();
+                    resolve(null);
+                }
+            }, 5000);
+        });
     }
 
     // Show empty state
@@ -1491,6 +1693,8 @@ class UIManager {
     // Refresh profiles
     async refreshProfiles() {
         try {
+            this.exitMyProfileMode();
+            
             const profiles = await window.huginnAPI.getProfiles();
             this.updateProfiles(profiles);
             

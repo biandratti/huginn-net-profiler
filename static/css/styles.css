@@ -134,6 +134,17 @@ body {
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
+.btn-active {
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(56, 161, 105, 0.4) !important;
+}
+
+.btn-active:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(56, 161, 105, 0.5) !important;
+}
+
 .btn-secondary {
     background: rgba(255, 255, 255, 0.9);
     color: #4a5568;
