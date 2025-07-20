@@ -2,6 +2,7 @@ use crate::error::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
+use tracing::debug;
 
 /// Events that can occur during traffic analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -142,7 +143,7 @@ impl EventHandler for LoggingEventHandler {
                 } else {
                     "⚠️ SUSPICIOUS"
                 };
-                tracing::info!(
+                debug!(
                     "JA4 validation for {}:{} - {} (confidence: {:.1}%) JA4: {} UA: {}",
                     ip,
                     port,

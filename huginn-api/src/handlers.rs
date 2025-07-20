@@ -644,12 +644,11 @@ pub async fn search_profiles(
             }
 
             // Search by consistency status
-            if search_term == "consistent" && ja4_validation.is_consistent {
-                relevance += 0.4;
-                matches += 1;
-            } else if (search_term == "suspicious" || search_term == "inconsistent")
-                && !ja4_validation.is_consistent
-            {
+            let consistency_match = (search_term == "consistent" && ja4_validation.is_consistent)
+                || ((search_term == "suspicious" || search_term == "inconsistent")
+                    && !ja4_validation.is_consistent);
+
+            if consistency_match {
                 relevance += 0.4;
                 matches += 1;
             }

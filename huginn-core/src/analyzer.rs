@@ -78,8 +78,8 @@ impl HuginnAnalyzer {
     /// Analyze a fingerprint result and return a traffic profile
     pub fn analyze(&self, result: FingerprintResult) -> Result<Option<TrafficProfile>> {
         // Debug logging to understand what huginn-net is sending
-        tracing::info!(
-            "🔍 ANALYZING FingerprintResult: SYN:{} SYN-ACK:{} HTTP-REQ:{} HTTP-RES:{} TLS:{} MTU:{} UPTIME:{}",
+        debug!(
+            "ANALYZING FingerprintResult: SYN:{} SYN-ACK:{} HTTP-REQ:{} HTTP-RES:{} TLS:{} MTU:{} UPTIME:{}",
             result.syn.is_some(),
             result.syn_ack.is_some(),
             result.http_request.is_some(),
@@ -816,7 +816,7 @@ impl HuginnAnalyzer {
         let ja4_database = match &self.ja4_database {
             Some(db) => db,
             None => {
-                tracing::info!("JA4 database not available, skipping validation");
+                debug!("JA4 database not available, skipping validation");
                 return;
             }
         };
@@ -829,8 +829,8 @@ impl HuginnAnalyzer {
                 if let Some(tls) = &profile.tls {
                     &tls.ja4
                 } else {
-                    tracing::info!("No TLS data available for JA4 validation - raw_data.tls_client: {:?}, tls: {:?}, raw_data summary: syn={:?}, tls_client={:?}", 
-                           profile.raw_data.tls_client.is_some(), 
+                    debug!("No TLS data available for JA4 validation - raw_data.tls_client: {:?}, tls: {:?}, raw_data summary: syn={:?}, tls_client={:?}", 
+                           profile.raw_data.tls_client.is_some(),
                            profile.tls.is_some(),
                            profile.raw_data.syn.is_some(),
                            profile.raw_data.tls_client.is_some());
@@ -844,7 +844,7 @@ impl HuginnAnalyzer {
             Some(http_data) => match &http_data.user_agent {
                 Some(ua) => ua,
                 None => {
-                    tracing::info!("No User-Agent in HTTP request data");
+                    debug!("No User-Agent in HTTP request data");
                     return;
                 }
             },
@@ -855,16 +855,16 @@ impl HuginnAnalyzer {
                         match &request.user_agent {
                             Some(ua) => ua,
                             None => {
-                                tracing::info!("No User-Agent in legacy HTTP request data");
+                                debug!("No User-Agent in legacy HTTP request data");
                                 return;
                             }
                         }
                     } else {
-                        tracing::info!("No HTTP request in legacy HTTP data");
+                        debug!("No HTTP request in legacy HTTP data");
                         return;
                     }
                 } else {
-                    tracing::info!(
+                    debug!(
                         "No HTTP data available for JA4 validation - raw_data: {:?}, http: {:?}",
                         profile.raw_data.http_request.is_some(),
                         profile.http.is_some()
@@ -874,7 +874,7 @@ impl HuginnAnalyzer {
             }
         };
 
-        tracing::info!(
+        debug!(
             "Performing JA4 validation for {}:{} - JA4: {} UA: {}",
             profile.ip,
             profile.port,
@@ -891,7 +891,7 @@ impl HuginnAnalyzer {
         // Perform validation
         let validation_result = ja4_database.validate_consistency(ja4, user_agent);
 
-        tracing::info!(
+        debug!(
             "JA4 validation result for {}:{} - Consistent: {}, Confidence: {:.2}, Anomalies: {}",
             ip,
             port,

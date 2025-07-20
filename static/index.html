@@ -68,6 +68,29 @@
                             <div class="stat-label">Complete Profiles</div>
                         </div>
                     </div>
+                    <div class="stat-card ja4-stats-card">
+                        <div class="stat-icon">🔍</div>
+                        <div class="stat-content">
+                            <div class="stat-label">JA4 Statistics</div>
+                            <div class="ja4-stats-grid">
+                                <div class="ja4-stat-item">
+                                    <span class="ja4-icon">🔍</span>
+                                    <span class="ja4-value" id="ja4ValidatedProfiles">0</span>
+                                    <span class="ja4-label">Validated</span>
+                                </div>
+                                <div class="ja4-stat-item">
+                                    <span class="ja4-icon">✅</span>
+                                    <span class="ja4-value" id="ja4ConsistentProfiles">0</span>
+                                    <span class="ja4-label">Consistent</span>
+                                </div>
+                                <div class="ja4-stat-item">
+                                    <span class="ja4-icon">⚠️</span>
+                                    <span class="ja4-value" id="ja4SuspiciousProfiles">0</span>
+                                    <span class="ja4-label">Suspicious</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -87,6 +110,9 @@
                             <option value="http">HTTP Only</option>
                             <option value="tls">TLS Only</option>
                             <option value="complete">Complete Profiles</option>
+                            <option value="ja4_validated">JA4 Validated</option>
+                            <option value="ja4_consistent">JA4 Consistent</option>
+                            <option value="ja4_suspicious">JA4 Suspicious</option>
                         </select>
                         <button id="clearProfiles" class="btn btn-danger">🗑️ Clear All</button>
                         <button id="refreshProfiles" class="btn btn-secondary">🔄 Refresh</button>

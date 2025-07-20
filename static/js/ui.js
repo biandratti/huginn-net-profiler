@@ -34,6 +34,9 @@ class UIManager {
             httpProfiles: document.getElementById('httpProfiles'),
             tlsProfiles: document.getElementById('tlsProfiles'),
             completeProfiles: document.getElementById('completeProfiles'),
+            ja4ValidatedProfiles: document.getElementById('ja4ValidatedProfiles'),
+            ja4ConsistentProfiles: document.getElementById('ja4ConsistentProfiles'),
+            ja4SuspiciousProfiles: document.getElementById('ja4SuspiciousProfiles'),
             
             // Controls elements
             searchInput: document.getElementById('searchInput'),
@@ -177,6 +180,15 @@ class UIManager {
         if (this.elements.completeProfiles) {
             this.elements.completeProfiles.textContent = stats.complete_profiles || 0;
         }
+        if (this.elements.ja4ValidatedProfiles) {
+            this.elements.ja4ValidatedProfiles.textContent = stats.ja4_validated_profiles || 0;
+        }
+        if (this.elements.ja4ConsistentProfiles) {
+            this.elements.ja4ConsistentProfiles.textContent = stats.ja4_consistent_profiles || 0;
+        }
+        if (this.elements.ja4SuspiciousProfiles) {
+            this.elements.ja4SuspiciousProfiles.textContent = stats.ja4_suspicious_profiles || 0;
+        }
     }
 
     // Update profiles display
@@ -240,12 +252,13 @@ class UIManager {
             <div class="profile-data">
                 ${this.createRawDataSections(profile)}
                 <div class="data-section">
-                    <div class="data-title">Quality Score</div>
+                    <div class="data-title">Profile Analysis</div>
                     <div class="data-content">
                         <div class="data-item">
-                            <span class="data-label">Completeness:</span>
+                            <span class="data-label">Quality Score:</span>
                             <span class="data-value">${completeness.toFixed(2)}</span>
                         </div>
+                        ${this.createJA4ValidationInfo(profile)}
                     </div>
                 </div>
             </div>
@@ -256,6 +269,102 @@ class UIManager {
         });
 
         return card;
+    }
+
+    // Create JA4 validation information for a profile
+    createJA4ValidationInfo(profile) {
+        if (!profile) return '';
+
+                 // Debug: Log profile structure for the first profile
+        if (Math.random() < 0.1) { // Only log 10% of the time to avoid spam
+            console.log('🔍 Profile structure:', {
+                profile_keys: Object.keys(profile),
+                tls_client: profile.tls_client ? 'exists' : 'undefined',
+                http_request: profile.http_request ? 'exists' : 'undefined',
+                ja4_validation: profile.ja4_validation ? 'exists' : 'undefined',
+                tls_client_ja4: profile?.tls_client?.ja4,
+                http_user_agent: profile?.http_request?.user_agent,
+                validation_result: profile?.ja4_validation?.is_consistent
+            });
+        }
+
+        // Check if we have JA4 validation data
+        const hasJA4Data = this.hasJA4ValidationData(profile);
+        
+        if (!hasJA4Data) {
+            return `
+                <div class="data-item">
+                    <span class="data-label">JA4 Status:</span>
+                    <span class="data-value ja4-status-none">No JA4 Data</span>
+                </div>
+            `;
+        }
+
+        // Extract JA4 validation result
+        const ja4Result = this.extractJA4ValidationResult(profile);
+        
+        return `
+            <div class="data-item">
+                <span class="data-label">JA4 Status:</span>
+                <span class="data-value ja4-status-${ja4Result.status}">${ja4Result.icon} ${ja4Result.text}</span>
+            </div>
+        `;
+    }
+
+    // Check if profile has JA4 validation data
+    hasJA4ValidationData(profile) {
+        // Check for JA4 data in the actual structure
+        return (profile?.tls_client?.ja4) ||
+               (profile?.tls?.ja4);
+    }
+
+    // Extract JA4 validation result from profile
+    extractJA4ValidationResult(profile) {
+        // Check if we have actual validation results from the backend
+        if (profile?.ja4_validation) {
+            const validation = profile.ja4_validation;
+            
+            if (validation.is_consistent) {
+                return {
+                    status: 'consistent',
+                    icon: '✅',
+                    text: `Consistent (${(validation.confidence * 100).toFixed(0)}%)`
+                };
+            } else {
+                const anomalyCount = validation.anomalies ? validation.anomalies.length : 0;
+                return {
+                    status: 'suspicious',
+                    icon: '⚠️',
+                    text: `Suspicious (${anomalyCount} anomalies)`
+                };
+            }
+        }
+
+                 // Fallback logic if no validation results available
+        const hasUserAgent = (profile?.http_request?.user_agent) ||
+                           (profile?.http?.request?.user_agent);
+
+        const hasJA4 = this.hasJA4ValidationData(profile);
+
+        if (hasJA4 && hasUserAgent) {
+            return {
+                status: 'validated',
+                icon: '🔍',
+                text: 'Validated (pending analysis)'
+            };
+        } else if (hasJA4 && !hasUserAgent) {
+            return {
+                status: 'validated',
+                icon: '🔍',
+                text: 'JA4 only'
+            };
+        } else {
+            return {
+                status: 'validated',
+                icon: '🔍',
+                text: 'Validated'
+            };
+        }
     }
 
     // Create data sections for TcpInfo structure (matching user's example)

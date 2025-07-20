@@ -220,6 +220,73 @@ body {
     margin-top: 0.25rem;
 }
 
+/* JA4 Statistics Card */
+.ja4-stats-card {
+    min-width: 250px;
+}
+
+.ja4-stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.ja4-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.ja4-stat-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.ja4-icon {
+    font-size: 1rem;
+    width: 1.5rem;
+    text-align: center;
+}
+
+.ja4-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+    min-width: 2rem;
+    text-align: center;
+}
+
+.ja4-label {
+    font-size: 0.875rem;
+    color: #4a5568;
+    flex: 1;
+}
+
+/* JA4 Status in Profile Cards */
+.ja4-status-validated {
+    color: #3182ce;
+    font-weight: 500;
+}
+
+.ja4-status-consistent {
+    color: #38a169;
+    font-weight: 500;
+}
+
+.ja4-status-suspicious {
+    color: #e53e3e;
+    font-weight: 500;
+}
+
+.ja4-status-none {
+    color: #718096;
+    font-style: italic;
+}
+
 /* Controls Section */
 .controls-section {
     padding: 1.5rem 0;
