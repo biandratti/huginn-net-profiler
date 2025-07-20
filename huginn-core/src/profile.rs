@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
+use crate::ja4::ConsistencyAnalysis;
+
 /// Complete traffic profile for a network endpoint
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrafficProfile {
@@ -23,6 +25,8 @@ pub struct TrafficProfile {
     pub http: Option<HttpAnalysis>,
     /// TLS analysis results (legacy - for backwards compatibility)
     pub tls: Option<TlsAnalysis>,
+    /// JA4 validation results (if JA4 database is available)
+    pub ja4_validation: Option<ConsistencyAnalysis>,
     /// Additional metadata
     pub metadata: ProfileMetadata,
 }
@@ -292,6 +296,7 @@ impl TrafficProfile {
             tcp_server: None,
             http: None,
             tls: None,
+            ja4_validation: None,
             metadata: ProfileMetadata {
                 first_seen: now,
                 last_updated: now,
@@ -350,6 +355,12 @@ impl TrafficProfile {
         self.update_metadata();
     }
 
+    /// Update the profile with JA4 validation results
+    pub fn update_ja4_validation(&mut self, validation: ConsistencyAnalysis) {
+        self.ja4_validation = Some(validation);
+        self.update_metadata();
+    }
+
     /// Calculate and update profile completeness
     fn update_metadata(&mut self) {
         self.metadata.last_updated = Utc::now();
@@ -377,6 +388,7 @@ impl TrafficProfile {
             && self.tcp_server.is_none()
             && self.http.is_none()
             && self.tls.is_none()
+            && self.ja4_validation.is_none()
     }
 
     /// Get a summary string of available data
@@ -396,6 +408,9 @@ impl TrafficProfile {
         }
         if self.tls.is_some() {
             parts.push("TLS");
+        }
+        if self.ja4_validation.is_some() {
+            parts.push("JA4-Validated");
         }
 
         if parts.is_empty() {

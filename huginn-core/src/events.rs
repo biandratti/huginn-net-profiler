@@ -47,6 +47,17 @@ pub enum TrafficEvent {
         timestamp: DateTime<Utc>,
     },
 
+    /// JA4 validation completed
+    JA4Validated {
+        ip: IpAddr,
+        port: u16,
+        ja4: String,
+        user_agent: String,
+        is_consistent: bool,
+        confidence: f64,
+        timestamp: DateTime<Utc>,
+    },
+
     /// Analysis error occurred
     AnalysisError {
         ip: IpAddr,
@@ -117,6 +128,30 @@ impl EventHandler for LoggingEventHandler {
             TrafficEvent::TlsAnalyzed { ip, port, ja4, .. } => {
                 tracing::debug!("TLS analysis for {}:{} - JA4: {}", ip, port, ja4);
             }
+            TrafficEvent::JA4Validated {
+                ip,
+                port,
+                ja4,
+                user_agent,
+                is_consistent,
+                confidence,
+                ..
+            } => {
+                let status = if is_consistent {
+                    "✅ CONSISTENT"
+                } else {
+                    "⚠️ SUSPICIOUS"
+                };
+                tracing::info!(
+                    "JA4 validation for {}:{} - {} (confidence: {:.1}%) JA4: {} UA: {}",
+                    ip,
+                    port,
+                    status,
+                    confidence * 100.0,
+                    ja4,
+                    user_agent.chars().take(50).collect::<String>()
+                );
+            }
             TrafficEvent::AnalysisError {
                 ip, port, error, ..
             } => {
@@ -170,6 +205,7 @@ impl TrafficEvent {
             TrafficEvent::TcpAnalyzed { ip, .. } => *ip,
             TrafficEvent::HttpAnalyzed { ip, .. } => *ip,
             TrafficEvent::TlsAnalyzed { ip, .. } => *ip,
+            TrafficEvent::JA4Validated { ip, .. } => *ip,
             TrafficEvent::AnalysisError { ip, .. } => *ip,
         }
     }
@@ -182,6 +218,7 @@ impl TrafficEvent {
             TrafficEvent::TcpAnalyzed { port, .. } => *port,
             TrafficEvent::HttpAnalyzed { port, .. } => *port,
             TrafficEvent::TlsAnalyzed { port, .. } => *port,
+            TrafficEvent::JA4Validated { port, .. } => *port,
             TrafficEvent::AnalysisError { port, .. } => *port,
         }
     }
@@ -194,6 +231,7 @@ impl TrafficEvent {
             TrafficEvent::TcpAnalyzed { timestamp, .. } => *timestamp,
             TrafficEvent::HttpAnalyzed { timestamp, .. } => *timestamp,
             TrafficEvent::TlsAnalyzed { timestamp, .. } => *timestamp,
+            TrafficEvent::JA4Validated { timestamp, .. } => *timestamp,
             TrafficEvent::AnalysisError { timestamp, .. } => *timestamp,
         }
     }

@@ -1,5 +1,6 @@
 use crate::error::{HuginnError, Result};
 use crate::events::{EventDispatcher, TrafficEvent};
+use crate::ja4::JA4Database;
 use crate::profile::{
     HttpAnalysis, HttpDetails, MtuData, NetworkEndpoint, OsDetection, SynAckPacketData,
     SynPacketData, TcpAnalysis, TcpDetails, TlsAnalysis, TlsClientData, TlsDetails, TrafficProfile,
@@ -42,6 +43,7 @@ impl Default for AnalyzerConfig {
 pub struct HuginnAnalyzer {
     config: AnalyzerConfig,
     event_dispatcher: EventDispatcher,
+    ja4_database: Option<JA4Database>,
 }
 
 impl HuginnAnalyzer {
@@ -50,6 +52,7 @@ impl HuginnAnalyzer {
         Self {
             config: AnalyzerConfig::default(),
             event_dispatcher: EventDispatcher::new(),
+            ja4_database: None,
         }
     }
 
@@ -58,7 +61,13 @@ impl HuginnAnalyzer {
         Self {
             config,
             event_dispatcher: EventDispatcher::new(),
+            ja4_database: None,
         }
+    }
+
+    /// Set the JA4 database for TLS client validation
+    pub fn set_ja4_database(&mut self, ja4_database: JA4Database) {
+        self.ja4_database = Some(ja4_database);
     }
 
     /// Get a mutable reference to the event dispatcher
@@ -271,6 +280,9 @@ impl HuginnAnalyzer {
 
         // Note: source_ip field doesn't exist in FingerprintResult
         // Will be determined from the individual packet data
+
+        // Perform JA4 validation if we have both TLS and HTTP data with JA4 database
+        self.perform_ja4_validation(&mut profile);
 
         // Only return profile if it has some data
         if profile.is_empty() {
@@ -796,6 +808,88 @@ impl HuginnAnalyzer {
                 timestamp: Utc::now(),
             });
         }
+    }
+
+    /// Perform JA4 validation if JA4 database is available and we have both TLS and HTTP data
+    fn perform_ja4_validation(&self, profile: &mut TrafficProfile) {
+        // Check if JA4 database is available
+        let ja4_database = match &self.ja4_database {
+            Some(db) => db,
+            None => {
+                debug!("JA4 database not available, skipping validation");
+                return;
+            }
+        };
+
+        // Extract JA4 fingerprint from TLS data
+        let ja4 = match &profile.tls {
+            Some(tls_analysis) => &tls_analysis.ja4,
+            None => {
+                debug!("No TLS data available for JA4 validation");
+                return;
+            }
+        };
+
+        // Extract User-Agent from HTTP data
+        let user_agent = match &profile.http {
+            Some(http_analysis) => match &http_analysis.request {
+                Some(request) => match &request.user_agent {
+                    Some(ua) => ua,
+                    None => {
+                        debug!("No User-Agent in HTTP request data");
+                        return;
+                    }
+                },
+                None => {
+                    debug!("No HTTP request data available");
+                    return;
+                }
+            },
+            None => {
+                debug!("No HTTP data available for JA4 validation");
+                return;
+            }
+        };
+
+        debug!(
+            "Performing JA4 validation for {}:{} - JA4: {} UA: {}",
+            profile.ip,
+            profile.port,
+            ja4,
+            user_agent.chars().take(50).collect::<String>()
+        );
+
+        // Extract needed values before performing validation to avoid borrow conflicts
+        let ip = profile.ip;
+        let port = profile.port;
+        let ja4_clone = ja4.clone();
+        let user_agent_clone = user_agent.clone();
+
+        // Perform validation
+        let validation_result = ja4_database.validate_consistency(ja4, user_agent);
+
+        debug!(
+            "JA4 validation result for {}:{} - Consistent: {}, Confidence: {:.2}, Anomalies: {}",
+            ip,
+            port,
+            validation_result.is_consistent,
+            validation_result.confidence,
+            validation_result.anomalies.len()
+        );
+
+        // Update profile with validation results
+        profile.update_ja4_validation(validation_result.clone());
+
+        // Emit JA4 validation event
+        self.event_dispatcher.dispatch(TrafficEvent::JA4Validated {
+            ip,
+            port,
+            ja4: ja4_clone,
+            user_agent: user_agent_clone,
+            is_consistent: validation_result.is_consistent,
+            confidence: validation_result.confidence,
+            timestamp: Utc::now(),
+        });
     }
 }
 
