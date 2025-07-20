@@ -204,6 +204,10 @@ impl AppState {
         let mut tcp_count = 0;
         let mut http_count = 0;
         let mut tls_count = 0;
+        let mut ja4_validated_count = 0;
+        let mut ja4_consistent_count = 0;
+        let mut ja4_suspicious_count = 0;
+        let mut ja4_confidence_sum = 0.0;
         let mut complete_count = 0;
 
         for profile in profiles.values() {
@@ -216,16 +220,40 @@ impl AppState {
             if profile.tls.is_some() {
                 tls_count += 1;
             }
+            
+            // Calculate JA4 statistics
+            if let Some(ja4_validation) = &profile.ja4_validation {
+                ja4_validated_count += 1;
+                ja4_confidence_sum += ja4_validation.confidence;
+                
+                if ja4_validation.is_consistent {
+                    ja4_consistent_count += 1;
+                } else {
+                    ja4_suspicious_count += 1;
+                }
+            }
+            
             if profile.metadata.completeness >= 1.0 {
                 complete_count += 1;
             }
         }
+
+        // Calculate average JA4 confidence
+        let ja4_average_confidence = if ja4_validated_count > 0 {
+            ja4_confidence_sum / ja4_validated_count as f64
+        } else {
+            0.0
+        };
 
         ProfileStats {
             total_profiles: profiles.len(),
             tcp_profiles: tcp_count,
             http_profiles: http_count,
             tls_profiles: tls_count,
+            ja4_validated_profiles: ja4_validated_count,
+            ja4_consistent_profiles: ja4_consistent_count,
+            ja4_suspicious_profiles: ja4_suspicious_count,
+            ja4_average_confidence,
             complete_profiles: complete_count,
             timestamp: chrono::Utc::now(),
         }
@@ -255,6 +283,14 @@ pub struct ProfileStats {
     pub http_profiles: usize,
     /// Number of profiles with TLS data
     pub tls_profiles: usize,
+    /// Number of profiles with JA4 validation data
+    pub ja4_validated_profiles: usize,
+    /// Number of profiles with consistent JA4 validation
+    pub ja4_consistent_profiles: usize,
+    /// Number of profiles with suspicious JA4 validation
+    pub ja4_suspicious_profiles: usize,
+    /// Average JA4 confidence for validated profiles
+    pub ja4_average_confidence: f64,
     /// Number of complete profiles (all data types)
     pub complete_profiles: usize,
     /// When these stats were generated

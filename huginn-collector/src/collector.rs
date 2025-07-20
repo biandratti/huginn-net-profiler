@@ -20,6 +20,8 @@ pub enum CollectorCommand {
     GetProfileCount(oneshot::Sender<usize>),
     /// Clear all profiles
     ClearProfiles,
+    /// Set JA4 database for validation
+    SetJA4Database(huginn_core::JA4Database),
 }
 
 /// Handle for controlling a running network collector
@@ -82,6 +84,14 @@ impl CollectorHandle {
             .send(CollectorCommand::ClearProfiles)
             .await
             .map_err(|_| CollectorError::channel("Failed to send clear_profiles command"))
+    }
+
+    /// Set JA4 database for validation
+    pub async fn set_ja4_database(&self, ja4_database: huginn_core::JA4Database) -> Result<()> {
+        self.command_sender
+            .send(CollectorCommand::SetJA4Database(ja4_database))
+            .await
+            .map_err(|_| CollectorError::channel("Failed to send set_ja4_database command"))
     }
 
     /// Stop the collector gracefully
@@ -268,6 +278,10 @@ impl NetworkCollector {
                             self.profiles.clear();
                             info!("Cleared all profiles");
                         }
+                        CollectorCommand::SetJA4Database(ja4_database) => {
+                            self.analyzer.set_ja4_database(ja4_database);
+                            info!("JA4 database configured in collector");
+                        }
                     }
                 }
 
@@ -354,6 +368,11 @@ impl NetworkCollector {
         // Update TLS data if new profile has it
         if new.tls.is_some() {
             existing.tls = new.tls;
+        }
+
+        // Update JA4 validation data if new profile has it
+        if new.ja4_validation.is_some() {
+            existing.ja4_validation = new.ja4_validation;
         }
 
         // Update raw data (no merge, just replace)

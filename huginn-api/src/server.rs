@@ -160,21 +160,6 @@ impl ApiServer {
     pub async fn start(mut self) -> Result<()> {
         info!("Starting Huginn API server on {}", self.config.bind_addr);
 
-        // Load JA4 database if provided
-        if let Some(ja4_path) = &self.config.ja4_database_path {
-            info!("Loading JA4 database from: {}", ja4_path);
-            let ja4_path = ja4_path.clone();
-            match self.load_ja4_database(&ja4_path).await {
-                Ok(()) => info!("JA4 database loaded successfully"),
-                Err(e) => {
-                    error!("Failed to load JA4 database: {}", e);
-                    warn!("Continuing without JA4 validation");
-                }
-            }
-        } else {
-            info!("No JA4 database provided, validation disabled");
-        }
-
         // Start network collector if enabled
         if self.config.enable_collector {
             info!(
@@ -191,6 +176,21 @@ impl ApiServer {
             }
         } else {
             info!("Network collector disabled");
+        }
+
+        // Load JA4 database if provided (after collector is started)
+        if let Some(ja4_path) = &self.config.ja4_database_path {
+            info!("Loading JA4 database from: {}", ja4_path);
+            let ja4_path = ja4_path.clone();
+            match self.load_ja4_database(&ja4_path).await {
+                Ok(()) => info!("JA4 database loaded and configured successfully"),
+                Err(e) => {
+                    error!("Failed to load JA4 database: {}", e);
+                    warn!("Continuing without JA4 validation");
+                }
+            }
+        } else {
+            info!("No JA4 database provided, validation disabled");
         }
 
         // Build the router
@@ -331,7 +331,17 @@ impl ApiServer {
         info!("  Unique User-Agents: {}", stats.unique_user_agents);
         info!("  Verified entries: {}", stats.verified_entries);
 
-        self.state.set_ja4_database(ja4_database);
+        // Set JA4 database in the state for API access
+        self.state.set_ja4_database(ja4_database.clone());
+
+        // If collector is running, also set JA4 database in the collector
+        if let Some(collector_handle) = &self.state.collector_handle {
+            match collector_handle.set_ja4_database(ja4_database).await {
+                Ok(()) => info!("JA4 database configured in collector"),
+                Err(e) => warn!("Failed to configure JA4 database in collector: {}", e),
+            }
+        }
+
         Ok(())
     }
 }

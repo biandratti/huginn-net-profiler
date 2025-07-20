@@ -5,7 +5,7 @@ use axum::{
     http::StatusCode,
     response::Json,
 };
-use huginn_core::TrafficProfile;
+use huginn_core::{TrafficProfile, ConsistencyAnalysis, VerificationStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -20,6 +20,7 @@ pub struct TcpInfo {
     pub http_response: Option<HttpResponse>,
     pub source_ip: Option<String>,
     pub tls_client: Option<TlsClient>,
+    pub ja4_validation: Option<JA4ValidationInfo>,
 }
 
 #[derive(Serialize, Clone)]
@@ -103,6 +104,38 @@ pub struct Uptime {
     pub freq: String,
 }
 
+#[derive(Serialize, Clone)]
+pub struct JA4ValidationInfo {
+    pub is_consistent: bool,
+    pub confidence: f64,
+    pub expected_applications: Vec<String>,
+    pub detected_application: Option<String>,
+    pub anomalies: Vec<String>,
+    pub verification_status: JA4VerificationStatus,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(tag = "type")]
+pub enum JA4VerificationStatus {
+    #[serde(rename = "exact_match")]
+    ExactMatch {
+        verified: bool,
+        observation_count: Option<u32>,
+    },
+    #[serde(rename = "ja4_match")]
+    JA4Match { 
+        expected_ua: Vec<String> 
+    },
+    #[serde(rename = "user_agent_match")]
+    UserAgentMatch { 
+        expected_ja4: Vec<String> 
+    },
+    #[serde(rename = "no_match")]
+    NoMatch,
+    #[serde(rename = "insufficient_data")]
+    InsufficientData,
+}
+
 // Helper function to convert TrafficProfile to TcpInfo structure (EXACTLY matching user's example)
 fn convert_profile_to_tcp_info(profile: &TrafficProfile) -> TcpInfo {
     let mut tcp_info = TcpInfo {
@@ -114,6 +147,7 @@ fn convert_profile_to_tcp_info(profile: &TrafficProfile) -> TcpInfo {
         http_response: None,
         source_ip: Some(profile.ip.to_string()), // Use profile IP directly
         tls_client: None,
+        ja4_validation: None,
     };
 
     // Convert SYN packet data (CLIENT)
@@ -273,7 +307,45 @@ fn convert_profile_to_tcp_info(profile: &TrafficProfile) -> TcpInfo {
         });
     }
 
+    // Convert JA4 validation data
+    if let Some(ja4_validation) = &profile.ja4_validation {
+        tcp_info.ja4_validation = Some(convert_ja4_validation(ja4_validation));
+    }
+
     tcp_info
+}
+
+/// Convert huginn-core ConsistencyAnalysis to API JA4ValidationInfo
+fn convert_ja4_validation(analysis: &ConsistencyAnalysis) -> JA4ValidationInfo {
+    let verification_status = match &analysis.verification_status {
+        VerificationStatus::ExactMatch { verified, observation_count } => {
+            JA4VerificationStatus::ExactMatch {
+                verified: *verified,
+                observation_count: *observation_count,
+            }
+        }
+        VerificationStatus::JA4Match { expected_ua } => {
+            JA4VerificationStatus::JA4Match {
+                expected_ua: expected_ua.clone(),
+            }
+        }
+        VerificationStatus::UserAgentMatch { expected_ja4 } => {
+            JA4VerificationStatus::UserAgentMatch {
+                expected_ja4: expected_ja4.clone(),
+            }
+        }
+        VerificationStatus::NoMatch => JA4VerificationStatus::NoMatch,
+        VerificationStatus::InsufficientData => JA4VerificationStatus::InsufficientData,
+    };
+
+    JA4ValidationInfo {
+        is_consistent: analysis.is_consistent,
+        confidence: analysis.confidence,
+        expected_applications: analysis.expected_applications.clone(),
+        detected_application: analysis.detected_application.clone(),
+        anomalies: analysis.anomalies.clone(),
+        verification_status,
+    }
 }
 
 /// Response for the health check endpoint
@@ -303,6 +375,12 @@ pub struct ProfileQuery {
     pub has_http: Option<bool>,
     /// Filter by having TLS data
     pub has_tls: Option<bool>,
+    /// Filter by having JA4 validation data
+    pub has_ja4_validation: Option<bool>,
+    /// Filter by JA4 consistency (true = consistent only, false = suspicious only)
+    pub ja4_consistent: Option<bool>,
+    /// Filter by minimum JA4 confidence (0.0-1.0)
+    pub min_ja4_confidence: Option<f64>,
     /// Limit number of results
     pub limit: Option<usize>,
 }
@@ -370,6 +448,42 @@ pub async fn get_profiles(
             }
             if !has_tls && has_tls_data {
                 continue;
+            }
+        }
+
+        // Apply JA4 validation filter
+        if let Some(has_ja4_validation) = query.has_ja4_validation {
+            let has_ja4_data = profile.ja4_validation.is_some();
+            if has_ja4_validation && !has_ja4_data {
+                continue;
+            }
+            if !has_ja4_validation && has_ja4_data {
+                continue;
+            }
+        }
+
+        // Apply JA4 consistency filter
+        if let Some(ja4_consistent) = query.ja4_consistent {
+            if let Some(ja4_validation) = &profile.ja4_validation {
+                if ja4_consistent && !ja4_validation.is_consistent {
+                    continue; // Looking for consistent but this is inconsistent
+                }
+                if !ja4_consistent && ja4_validation.is_consistent {
+                    continue; // Looking for suspicious but this is consistent
+                }
+            } else {
+                continue; // No JA4 data available
+            }
+        }
+
+        // Apply minimum JA4 confidence filter
+        if let Some(min_ja4_confidence) = query.min_ja4_confidence {
+            if let Some(ja4_validation) = &profile.ja4_validation {
+                if ja4_validation.confidence < min_ja4_confidence {
+                    continue; // Confidence too low
+                }
+            } else {
+                continue; // No JA4 data available
             }
         }
 
@@ -506,6 +620,44 @@ pub async fn search_profiles(
             }
         }
 
+        // Search in JA4 validation data
+        if let Some(ja4_validation) = &profile.ja4_validation {
+            // Search in expected applications
+            for app in &ja4_validation.expected_applications {
+                if app.to_lowercase().contains(&search_term) {
+                    relevance += 0.7;
+                    matches += 1;
+                    break; // Only count once per profile
+                }
+            }
+
+            // Search in detected application
+            if let Some(detected_app) = &ja4_validation.detected_application {
+                if detected_app.to_lowercase().contains(&search_term) {
+                    relevance += 0.7;
+                    matches += 1;
+                }
+            }
+
+            // Search in anomalies
+            for anomaly in &ja4_validation.anomalies {
+                if anomaly.to_lowercase().contains(&search_term) {
+                    relevance += 0.5;
+                    matches += 1;
+                    break; // Only count once per profile
+                }
+            }
+
+            // Search by consistency status
+            if search_term == "consistent" && ja4_validation.is_consistent {
+                relevance += 0.4;
+                matches += 1;
+            } else if (search_term == "suspicious" || search_term == "inconsistent") && !ja4_validation.is_consistent {
+                relevance += 0.4;
+                matches += 1;
+            }
+        }
+
         // Only include results with matches
         if matches > 0 {
             let tcp_info = convert_profile_to_tcp_info(profile);
@@ -571,7 +723,7 @@ pub async fn api_info() -> Json<ApiInfoResponse> {
             EndpointInfo {
                 method: "GET".to_string(),
                 path: "/api/profiles".to_string(),
-                description: "Get all traffic profiles with optional filtering".to_string(),
+                description: "Get all traffic profiles with optional filtering (TCP, HTTP, TLS, JA4 validation)".to_string(),
             },
             EndpointInfo {
                 method: "GET".to_string(),
@@ -591,12 +743,12 @@ pub async fn api_info() -> Json<ApiInfoResponse> {
             EndpointInfo {
                 method: "GET".to_string(),
                 path: "/api/stats".to_string(),
-                description: "Get statistics about traffic profiles".to_string(),
+                description: "Get statistics about traffic profiles including JA4 validation metrics".to_string(),
             },
             EndpointInfo {
                 method: "GET".to_string(),
                 path: "/api/search".to_string(),
-                description: "Search traffic profiles".to_string(),
+                description: "Search traffic profiles by IP, OS, browser, JA4, or consistency status".to_string(),
             },
             EndpointInfo {
                 method: "GET".to_string(),

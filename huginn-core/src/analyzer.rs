@@ -821,32 +821,26 @@ impl HuginnAnalyzer {
             }
         };
 
-        // Extract JA4 fingerprint from TLS data
-        let ja4 = match &profile.tls {
-            Some(tls_analysis) => &tls_analysis.ja4,
+        // Extract JA4 fingerprint from TLS raw data
+        let ja4 = match &profile.raw_data.tls_client {
+            Some(tls_data) => &tls_data.ja4,
             None => {
-                debug!("No TLS data available for JA4 validation");
+                debug!("No TLS client data available for JA4 validation");
                 return;
             }
         };
 
-        // Extract User-Agent from HTTP data
-        let user_agent = match &profile.http {
-            Some(http_analysis) => match &http_analysis.request {
-                Some(request) => match &request.user_agent {
-                    Some(ua) => ua,
-                    None => {
-                        debug!("No User-Agent in HTTP request data");
-                        return;
-                    }
-                },
+        // Extract User-Agent from HTTP raw data
+        let user_agent = match &profile.raw_data.http_request {
+            Some(http_data) => match &http_data.user_agent {
+                Some(ua) => ua,
                 None => {
-                    debug!("No HTTP request data available");
+                    debug!("No User-Agent in HTTP request data");
                     return;
                 }
             },
             None => {
-                debug!("No HTTP data available for JA4 validation");
+                debug!("No HTTP request data available for JA4 validation");
                 return;
             }
         };
