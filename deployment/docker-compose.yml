@@ -5,31 +5,26 @@ services:
     image: traefik:v3.0
     container_name: traefik
     command:
-      # --- Puntos de Entrada (Puertos) ---
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # --- Redirección Global HTTP a HTTPS ---
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      # --- Configuración de Let's Encrypt ---
       - "--certificatesresolvers.letsencrypt.acme.email=tu-email@ejemplo.com"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-      # --- Habilitar Dashboard y Docker Provider ---
       - "--api.dashboard=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080" # Puerto para el Dashboard de Traefik (opcional, pero útil)
+      - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./letsencrypt:/letsencrypt # Volumen para guardar los certificados
+      - ./letsencrypt:/letsencrypt
     restart: always
     labels:
-      # --- Configuración del Dashboard de Traefik ---
       - "traefik.enable=true"
       - "traefik.http.routers.dashboard.rule=Host(`TU_DOMINIO.duckdns.org`) && PathPrefix(`/dashboard`)"
       - "traefik.http.routers.dashboard.service=api@internal"
@@ -38,7 +33,9 @@ services:
       - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
 
   huginn:
-    image: ghcr.io/maximilianobiandratti/huginn:latest
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
     container_name: huginn
     command:
       - "--interface"
@@ -55,9 +52,8 @@ services:
     depends_on:
       - traefik
     labels:
-      # --- Enrutamiento para la App Huginn ---
       - "traefik.enable=true"
       - "traefik.http.routers.huginn-app.rule=Host(`TU_DOMINIO.duckdns.org`)"
       - "traefik.http.routers.huginn-app.tls.certresolver=letsencrypt"
       - "traefik.http.services.huginn-app.loadbalancer.server.port=3000"
-      - "traefik.docker.network=bridge" # Especifica que Huginn se expone en la red por defecto 
+      - "traefik.docker.network=bridge"
