@@ -38,6 +38,7 @@ services:
       dockerfile: deployment/Dockerfile
     container_name: huginn
     command:
+      - "/app/huginn-api"
       - "--interface"
       - "eth0"
       - "--bind"
