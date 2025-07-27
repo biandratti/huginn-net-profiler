@@ -4,21 +4,4 @@ tls:
       alpnProtocols:
         - "h2"
         - "http/1.1"
-      disableSessionTickets: true
-
-http:
-  routers:
-    huginn-router:
-      rule: "Host(`huginn-net.duckdns.org`)"
-      entryPoints:
-        - "websecure"
-      service: "huginn-service"
-      tls:
-        certResolver: "letsencrypt"
-        options: "default"
-
-  services:
-    huginn-service:
-      loadBalancer:
-        servers:
-          - url: "http://127.0.0.1:3000" 
+      disableSessionTickets: true 

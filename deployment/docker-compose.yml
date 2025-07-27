@@ -72,6 +72,17 @@ services:
       - traffic-mirror
     labels:
       - "traefik.enable=true"
+      # Router
+      - "traefik.http.routers.huginn-app.rule=Host(`huginn-net.duckdns.org`)"
+      - "traefik.http.routers.huginn-app.entrypoints=websecure"
+      - "traefik.http.routers.huginn-app.service=huginn-app"
+      # TLS
+      - "traefik.http.routers.huginn-app.tls=true"
+      - "traefik.http.routers.huginn-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.huginn-app.tls.options=default@file"
+      # Service
+      - "traefik.http.services.huginn-app.loadbalancer.server.port=3000"
+      # Dashboard Router (for Traefik's own dashboard)
       - "traefik.http.routers.huginn-dashboard.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/dashboard`)"
       - "traefik.http.routers.huginn-dashboard.service=api@internal"
       - "traefik.http.routers.huginn-dashboard.middlewares=auth"
