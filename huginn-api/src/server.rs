@@ -22,8 +22,10 @@ use tracing::{debug, error, info, warn};
 pub struct ApiServerConfig {
     /// Server bind address
     pub bind_addr: SocketAddr,
-    /// Network interface to monitor
-    pub interface: String,
+    /// Network interface to monitor (used when pcap_file is None)
+    pub interface: Option<String>,
+    /// PCAP file to analyze (if specified, will analyze file instead of live interface)
+    pub pcap_file: Option<String>,
     /// Enable collector (if false, only serves static profiles)
     pub enable_collector: bool,
     /// Static files directory
@@ -40,7 +42,8 @@ impl Default for ApiServerConfig {
     fn default() -> Self {
         Self {
             bind_addr: SocketAddr::from(([127, 0, 0, 1], 3000)),
-            interface: "eth0".to_string(),
+            interface: Some("eth0".to_string()),
+            pcap_file: None,
             enable_collector: true,
             static_dir: Some("static".to_string()),
             enable_cors: true,
@@ -55,9 +58,13 @@ impl Default for ApiServerConfig {
 #[command(name = "huginn-api")]
 #[command(about = "Huginn Network Profiler API Server")]
 pub struct ApiServerArgs {
-    /// Network interface to monitor
-    #[arg(short = 'i', long, default_value = "eth0")]
-    pub interface: String,
+    /// Network interface to monitor (used when --pcap-file is not specified)
+    #[arg(short = 'i', long)]
+    pub interface: Option<String>,
+
+    /// PCAP file to analyze (if specified, will analyze file instead of live interface)
+    #[arg(long)]
+    pub pcap_file: Option<String>,
 
     /// Server bind address
     #[arg(short = 'b', long, default_value = "127.0.0.1:3000")]
@@ -109,6 +116,7 @@ impl From<ApiServerArgs> for ApiServerConfig {
 
         let collector_config = CollectorConfig {
             interface: args.interface.clone(),
+            pcap_file: args.pcap_file.clone(),
             buffer_size: args.buffer_size,
             channel_buffer_size: args.buffer_size,
             analyzer: huginn_core::AnalyzerConfig {
@@ -117,12 +125,13 @@ impl From<ApiServerArgs> for ApiServerConfig {
                 enable_tls: args.enable_tls,
                 min_quality: args.quality_threshold,
             },
-            ..CollectorConfig::default()
+            verbose: false,
         };
 
         Self {
             bind_addr,
             interface: args.interface,
+            pcap_file: args.pcap_file,
             enable_collector: !args.no_collector,
             static_dir: if args.static_dir.is_empty() {
                 None
@@ -162,10 +171,14 @@ impl ApiServer {
 
         // Start network collector if enabled
         if self.config.enable_collector {
-            info!(
-                "Starting network collector on interface: {}",
-                self.config.interface
-            );
+            let source_info = if let Some(pcap_file) = &self.config.pcap_file {
+                format!("PCAP file: {}", pcap_file)
+            } else if let Some(interface) = &self.config.interface {
+                format!("interface: {}", interface)
+            } else {
+                "no source specified".to_string()
+            };
+            info!("Starting network collector on {}", source_info);
 
             match self.start_collector().await {
                 Ok(()) => info!("Network collector started successfully"),

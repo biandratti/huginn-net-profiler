@@ -188,10 +188,15 @@ impl NetworkCollector {
     /// - Channel bridge in a separate thread  
     /// - Profile processor as an async task
     pub fn start(self) -> Result<CollectorHandle> {
-        info!(
-            "Starting network collector on interface: {}",
-            self.config.interface
-        );
+        let source_info = if let Some(pcap_file) = &self.config.pcap_file {
+            format!("PCAP file: {}", pcap_file)
+        } else if let Some(interface) = &self.config.interface {
+            format!("interface: {}", interface)
+        } else {
+            "no source specified".to_string()
+        };
+        
+        info!("Starting network collector on {}", source_info);
 
         // Create the channel bridge
         let (sync_sender, async_receiver, bridge) = create_bridge(self.config.channel_buffer_size);
@@ -204,19 +209,35 @@ impl NetworkCollector {
 
         // Start huginn-net analyzer in a separate thread
         let interface = self.config.interface.clone();
+        let pcap_file = self.config.pcap_file.clone();
         let buffer_size = self.config.buffer_size;
         let analyzer_handle = std::thread::spawn(move || {
-            info!("Starting huginn-net analyzer on interface: {}", interface);
-
-            match HuginnNet::new(Some(db), buffer_size, None)
-                .analyze_network(&interface, sync_sender)
-            {
-                Ok(_) => {
-                    info!("Huginn-net analyzer finished successfully");
+            if let Some(pcap_path) = pcap_file {
+                info!("Starting huginn-net analyzer on PCAP file: {}", pcap_path);
+                match HuginnNet::new(Some(db), buffer_size, None)
+                    .analyze_pcap(&pcap_path, sync_sender)
+                {
+                    Ok(_) => {
+                        info!("Huginn-net PCAP analyzer finished successfully");
+                    }
+                    Err(e) => {
+                        error!("Huginn-net PCAP analyzer error: {}", e);
+                    }
                 }
-                Err(e) => {
-                    error!("Huginn-net analyzer error: {}", e);
+            } else if let Some(interface_name) = interface {
+                info!("Starting huginn-net analyzer on interface: {}", interface_name);
+                match HuginnNet::new(Some(db), buffer_size, None)
+                    .analyze_network(&interface_name, sync_sender)
+                {
+                    Ok(_) => {
+                        info!("Huginn-net network analyzer finished successfully");
+                    }
+                    Err(e) => {
+                        error!("Huginn-net network analyzer error: {}", e);
+                    }
                 }
+            } else {
+                error!("Neither PCAP file nor interface specified");
             }
         });
 

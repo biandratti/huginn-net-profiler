@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 /// Configuration for the network collector
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CollectorConfig {
-    /// Network interface to monitor
-    pub interface: String,
+    /// Network interface to monitor (used when pcap_file is None)
+    pub interface: Option<String>,
+    /// PCAP file to analyze (if Some, will analyze file instead of live interface)
+    pub pcap_file: Option<String>,
     /// Buffer size for huginn-net
     pub buffer_size: usize,
     /// Channel buffer size for internal communication
@@ -20,7 +22,8 @@ pub struct CollectorConfig {
 impl Default for CollectorConfig {
     fn default() -> Self {
         Self {
-            interface: "eth0".to_string(),
+            interface: Some("eth0".to_string()),
+            pcap_file: None,
             buffer_size: 100,
             channel_buffer_size: 1000,
             analyzer: AnalyzerConfig::default(),
@@ -35,7 +38,11 @@ impl Default for CollectorConfig {
 pub struct CollectorArgs {
     /// Network interface to monitor
     #[arg(short = 'i', long)]
-    pub interface: String,
+    pub interface: Option<String>,
+
+    /// PCAP file to analyze
+    #[arg(short = 'p', long)]
+    pub pcap_file: Option<String>,
 
     /// Buffer size for huginn-net
     #[arg(long, default_value = "100")]
@@ -70,6 +77,7 @@ impl From<CollectorArgs> for CollectorConfig {
     fn from(args: CollectorArgs) -> Self {
         Self {
             interface: args.interface,
+            pcap_file: args.pcap_file,
             buffer_size: args.buffer_size,
             channel_buffer_size: args.channel_buffer_size,
             analyzer: AnalyzerConfig {
@@ -87,7 +95,7 @@ impl CollectorConfig {
     /// Create a new configuration with the specified interface
     pub fn new(interface: String) -> Self {
         Self {
-            interface,
+            interface: Some(interface),
             ..Default::default()
         }
     }
@@ -118,8 +126,30 @@ impl CollectorConfig {
 
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), String> {
-        if self.interface.is_empty() {
-            return Err("Interface cannot be empty".to_string());
+        // At least one of interface or pcap_file must be specified
+        match (&self.interface, &self.pcap_file) {
+            (None, None) => {
+                return Err("Either interface or pcap_file must be specified".to_string());
+            }
+            (Some(interface), None) => {
+                if interface.is_empty() {
+                    return Err("Interface cannot be empty".to_string());
+                }
+            }
+            (None, Some(pcap_file)) => {
+                if pcap_file.is_empty() {
+                    return Err("PCAP file path cannot be empty".to_string());
+                }
+            }
+            (Some(interface), Some(pcap_file)) => {
+                if interface.is_empty() {
+                    return Err("Interface cannot be empty".to_string());
+                }
+                if pcap_file.is_empty() {
+                    return Err("PCAP file path cannot be empty".to_string());
+                }
+                // Both specified is okay - pcap_file takes precedence
+            }
         }
 
         if self.buffer_size == 0 {
