@@ -1,7 +1,7 @@
 tls:
   options:
-    default:
+    my-tls-options:
       alpnProtocols:
         - "h2"
         - "http/1.1"
-      disableSessionTickets: true 
+      disableSessionTickets: true
