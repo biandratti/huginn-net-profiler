@@ -14,9 +14,10 @@ services:
       # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+      # Enhanced HTTP/2 configuration
       - "--entrypoints.websecure.http2.maxconcurrentstreams=250"
-      - "--entrypoints.websecure.http2=true"
-      - "--entrypoints.websecure.asdefault=true"
+      - "--entrypoints.websecure.http.h2c=true"
+      - "--serversTransport.insecureSkipVerify=true"
       # HTTP->HTTPS Redirection
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
@@ -34,7 +35,7 @@ services:
       - ./letsencrypt:/letsencrypt
       - ./traefik.yml:/etc/traefik/dynamic/traefik.yml:ro
     restart: always
-    network_mode: host  # Back to host mode for external traffic
+    network_mode: host  # Host mode for external traffic and communication with Huginn
     labels:
       - "traefik.enable=false"
 
@@ -46,30 +47,30 @@ services:
     command:
       - "/app/huginn-api"
       - "--interface"
-      - "lo"  # Loopback interface for internal traffic
+      - "ens4"  # Primary network interface for external traffic
       - "--bind"
-      - "0.0.0.0:3000"
+      - "127.0.0.1:3000"  # Bind to localhost for Traefik communication
       - "--ja4-database"
       - "/app/ja4_database.json"
-    privileged: true
-    network_mode: host  # Access to host interfaces
+    privileged: true  # Required for packet capture
     restart: always
     volumes:
       - ./ja4_database.json:/app/ja4_database.json:ro
     depends_on:
       - traefik
+    network_mode: host  # Host mode for network capture access
     labels:
       - "traefik.enable=true"
       # Router
       - "traefik.http.routers.huginn-app.rule=Host(`huginn-net.duckdns.org`)"
       - "traefik.http.routers.huginn-app.entrypoints=websecure"
       - "traefik.http.routers.huginn-app.service=huginn-app"
-      # TLS
+      # TLS with HTTP/2 enforcement
       - "traefik.http.routers.huginn-app.tls=true"
       - "traefik.http.routers.huginn-app.tls.certresolver=letsencrypt"
       - "traefik.http.routers.huginn-app.tls.options=my-tls-options@file"
-      # Service
-      - "traefik.http.services.huginn-app.loadbalancer.server.port=3000"
+      # Service with explicit localhost connection
+      - "traefik.http.services.huginn-app.loadbalancer.server.url=http://127.0.0.1:3000"
       # Dashboard Router (for Traefik's own dashboard)
       - "traefik.http.routers.huginn-dashboard.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/dashboard`)"
       - "traefik.http.routers.huginn-dashboard.service=api@internal"
