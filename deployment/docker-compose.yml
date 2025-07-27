@@ -5,9 +5,11 @@ services:
     command: >
       /bin/sh -c "
         apk add --no-cache iproute2 &&
-        tc qdisc del dev lo root 2>/dev/null || true &&
-        tc qdisc add dev lo handle 1: root prio &&
-        tc filter add dev lo parent 1: protocol ip prio 1 u32 match u32 0 0 action mirred egress mirror dev ${NETWORK_INTERFACE:-ens4}
+        ip link add mirror0 type dummy &&
+        ip link set mirror0 up &&
+        tc qdisc del dev docker0 root 2>/dev/null || true &&
+        tc qdisc add dev docker0 handle 1: root prio &&
+        tc filter add dev docker0 parent 1: protocol ip prio 1 u32 match u32 0 0 action mirred egress mirror dev mirror0
       "
     network_mode: host
     privileged: true
@@ -59,7 +61,7 @@ services:
     command:
       - "/app/huginn-api"
       - "--interface"
-      - "${NETWORK_INTERFACE:-ens4}"
+      - "mirror0"
       - "--bind"
       - "0.0.0.0:3000"
       - "--ja4-database"
