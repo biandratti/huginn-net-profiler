@@ -1,4 +1,20 @@
 services:
+  pcap-dump:
+    image: alpine:latest
+    container_name: pcap-dump
+    command: >
+      sh -c "
+        apk add --no-cache tcpdump &&
+        chmod +x /scripts/pcap_dump.sh &&
+        /scripts/pcap_dump.sh
+      "
+    volumes:
+      - ./pcap_dump.sh:/scripts/pcap_dump.sh
+      - pcap-data:/shared  # Shared volume for PCAP files
+    network_mode: host
+    privileged: true
+    restart: always
+
   traefik:
     image: traefik:v3.0
     container_name: traefik
@@ -46,7 +62,7 @@ services:
     command:
       - "/app/huginn-api"
       - "--pcap-file"
-      - "/tmp/traffic.pcap"  # Use PCAP file instead of live interface
+      - "/shared/current.pcap"  # Read from continuously updated PCAP
       - "--bind"
       - "0.0.0.0:3000"
       - "--ja4-database"
@@ -56,9 +72,10 @@ services:
     restart: always
     volumes:
       - ./ja4_database.json:/app/ja4_database.json:ro
-      - /tmp:/tmp:ro  # Access to PCAP files
+      - pcap-data:/shared:ro  # Access to generated PCAP files
     depends_on:
       - traefik
+      - pcap-dump  # Wait for PCAP dump to start
     labels:
       - "traefik.enable=true"
       # Router
@@ -78,3 +95,7 @@ services:
       - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$t4i5g2g3$$PklPBOaW8F8aJzsvM4pSg." # Usuario: admin, Pass: huginn
       - "traefik.http.routers.huginn-dashboard.tls.certresolver=letsencrypt"
       - "traefik.http.routers.huginn-dashboard.tls.options=my-tls-options@file"
+
+volumes:
+  pcap-data:
+    driver: local
