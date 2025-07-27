@@ -5,11 +5,11 @@ services:
     command: >
       sh -c "
         apk add --no-cache tcpdump &&
-        chmod +x /scripts/pcap_dump.sh &&
-        /scripts/pcap_dump.sh
+        chmod +x /app/pcap_dump.sh &&
+        /app/pcap_dump.sh
       "
     volumes:
-      - ./pcap_dump.sh:/scripts/pcap_dump.sh
+      - ./pcap_dump.sh:/app/pcap_dump.sh
       - pcap-data:/shared  # Shared volume for PCAP files
     network_mode: host
     privileged: true

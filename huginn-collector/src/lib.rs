@@ -29,7 +29,7 @@ mod tests {
     #[test]
     fn test_collector_config_default() {
         let config = CollectorConfig::default();
-        assert!(!config.interface.is_empty());
+        assert!(config.interface.is_some());
         assert!(config.buffer_size > 0);
         assert!(config.channel_buffer_size > 0);
     }
@@ -37,7 +37,7 @@ mod tests {
     #[test]
     fn test_collector_config_new() {
         let config = CollectorConfig::new("eth0".to_string());
-        assert_eq!(config.interface, "eth0");
+        assert_eq!(config.interface, Some("eth0".to_string()));
         assert!(config.buffer_size > 0);
         assert!(config.channel_buffer_size > 0);
     }
