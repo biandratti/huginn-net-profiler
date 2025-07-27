@@ -1,7 +1,8 @@
 services:
-  traefik:
+  # Traefik Frontend - TLS Termination (facing internet)
+  traefik-frontend:
     image: traefik:v3.0
-    container_name: traefik
+    container_name: traefik-frontend
     command:
       # Global configuration
       - "--log.level=INFO"
@@ -14,9 +15,8 @@ services:
       # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # HTTP/2 configuration
+      # HTTP/2 configuration for public TLS
       - "--entrypoints.websecure.http2.maxconcurrentstreams=250"
-      - "--serversTransport.insecureSkipVerify=true"
       # HTTP->HTTPS Redirection
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
@@ -28,15 +28,65 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
+      - "8080:8080"  # Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
       - ./traefik.yml:/etc/traefik/dynamic/traefik.yml:ro
     restart: always
-    network_mode: host  # Host mode for external traffic and communication with Huginn
+    network_mode: host
     labels:
-      - "traefik.enable=false"
+      - "traefik.enable=true"
+      # Route HTTPS traffic to backend Traefik (HTTP)
+      - "traefik.http.routers.frontend-app.rule=Host(`huginn-net.duckdns.org`)"
+      - "traefik.http.routers.frontend-app.entrypoints=websecure"
+      - "traefik.http.routers.frontend-app.service=backend-traefik"
+      # TLS configuration
+      - "traefik.http.routers.frontend-app.tls=true"
+      - "traefik.http.routers.frontend-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend-app.tls.options=my-tls-options@file"
+      # Service points to backend Traefik
+      - "traefik.http.services.backend-traefik.loadbalancer.server.port=8081"
+      - "traefik.http.services.backend-traefik.loadbalancer.server.scheme=http"
+      # Dashboard
+      - "traefik.http.routers.frontend-dashboard.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.frontend-dashboard.service=api@internal"
+      - "traefik.http.routers.frontend-dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$t4i5g2g3$$PklPBOaW8F8aJzsvM4pSg."
+      - "traefik.http.routers.frontend-dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend-dashboard.tls.options=my-tls-options@file"
+
+  # Traefik Backend - HTTP Analysis (receives decrypted traffic)
+  traefik-backend:
+    image: traefik:v3.0
+    container_name: traefik-backend
+    command:
+      # Global configuration
+      - "--log.level=DEBUG"
+      - "--api.dashboard=false"
+      # Providers
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # Entrypoint for HTTP traffic from frontend
+      - "--entrypoints.http-backend.address=:8081"
+      # Access logging for HTTP analysis
+      - "--accesslog=true"
+      - "--accesslog.format=json"
+    ports:
+      - "8081:8081"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: always
+    network_mode: host
+    labels:
+      - "traefik.enable=true"
+      # Route HTTP traffic to Huginn app
+      - "traefik.http.routers.backend-app.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.backend-app.entrypoints=http-backend"
+      - "traefik.http.routers.backend-app.service=huginn-app"
+      # Service points to Huginn
+      - "traefik.http.services.huginn-app.loadbalancer.server.port=3000"
+      - "traefik.http.services.huginn-app.loadbalancer.server.scheme=http"
 
   huginn:
     build:
@@ -46,9 +96,9 @@ services:
     command:
       - "/app/huginn-api"
       - "--interface"
-      - "ens4"  # Primary network interface for external traffic
+      - "ens4"  # Primary network interface - will see HTTP traffic from backend Traefik
       - "--bind"
-      - "127.0.0.1:3000"  # Bind to localhost for Traefik communication
+      - "127.0.0.1:3000"
       - "--ja4-database"
       - "/app/ja4_database.json"
     privileged: true  # Required for packet capture
@@ -56,25 +106,8 @@ services:
     volumes:
       - ./ja4_database.json:/app/ja4_database.json:ro
     depends_on:
-      - traefik
+      - traefik-frontend
+      - traefik-backend
     network_mode: host  # Host mode for network capture access
     labels:
-      - "traefik.enable=true"
-      # Router
-      - "traefik.http.routers.huginn-app.rule=Host(`huginn-net.duckdns.org`)"
-      - "traefik.http.routers.huginn-app.entrypoints=websecure"
-      - "traefik.http.routers.huginn-app.service=huginn-app"
-      # TLS with HTTP/2 enforcement
-      - "traefik.http.routers.huginn-app.tls=true"
-      - "traefik.http.routers.huginn-app.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.huginn-app.tls.options=my-tls-options@file"
-      # Service configuration for host network mode
-      - "traefik.http.services.huginn-app.loadbalancer.server.port=3000"
-      - "traefik.http.services.huginn-app.loadbalancer.server.scheme=http"
-      # Dashboard Router (for Traefik's own dashboard)
-      - "traefik.http.routers.huginn-dashboard.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/dashboard`)"
-      - "traefik.http.routers.huginn-dashboard.service=api@internal"
-      - "traefik.http.routers.huginn-dashboard.middlewares=auth"
-      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$t4i5g2g3$$PklPBOaW8F8aJzsvM4pSg." # Usuario: admin, Pass: huginn
-      - "traefik.http.routers.huginn-dashboard.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.huginn-dashboard.tls.options=my-tls-options@file"
+      - "traefik.enable=false"  # Managed by backend Traefik
