@@ -467,6 +467,8 @@ impl HuginnAnalyzer {
             },
             ja4: tls_client.sig.ja4.full.value().to_string(),
             ja4_raw: tls_client.sig.ja4.raw.value().to_string(),
+            ja4_original: tls_client.sig.ja4_original.full.value().to_string(),
+            ja4_original_raw: tls_client.sig.ja4_original.raw.value().to_string(),
             details,
             timestamp: Utc::now(),
         })
@@ -834,7 +836,7 @@ impl HuginnAnalyzer {
                            profile.tls.is_some(),
                            profile.raw_data.syn.is_some(),
                            profile.raw_data.tls_client.is_some());
-                    return;
+                return;
                 }
             }
         };
@@ -856,7 +858,7 @@ impl HuginnAnalyzer {
                             Some(ua) => ua,
                             None => {
                                 debug!("No User-Agent in legacy HTTP request data");
-                                return;
+                return;
                             }
                         }
                     } else {

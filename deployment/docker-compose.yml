@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  traffic-mirror:
+    image: alpine:latest
+    container_name: traffic-mirror
+    command: >
+      /bin/sh -c "
+        apk add --no-cache iproute2 &&
+        tc qdisc del dev lo root 2>/dev/null || true &&
+        tc qdisc add dev lo handle 1: root prio &&
+        tc filter add dev lo parent 1: protocol ip prio 1 u32 match u32 0 0 action mirred egress mirror dev ens4
+      "
+    network_mode: host
+    privileged: true
+    restart: always
+
   traefik:
     image: traefik:v3.0
     container_name: traefik
@@ -9,7 +23,7 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      - "--certificatesresolvers.letsencrypt.acme.email=tu-email@ejemplo.com"
+      - "--certificatesresolvers.letsencrypt.acme.email=maxibiandra@gmail.com"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
@@ -24,9 +38,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
     restart: always
+    network_mode: host
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`TU_DOMINIO.duckdns.org`) && PathPrefix(`/dashboard`)"
+      - "traefik.enable=false"
+      - "traefik.http.routers.dashboard.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/dashboard`)"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.middlewares=auth"
       - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$t4i5g2g3$$PklPBOaW8F8aJzsvM4pSg." # Usuario: admin, Pass: huginn
@@ -40,7 +55,7 @@ services:
     command:
       - "/app/huginn-api"
       - "--interface"
-      - "eth0"
+      - "ens4"
       - "--bind"
       - "0.0.0.0"
       - "--ja4-database"
@@ -49,12 +64,12 @@ services:
     network_mode: host
     restart: always
     volumes:
-      - ./ja4_test_database.json:/app/ja4_database.json:ro
+      - ./ja4_database.json:/app/ja4_database.json:ro
     depends_on:
       - traefik
+      - traffic-mirror
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.huginn-app.rule=Host(`TU_DOMINIO.duckdns.org`)"
-      - "traefik.http.routers.huginn-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.huginn-app.rule=Host(`huginn-net.duckdns.org`)"
       - "traefik.http.services.huginn-app.loadbalancer.server.port=3000"
-      - "traefik.docker.network=bridge"
+      - "traefik.http.routers.huginn-app.tls.certresolver=letsencrypt"

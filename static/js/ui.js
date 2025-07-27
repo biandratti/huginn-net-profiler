@@ -233,7 +233,7 @@ class UIManager {
                 }
                 this.renderProfiles(this.myProfileData);
             } else {
-                this.renderProfiles(profiles);
+            this.renderProfiles(profiles);
             }
         }
     }
@@ -292,19 +292,6 @@ class UIManager {
     // Create JA4 validation information for a profile
     createJA4ValidationInfo(profile) {
         if (!profile) return '';
-
-                 // Debug: Log profile structure for the first profile
-        if (Math.random() < 0.1) { // Only log 10% of the time to avoid spam
-            console.log('🔍 Profile structure:', {
-                profile_keys: Object.keys(profile),
-                tls_client: profile.tls_client ? 'exists' : 'undefined',
-                http_request: profile.http_request ? 'exists' : 'undefined',
-                ja4_validation: profile.ja4_validation ? 'exists' : 'undefined',
-                tls_client_ja4: profile?.tls_client?.ja4,
-                http_user_agent: profile?.http_request?.user_agent,
-                validation_result: profile?.ja4_validation?.is_consistent
-            });
-        }
 
         // Check if we have JA4 validation data
         const hasJA4Data = this.hasJA4ValidationData(profile);

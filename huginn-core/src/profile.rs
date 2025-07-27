@@ -115,6 +115,10 @@ pub struct TlsClientData {
     pub ja4: String,
     /// JA4 raw fingerprint
     pub ja4_raw: String,
+    /// JA4 original fingerprint
+    pub ja4_original: String,
+    /// JA4 original raw fingerprint
+    pub ja4_original_raw: String,
     /// TLS details
     pub details: TlsDetails,
     /// When this was detected
