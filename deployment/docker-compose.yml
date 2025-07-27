@@ -31,7 +31,7 @@ services:
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       # Websecure (HTTPS) configuration with ALPN for HTTP/2
       - "--entrypoints.websecure.http.tls=true"
-      - "--entrypoints.websecure.http.tls.alpn=h2,http/1.1"
+      - "--entrypoints.websecure.http.tls.alpnProtocols=h2,http/1.1"
       # Certificate Resolver (Let's Encrypt)
       - "--certificatesresolvers.letsencrypt.acme.email=maxibiandra@gmail.com"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
