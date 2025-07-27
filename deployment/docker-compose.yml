@@ -7,9 +7,10 @@ services:
       # Global configuration
       - "--log.level=INFO"
       - "--api.dashboard=true"
-      # Providers
+      # Providers - only look for frontend labels
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.constraints=Label(`traefik.scope`,`frontend`)"
       - "--providers.file.directory=/etc/traefik/dynamic"
       - "--providers.file.watch=true"
       # Entrypoints
@@ -37,6 +38,7 @@ services:
     network_mode: host
     labels:
       - "traefik.enable=true"
+      - "traefik.scope=frontend"
       # Route HTTPS traffic to backend Traefik (HTTP)
       - "traefik.http.routers.frontend-app.rule=Host(`huginn-net.duckdns.org`)"
       - "traefik.http.routers.frontend-app.entrypoints=websecure"
@@ -64,9 +66,10 @@ services:
       # Global configuration
       - "--log.level=DEBUG"
       - "--api.dashboard=false"
-      # Providers
+      # Providers - only look for backend labels
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.constraints=Label(`traefik.scope`,`backend`)"
       # Entrypoint for HTTP traffic from frontend
       - "--entrypoints.http-backend.address=:8081"
       # Access logging for HTTP analysis
@@ -80,6 +83,7 @@ services:
     network_mode: host
     labels:
       - "traefik.enable=true"
+      - "traefik.scope=backend"
       # Route HTTP traffic to Huginn app
       - "traefik.http.routers.backend-app.rule=PathPrefix(`/`)"
       - "traefik.http.routers.backend-app.entrypoints=http-backend"
