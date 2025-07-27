@@ -5,11 +5,25 @@ services:
     command: >
       sh -c "
         apk add --no-cache tcpdump &&
-        chmod +x /app/pcap_dump.sh &&
-        /app/pcap_dump.sh
+        echo 'Starting continuous PCAP dump' &&
+        mkdir -p /shared/pcaps &&
+        while true; do
+          TIMESTAMP=\$(date +%H%M%S)
+          PCAP_FILE=\"/shared/pcaps/dump_\${TIMESTAMP}.pcap\"
+          echo \"Dumping to: \$(basename \"\$PCAP_FILE\")\"
+          timeout 30s tcpdump -i ens4 -w \"\$PCAP_FILE\" -s 0 'port 443' 2>/dev/null || true
+          if [ -f \"\$PCAP_FILE\" ] && [ -s \"\$PCAP_FILE\" ]; then
+            ln -sf \"\$PCAP_FILE\" /shared/current.pcap
+            echo \"Updated: \$(basename \"\$PCAP_FILE\") (\$(du -h \"\$PCAP_FILE\" | cut -f1))\"
+            ls -t /shared/pcaps/*.pcap 2>/dev/null | tail -n +6 | xargs -r rm -f
+          else
+            rm -f \"\$PCAP_FILE\" 2>/dev/null || true
+            echo \"Empty dump, keeping previous\"
+          fi
+          sleep 1
+        done
       "
     volumes:
-      - ./pcap_dump.sh:/app/pcap_dump.sh
       - pcap-data:/shared  # Shared volume for PCAP files
     network_mode: host
     privileged: true
