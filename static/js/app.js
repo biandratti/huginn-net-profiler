@@ -42,6 +42,12 @@ class HuginnApp {
             // Initial data load
             await this.loadInitialData();
             
+            // TODO: Implement HTTP/2 compatible real-time communication
+            // Options to consider:
+            // 1. HTTP/2 Server Push - server can push profile updates to client
+            // 2. WebRTC Data Channels - bidirectional, low-latency communication
+            // 3. Server-Sent Events (SSE) - HTTP/1.1 compatible fallback
+            // 4. Hybrid approach - HTTP/2 for main app, WebSocket only when needed
             // WebSocket temporarily disabled for HTTP/2 testing
             // this.connectWebSocket();
             console.log('WebSocket connection disabled - using polling mode only');
@@ -233,6 +239,7 @@ class HuginnApp {
 
     // Handle WebSocket disconnection
     handleWebSocketDisconnection() {
+        // TODO: Replace with HTTP/2 Server Push or WebRTC implementation
         // WebSocket reconnection disabled for HTTP/2 testing
         console.log('WebSocket disconnection - staying in polling mode');
         window.uiManager.addActivity('Using polling mode only', 'updated');

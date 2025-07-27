@@ -283,7 +283,11 @@ impl ApiServer {
             )
             .route("/api/stats", get(get_stats))
             .route("/api/search", get(search_profiles))
-            // WebSocket endpoint (temporarily disabled)
+            // TODO: Implement real-time updates with HTTP/2 compatible alternatives:
+            // - HTTP/2 Server Push for profile updates
+            // - WebRTC Data Channels for bidirectional communication
+            // - Server-Sent Events (SSE) as HTTP/1.1 fallback
+            // Current WebSocket implementation disabled to maintain HTTP/2 compatibility
             // .route("/ws", get(websocket_handler))
             // Add state
             .with_state(self.state.clone());
