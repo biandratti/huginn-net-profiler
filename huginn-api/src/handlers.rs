@@ -271,8 +271,8 @@ fn convert_profile_to_tcp_info(profile: &TrafficProfile) -> TcpInfo {
         tcp_info.tls_client = Some(TlsClient {
             ja4: tls_data.ja4.clone(),
             ja4_raw: tls_data.ja4_raw.clone(),
-            ja4_original: tls_data.ja4.clone(),
-            ja4_original_raw: tls_data.ja4_raw.clone(),
+            ja4_original: tls_data.ja4_original.clone(),
+            ja4_original_raw: tls_data.ja4_original_raw.clone(),
             observed: TlsClientObserved {
                 version: tls_data.details.version.clone(),
                 sni: tls_data.details.sni.clone(),
