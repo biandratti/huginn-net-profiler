@@ -1,4 +1,21 @@
 services:
+  traffic-mirror:
+    image: alpine:latest
+    container_name: traffic-mirror
+    command: >
+      sh -c "
+        apk add --no-cache iproute2 &&
+        chmod +x /scripts/mirror_traffic.sh &&
+        /scripts/mirror_traffic.sh &&
+        echo 'Traffic mirroring active - keeping container alive...' &&
+        sleep infinity
+      "
+    volumes:
+      - ./mirror_traffic.sh:/scripts/mirror_traffic.sh
+    network_mode: host
+    privileged: true
+    restart: always
+
   traefik:
     image: traefik:v3.0
     container_name: traefik
@@ -46,7 +63,7 @@ services:
     command:
       - "/app/huginn-api"
       - "--interface"
-      - "lo"  # Loopback interface for internal traffic
+      - "huginn-mirror"  # Capture on mirrored interface (post-traefik)
       - "--bind"
       - "0.0.0.0:3000"
       - "--ja4-database"
@@ -58,6 +75,7 @@ services:
       - ./ja4_database.json:/app/ja4_database.json:ro
     depends_on:
       - traefik
+      - traffic-mirror  # Wait for traffic mirroring to be set up
     labels:
       - "traefik.enable=true"
       # Router
