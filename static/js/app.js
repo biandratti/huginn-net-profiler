@@ -42,8 +42,9 @@ class HuginnApp {
             // Initial data load
             await this.loadInitialData();
             
-            // Connect to WebSocket
-            this.connectWebSocket();
+            // WebSocket temporarily disabled for HTTP/2 testing
+            // this.connectWebSocket();
+            console.log('WebSocket connection disabled - using polling mode only');
             
             this.isInitialized = true;
             console.log('✅ Huginn Network Profiler initialized successfully');
@@ -232,20 +233,10 @@ class HuginnApp {
 
     // Handle WebSocket disconnection
     handleWebSocketDisconnection() {
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.reconnectAttempts++;
-            const delay = 2000 * this.reconnectAttempts;
-            
-            console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-            
-            setTimeout(() => {
-                this.connectWebSocket();
-            }, delay);
-        } else {
-            console.log('Max reconnection attempts reached, switching to polling mode');
-            window.uiManager.addActivity('Switched to polling mode', 'updated');
-            this.setupPeriodicUpdates();
-        }
+        // WebSocket reconnection disabled for HTTP/2 testing
+        console.log('WebSocket disconnection - staying in polling mode');
+        window.uiManager.addActivity('Using polling mode only', 'updated');
+        this.setupPeriodicUpdates();
     }
 
     // Handle initialization error

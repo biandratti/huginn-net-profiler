@@ -211,10 +211,6 @@ impl ApiServer {
             "API documentation available at: http://{}/api",
             self.config.bind_addr
         );
-        info!(
-            "WebSocket endpoint available at: ws://{}/ws",
-            self.config.bind_addr
-        );
 
         axum::serve(listener, app)
             .await
