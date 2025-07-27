@@ -23,15 +23,14 @@ services:
       # Providers
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
       # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       # HTTP->HTTPS Redirection
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      # Websecure (HTTPS) configuration with ALPN for HTTP/2
-      - "--entrypoints.websecure.http.tls=true"
-      - "--entrypoints.websecure.http.tls.alpnProtocols=h2,http/1.1"
       # Certificate Resolver (Let's Encrypt)
       - "--certificatesresolvers.letsencrypt.acme.email=maxibiandra@gmail.com"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
@@ -44,6 +43,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
+      - ./traefik.yml:/etc/traefik/dynamic/traefik.yml:ro
     restart: always
     network_mode: host
     labels:
@@ -64,7 +64,7 @@ services:
       - "--interface"
       - "ens4"
       - "--bind"
-      - "0.0.0.0"
+      - "0.0.0.0:3000"
       - "--ja4-database"
       - "/app/ja4_database.json"
     privileged: true

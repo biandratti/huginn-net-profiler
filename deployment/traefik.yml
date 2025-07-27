@@ -1,25 +1,6 @@
-http:
-  routers:
-    huginn-https:
-      rule: "Host(`192.168.2.69`) || Host(`huginn.local.com`)"
-      entryPoints:
-        - websecure
-      tls: {}
-      service: huginn-host
-    
-    huginn-http:
-      rule: "Host(`192.168.2.69`) || Host(`huginn.local.com`)"
-      entryPoints:
-        - web
-      service: huginn-host
-
-  services:
-    huginn-host:
-      loadBalancer:
-        servers:
-          - url: "http://192.168.2.69:3000"
-
 tls:
-  certificates:
-    - certFile: /etc/ssl/certs/huginn.local.com+2.pem
-      keyFile: /etc/ssl/private/huginn.local.com+2-key.pem 
+  options:
+    default:
+      alpnProtocols:
+        - "h2"
+        - "http/1.1" 
