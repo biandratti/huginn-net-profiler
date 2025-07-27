@@ -75,9 +75,3 @@ services:
     depends_on:
       - traefik
       - traffic-mirror
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.huginn-app.rule=Host(`huginn-net.duckdns.org`)"
-      - "traefik.http.services.huginn-app.loadbalancer.server.port=3000"
-      - "traefik.http.routers.huginn-app.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.huginn-app.tls.options=default"
