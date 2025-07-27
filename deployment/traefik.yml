@@ -3,24 +3,14 @@ tls:
     my-tls-options:
       minVersion: VersionTLS12
       maxVersion: VersionTLS13
-      # HTTP/2 prioritized ALPN protocols
+      # HTTP/2 is prioritized in ALPN negotiation
       alpnProtocols:
         - "h2"          # HTTP/2 over TLS
         - "http/1.1"    # HTTP/1.1 fallback
-      # Modern cipher suites optimized for HTTP/2
+      # Modern cipher suites that support HTTP/2
       cipherSuites:
         - "TLS_AES_256_GCM_SHA384"
         - "TLS_CHACHA20_POLY1305_SHA256"
         - "TLS_AES_128_GCM_SHA256"
         - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
         - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
-      # Curves optimized for performance
-      curvePreferences:
-        - "CurveP521"
-        - "CurveP384"
-        - "CurveP256"
-
-# Global server transport configuration for HTTP/2
-serversTransport:
-  insecureSkipVerify: true

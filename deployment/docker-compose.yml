@@ -14,9 +14,8 @@ services:
       # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # Enhanced HTTP/2 configuration
+      # HTTP/2 configuration
       - "--entrypoints.websecure.http2.maxconcurrentstreams=250"
-      - "--entrypoints.websecure.http.h2c=true"
       - "--serversTransport.insecureSkipVerify=true"
       # HTTP->HTTPS Redirection
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
