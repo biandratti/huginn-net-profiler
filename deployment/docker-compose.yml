@@ -1,16 +1,4 @@
 services:
-  traffic-mirror:
-    image: alpine:latest
-    container_name: traffic-mirror
-    command: >
-      /bin/sh -c "
-        echo 'Traffic mirror disabled for debugging' &&
-        sleep infinity
-      "
-    network_mode: host
-    privileged: true
-    restart: always
-
   traefik:
     image: traefik:v3.0
     container_name: traefik
@@ -58,7 +46,7 @@ services:
     command:
       - "/app/huginn-api"
       - "--interface"
-      - "${NETWORK_INTERFACE:-ens4}"
+      - "huginn-bridge"
       - "--bind"
       - "0.0.0.0:3000"
       - "--ja4-database"
@@ -70,7 +58,6 @@ services:
       - ./ja4_database.json:/app/ja4_database.json:ro
     depends_on:
       - traefik
-      - traffic-mirror
     labels:
       - "traefik.enable=true"
       # Router
@@ -90,3 +77,10 @@ services:
       - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$t4i5g2g3$$PklPBOaW8F8aJzsvM4pSg." # Usuario: admin, Pass: huginn
       - "traefik.http.routers.huginn-dashboard.tls.certresolver=letsencrypt"
       - "traefik.http.routers.huginn-dashboard.tls.options=my-tls-options@file"
+
+networks:
+  huginn-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: huginn-bridge
+      com.docker.network.bridge.enable_icc: "true"
