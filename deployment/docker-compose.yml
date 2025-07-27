@@ -68,8 +68,9 @@ services:
       - "traefik.http.routers.huginn-app.tls=true"
       - "traefik.http.routers.huginn-app.tls.certresolver=letsencrypt"
       - "traefik.http.routers.huginn-app.tls.options=my-tls-options@file"
-      # Service with explicit localhost connection
-      - "traefik.http.services.huginn-app.loadbalancer.server.url=http://127.0.0.1:3000"
+      # Service configuration for host network mode
+      - "traefik.http.services.huginn-app.loadbalancer.server.port=3000"
+      - "traefik.http.services.huginn-app.loadbalancer.server.scheme=http"
       # Dashboard Router (for Traefik's own dashboard)
       - "traefik.http.routers.huginn-dashboard.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/dashboard`)"
       - "traefik.http.routers.huginn-dashboard.service=api@internal"
