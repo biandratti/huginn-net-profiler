@@ -18,7 +18,7 @@ services:
     container_name: traefik
     command:
       # Global configuration
-      - "--log.level=DEBUG"
+      - "--log.level=INFO"
       - "--api.dashboard=true"
       # Providers
       - "--providers.docker=true"
