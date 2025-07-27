@@ -34,7 +34,7 @@ services:
       - ./letsencrypt:/letsencrypt
       - ./traefik.yml:/etc/traefik/dynamic/traefik.yml:ro
     restart: always
-    network_mode: host
+    network_mode: host  # Back to host mode for external traffic
     labels:
       - "traefik.enable=false"
 
@@ -46,13 +46,13 @@ services:
     command:
       - "/app/huginn-api"
       - "--interface"
-      - "ens4"
+      - "lo"  # Loopback interface for internal traffic
       - "--bind"
       - "0.0.0.0:3000"
       - "--ja4-database"
       - "/app/ja4_database.json"
     privileged: true
-    network_mode: host
+    network_mode: host  # Access to host interfaces
     restart: always
     volumes:
       - ./ja4_database.json:/app/ja4_database.json:ro
@@ -77,4 +77,3 @@ services:
       - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$t4i5g2g3$$PklPBOaW8F8aJzsvM4pSg." # Usuario: admin, Pass: huginn
       - "traefik.http.routers.huginn-dashboard.tls.certresolver=letsencrypt"
       - "traefik.http.routers.huginn-dashboard.tls.options=my-tls-options@file"
-
