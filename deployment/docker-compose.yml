@@ -17,18 +17,26 @@ services:
     image: traefik:v3.0
     container_name: traefik
     command:
+      # Global configuration
+      - "--log.level=DEBUG"
+      - "--api.dashboard=true"
+      # Providers
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+      # HTTP->HTTPS Redirection
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # Websecure (HTTPS) configuration with ALPN for HTTP/2
       - "--entrypoints.websecure.http.tls=true"
+      - "--entrypoints.websecure.http.tls.alpn=h2,http/1.1"
+      # Certificate Resolver (Let's Encrypt)
       - "--certificatesresolvers.letsencrypt.acme.email=maxibiandra@gmail.com"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-      - "--api.dashboard=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
     ports:
       - "80:80"
       - "443:443"
