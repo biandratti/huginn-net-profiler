@@ -7,7 +7,7 @@ services:
         apk add --no-cache iproute2 &&
         tc qdisc del dev lo root 2>/dev/null || true &&
         tc qdisc add dev lo handle 1: root prio &&
-        tc filter add dev lo parent 1: protocol ip prio 1 u32 match u32 0 0 action mirred egress mirror dev ens4
+        tc filter add dev lo parent 1: protocol ip prio 1 u32 match u32 0 0 action mirred egress mirror dev ${NETWORK_INTERFACE:-ens4}
       "
     network_mode: host
     privileged: true
@@ -48,11 +48,6 @@ services:
     network_mode: host
     labels:
       - "traefik.enable=false"
-      - "traefik.http.routers.dashboard.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/dashboard`)"
-      - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.middlewares=auth"
-      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$t4i5g2g3$$PklPBOaW8F8aJzsvM4pSg." # Usuario: admin, Pass: huginn
-      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
 
   huginn:
     build:
@@ -62,7 +57,7 @@ services:
     command:
       - "/app/huginn-api"
       - "--interface"
-      - "ens4"
+      - "${NETWORK_INTERFACE:-ens4}"
       - "--bind"
       - "0.0.0.0:3000"
       - "--ja4-database"
@@ -75,3 +70,10 @@ services:
     depends_on:
       - traefik
       - traffic-mirror
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.huginn-dashboard.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.huginn-dashboard.service=api@internal"
+      - "traefik.http.routers.huginn-dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$t4i5g2g3$$PklPBOaW8F8aJzsvM4pSg." # Usuario: admin, Pass: huginn
+      - "traefik.http.routers.huginn-dashboard.tls.certresolver=letsencrypt"
