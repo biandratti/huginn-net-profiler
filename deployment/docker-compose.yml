@@ -46,7 +46,7 @@ services:
     command:
       - "/app/huginn-api"
       - "--interface"
-      - "huginn-bridge"
+      - "ens4"
       - "--bind"
       - "0.0.0.0:3000"
       - "--ja4-database"
@@ -78,9 +78,3 @@ services:
       - "traefik.http.routers.huginn-dashboard.tls.certresolver=letsencrypt"
       - "traefik.http.routers.huginn-dashboard.tls.options=my-tls-options@file"
 
-networks:
-  huginn-net:
-    driver: bridge
-    driver_opts:
-      com.docker.network.bridge.name: huginn-bridge
-      com.docker.network.bridge.enable_icc: "true"
