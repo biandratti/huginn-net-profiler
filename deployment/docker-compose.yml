@@ -11,7 +11,7 @@ services:
           TIMESTAMP=$$(date +%H%M%S)
           PCAP_FILE=\"/shared/pcaps/dump_$${TIMESTAMP}.pcap\"
           echo \"Dumping to: $$(basename \"$$PCAP_FILE\")\"
-          timeout 30s tcpdump -i ens4 -w \"$$PCAP_FILE\" -s 0 'port 443' 2>/dev/null || true
+                     timeout 120s tcpdump -i ens4 -w \"$$PCAP_FILE\" -s 0 'tcp port 80 or tcp port 443' 2>/dev/null || true
           if [ -f \"$$PCAP_FILE\" ] && [ -s \"$$PCAP_FILE\" ]; then
             ln -sf \"$$PCAP_FILE\" /shared/current.pcap
             echo \"Updated: $$(basename \"$$PCAP_FILE\") ($$(du -h \"$$PCAP_FILE\" | cut -f1))\"
