@@ -1,10 +1,6 @@
 // Main Application Controller
 class HuginnApp {
     constructor() {
-        this.isInitialized = false;
-        this.updateInterval = null;
-        this.updateFrequency = 5000; // 5 seconds
-        
         this.init();
     }
 
@@ -12,37 +8,23 @@ class HuginnApp {
     async init() {
         console.log('🦉 Initializing Huginn Network Profiler...');
         
-        try {
-            // Wait for DOM to be ready
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => this.start());
-            } else {
-                await this.start();
-            }
-        } catch (error) {
-            console.error('Failed to initialize application:', error);
-            this.handleInitializationError(error);
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.start());
+        } else {
+            this.start();
         }
     }
 
     // Start the application
-    async start() {
+    start() {
         try {
-            // Check if all required modules are available
             this.checkDependencies();
-            
-            // Setup periodic updates
-            this.setupPeriodicUpdates();
-            
-            // Initial data load
-            await this.loadInitialData();
-            
-            this.isInitialized = true;
             console.log('✅ Huginn Network Profiler initialized successfully');
-            
+            // No automatic data loading, UI is now user-driven
         } catch (error) {
             console.error('Failed to start application:', error);
-            this.handleStartupError(error);
+            this.handleInitializationError(error);
         }
     }
 
@@ -53,74 +35,6 @@ class HuginnApp {
         
         if (missing.length > 0) {
             throw new Error(`Missing required dependencies: ${missing.join(', ')}`);
-        }
-    }
-
-    // Setup periodic updates
-    setupPeriodicUpdates() {
-        // Clear existing interval
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
-
-        // Setup new interval
-        this.updateInterval = setInterval(() => {
-            this.performPeriodicUpdate();
-        }, this.updateFrequency);
-    }
-
-    // Perform periodic update
-    async performPeriodicUpdate() {
-        try {
-            await this.updateStats();
-            await this.updateProfiles();
-        } catch (error) {
-            console.error('Periodic update failed:', error);
-        }
-    }
-
-    // Load initial data
-    async loadInitialData() {
-        try {
-            console.log('Loading initial data...');
-            
-            // Check API availability
-            const isAvailable = await window.huginnAPI.isAvailable();
-            if (!isAvailable) {
-                throw new Error('API is not available');
-            }
-
-            // Load initial stats and profiles
-            await Promise.all([
-                this.updateStats(),
-                this.updateProfiles()
-            ]);
-
-            console.log('Initial data loaded successfully');
-        } catch (error) {
-            console.error('Failed to load initial data:', error);
-            window.uiManager.showError('Failed to load initial data');
-            throw error;
-        }
-    }
-
-    // Update statistics
-    async updateStats() {
-        try {
-            const stats = await window.huginnAPI.getStats();
-            window.uiManager.updateStats(stats);
-        } catch (error) {
-            console.error('Failed to update stats:', error);
-        }
-    }
-
-    // Update profiles
-    async updateProfiles() {
-        try {
-            const profiles = await window.huginnAPI.getProfiles();
-            window.uiManager.updateProfiles(profiles);
-        } catch (error) {
-            console.error('Failed to update profiles:', error);
         }
     }
 
@@ -158,35 +72,10 @@ class HuginnApp {
         `;
     }
 
-    // Handle startup error
-    handleStartupError(error) {
-        console.error('Startup error:', error);
-        window.uiManager?.showError(`Failed to start application: ${error.message}`);
-    }
-
-    // Shutdown the application
+    // Shutdown logic (simplified)
     shutdown() {
         console.log('Shutting down Huginn Network Profiler...');
-        
-        // Clear intervals
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-            this.updateInterval = null;
-        }
-
-        this.isInitialized = false;
         console.log('Application shutdown complete');
-    }
-
-    // Manual refresh
-    async refresh() {
-        try {
-            console.log('Manual refresh requested');
-            await this.updateStats();
-            await this.updateProfiles();
-        } catch (error) {
-            console.error('Manual refresh failed:', error);
-        }
     }
 }
 

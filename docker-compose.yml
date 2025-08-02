@@ -1,100 +1,79 @@
+version: '3.8'
+
 services:
-  # 1. Proxy Inverso y Terminación TLS
   traefik:
-    image: traefik:v3.0
+    image: traefik:v2.10
     container_name: traefik
-    command:
-      - "--configFile=/etc/traefik/traefik.yml"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080" # Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./deployment/dynamic:/etc/traefik/dynamic
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
-    restart: always
+      - ./letsencrypt:/letsencrypt
+      - ./deployment/dynamic:/etc/traefik/dynamic
+    networks:
+      - huginn-net
+
+  frontend:
+    image: nginx:alpine
+    container_name: frontend
+    restart: unless-stopped
+    volumes:
+      - ./static:/usr/share/nginx/html
     networks:
       - huginn-net
     labels:
-      - "traefik.http.routers.dashboard.rule=Host(`localhost`) && PathPrefix(`/dashboard`)"
-      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`localhost`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
 
-  # 2. Colector de Firmas TLS
-  tls-collector:
-    build:
-      context: .
-      dockerfile: ./profiler/tls-collector/Dockerfile
-    container_name: tls-collector
-    privileged: true # Necesario para la captura de paquetes
-    network_mode: host
-    restart: always
-    environment:
-      - INTERFACE_NAME=wlp0s20f3 # Cambia esto por tu interfaz de red pública
-      - ASSEMBLER_ENDPOINT=http://host.docker.internal:8000/api/ingest/tls
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  # 3. HTTP & TCP Collector
-  http-collector:
-    build:
-      context: .
-      dockerfile: ./profiler/http-collector/Dockerfile
-    container_name: http-collector
-    privileged: true
-    network_mode: host
-    restart: always
-    environment:
-      - INTERFACE_NAME=wlp0s20f3
-      - ASSEMBLER_ENDPOINT=http://host.docker.internal:8000/api/ingest
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  # 4. Profile Assembler (The Brain)
   profile-assembler:
     build:
       context: .
       dockerfile: ./profiler/profile-assembler/Dockerfile
     container_name: profile-assembler
-    restart: always
-    networks:
-      - huginn-net
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "8000"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "8000:8000"
-    labels:
-      - "traefik.enable=true"
-      # Este router también tiene prioridad alta
-      - "traefik.http.routers.assembler-api.priority=10"
-      - "traefik.http.routers.assembler-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.assembler-api.entrypoints=websecure"
-      - "traefik.http.routers.assembler-api.tls=true"
-      - "traefik.http.routers.assembler-api.service=assembler-svc"
-      - "traefik.http.services.assembler-svc.loadbalancer.server.port=8000"
-
-  # 5. Frontend
-  frontend:
-    image: nginx:alpine
-    container_name: frontend
-    volumes:
-      - ./static:/usr/share/nginx/html:ro
+    restart: unless-stopped
     networks:
       - huginn-net
     labels:
       - "traefik.enable=true"
-      # Este router tiene la prioridad más baja para actuar como "catch-all"
-      - "traefik.http.routers.frontend-router.priority=1"
-      - "traefik.http.routers.frontend-router.rule=Host(`localhost`)"
-      - "traefik.http.routers.frontend-router.entrypoints=websecure"
-      - "traefik.http.routers.frontend-router.tls=true"
-      - "traefik.http.routers.frontend-router.service=frontend-svc"
-      - "traefik.http.services.frontend-svc.loadbalancer.server.port=80"
+      - "traefik.http.routers.api.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls=true"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
 
-# Red Docker personalizada
+  tls-collector:
+    build:
+      context: .
+      dockerfile: ./profiler/tls-collector/Dockerfile
+    container_name: tls-collector
+    restart: unless-stopped
+    network_mode: "host"
+    privileged: true
+    environment:
+      - INTERFACE_NAME=wlp0s20f3
+      - ASSEMBLER_ENDPOINT=http://localhost:8000/api/ingest/tls
+      - RUST_LOG=info
+
+  http-collector:
+    build:
+      context: .
+      dockerfile: ./profiler/http-collector/Dockerfile
+    container_name: http-collector
+    restart: unless-stopped
+    network_mode: "host"
+    privileged: true
+    environment:
+      - INTERFACE_NAME=wlp0s20f3
+      - ASSEMBLER_ENDPOINT=http://localhost:8000/api/ingest
+      - RUST_LOG=info
+
 networks:
   huginn-net:
     driver: bridge 

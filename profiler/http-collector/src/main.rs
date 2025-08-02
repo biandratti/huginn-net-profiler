@@ -1,33 +1,48 @@
-use huginn_net::{
-    db::Database,
-    fingerprint_result::FingerprintResult,
-    HuginnNet,
-};
-use log::{error, info};
-use reqwest::Client;
+use anyhow::Result;
+use clap::Parser;
+use huginn_net::{db::Database, fingerprint_result::FingerprintResult, HuginnNet};
+use log::{error, info, warn};
 use serde::Serialize;
-use std::env;
 use std::sync::mpsc as std_mpsc;
 use tokio::sync::mpsc as tokio_mpsc;
 use tokio::signal;
 
-#[derive(Serialize)]
-struct TcpSignature {
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    #[clap(short, long, value_parser, default_value = "eth0")]
+    interface: String,
+    #[clap(
+        short,
+        long,
+        value_parser,
+        default_value = "http://localhost:8000/api/ingest"
+    )]
+    assembler_endpoint: String,
+}
+
+#[derive(Serialize, Debug)]
+struct HttpIngest {
     source_ip: String,
-    signature: String,
+    signature: HttpSignature,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct HttpSignature {
-    source_ip_port: String,
-    signature: String,
+    browser: String,
+    os: String,
 }
 
-#[derive(Clone)]
-struct Config {
-    assembler_endpoint_tcp: String,
-    assembler_endpoint_http: String,
-    http_client: Client,
+#[derive(Serialize, Debug)]
+struct TcpIngest {
+    source_ip: String,
+    signature: TcpSignature,
+}
+
+#[derive(Serialize, Debug)]
+struct TcpSignature {
+    os: String,
+    browser: String,
 }
 
 fn spawn_channel_bridge(
@@ -45,65 +60,64 @@ fn spawn_channel_bridge(
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     env_logger::init();
+    let args = Args::parse();
 
-    let assembler_base = env::var("ASSEMBLER_ENDPOINT")
-        .unwrap_or_else(|_| "http://host.docker.internal:8000/api/ingest".to_string());
-    
-    let config = Config {
-        assembler_endpoint_tcp: format!("{}/tcp", assembler_base),
-        assembler_endpoint_http: format!("{}/http", assembler_base),
-        http_client: Client::new(),
-    };
-    
-    let interface = env::var("INTERFACE_NAME").unwrap_or_else(|_| "any".to_string());
-    
-    info!("Starting HTTP/TCP collector on interface: {}", interface);
+    info!("Starting HTTP/TCP collector on interface {}", args.interface);
 
     let (sync_tx, sync_rx) = std_mpsc::channel();
     let (async_tx, mut async_rx) = tokio_mpsc::channel(1000);
 
     spawn_channel_bridge(sync_rx, async_tx);
 
+    let interface = args.interface.clone();
     std::thread::spawn(move || {
         loop {
-            info!("Starting new HTTP/TCP analysis loop...");
+            info!("Starting new HTTP/TCP analysis loop on interface {}...", interface);
             let db = Box::leak(Box::new(Database::default()));
             let mut huginn = HuginnNet::new(Some(db), 1024, None);
         
             if let Err(e) = huginn.analyze_network(&interface, sync_tx.clone()) {
                 error!("Huginn-net (HTTP/TCP) analysis failed: {}. Restarting in 5 seconds...", e);
             } else {
-                info!("Huginn-net (HTTP/TCP) analysis finished without error. Restarting in 5 seconds...");
+                info!("Huginn-net (HTTP/TCP) analysis finished. Restarting in 5 seconds...");
             }
             std::thread::sleep(std::time::Duration::from_secs(5));
         }
     });
 
+    let client = reqwest::Client::new();
+    let assembler_endpoint_http = format!("{}/http", args.assembler_endpoint);
+    let assembler_endpoint_tcp = format!("{}/tcp", args.assembler_endpoint);
+
     let processing_task = tokio::spawn(async move {
         while let Some(result) = async_rx.recv().await {
-            let config = config.clone();
-            tokio::spawn(async move {
-                if let Some(tcp_data) = result.syn {
-                    let tcp_sig = TcpSignature {
+            
+            if let Some(tcp_data) = result.syn {
+                if let Some(os_match) = tcp_data.os_matched {
+                    let tcp_ingest = TcpIngest {
                         source_ip: tcp_data.source.ip.to_string(),
-                        signature: tcp_data.sig.to_string(),
+                        signature: TcpSignature {
+                            os: os_match.os.name.to_string(),
+                            browser: "".to_string(), // TCP doesn't provide browser info
+                        },
                     };
-                    if let Err(e) = send_tcp_to_assembler(tcp_sig, &config).await {
-                        error!("Error sending TCP signature to assembler: {}", e);
-                    }
+                    send_data(&client, &assembler_endpoint_tcp, tcp_ingest).await;
                 }
-                if let Some(http_data) = result.http_request {
-                    let http_sig = HttpSignature {
-                        source_ip_port: format!("{}:{}", http_data.source.ip, http_data.source.port),
-                        signature: http_data.sig.to_string(),
+            }
+            if let Some(http_data) = result.http_request {
+                if let Some(browser_match) = http_data.browser_matched {
+                    let http_ingest = HttpIngest {
+                        source_ip: http_data.source.ip.to_string(),
+                        signature: HttpSignature {
+                            os: "".to_string(), // OS info comes from TCP fingerprint
+                            browser: browser_match.browser.name.to_string(),
+                        },
                     };
-                    if let Err(e) = send_http_to_assembler(http_sig, &config).await {
-                        error!("Error sending HTTP signature to assembler: {}", e);
-                    }
+                    send_data(&client, &assembler_endpoint_http, http_ingest).await;
                 }
-            });
+            }
         }
     });
 
@@ -112,44 +126,26 @@ async fn main() {
     info!("Ctrl+C received, shutting down.");
 
     processing_task.abort();
-}
-
-async fn send_tcp_to_assembler(data: TcpSignature, config: &Config) -> Result<(), String> {
-    let res = config.http_client.post(&config.assembler_endpoint_tcp)
-        .json(&data)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    if res.status().is_success() {
-        info!("Successfully sent TCP signature for {}", data.source_ip);
-    } else {
-        let status = res.status();
-        let text = res.text().await.unwrap_or_default();
-        error!(
-            "Failed to send TCP signature. Status: {}. Body: {}",
-            status, text
-        );
-    }
     Ok(())
 }
 
-async fn send_http_to_assembler(data: HttpSignature, config: &Config) -> Result<(), String> {
-    let res = config.http_client.post(&config.assembler_endpoint_http)
-        .json(&data)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    if res.status().is_success() {
-        info!("Successfully sent HTTP signature for {}", data.source_ip_port);
-    } else {
-        let status = res.status();
-        let text = res.text().await.unwrap_or_default();
-        error!(
-            "Failed to send HTTP signature. Status: {}. Body: {}",
-            status, text
-        );
+async fn send_data<T: Serialize>(client: &reqwest::Client, endpoint: &str, data: T) {
+    let source_ip_for_log = serde_json::to_string(&data).unwrap_or_default();
+    info!("Sending data to assembler {}: {}", endpoint, source_ip_for_log);
+    match client.post(endpoint).json(&data).send().await {
+        Ok(response) => {
+            if response.status().is_success() {
+                info!("Successfully sent data for {}.", source_ip_for_log);
+            } else {
+                warn!(
+                    "Failed to send data for {}. Status: {}",
+                   source_ip_for_log,
+                    response.status()
+                );
+            }
+        }
+        Err(e) => {
+            error!("Error sending data for {}: {:?}", source_ip_for_log, e);
+        }
     }
-    Ok(())
 } 

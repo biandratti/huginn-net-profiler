@@ -11,98 +11,36 @@
     <div class="app">
         <!-- Header -->
         <header class="header">
-            <div class="header-content">
+            <div class="header-content container">
                 <div class="logo">
                     <h1>Huginn Network Profiler</h1>
                 </div>
             </div>
         </header>
 
-        <!-- Stats Dashboard -->
-        <section class="stats-section">
-            <div class="container">
-                <h2>Live Statistics</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-content">
-                            <div class="stat-value" id="totalProfiles">0</div>
-                            <div class="stat-label">Total Profiles</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-content">
-                            <div class="stat-value" id="tcpProfiles">0</div>
-                            <div class="stat-label">TCP Profiles</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-content">
-                            <div class="stat-value" id="httpProfiles">0</div>
-                            <div class="stat-label">HTTP Profiles</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-content">
-                            <div class="stat-value" id="tlsProfiles">0</div>
-                            <div class="stat-label">TLS Profiles</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-content">
-                            <div class="stat-value" id="completeProfiles">0</div>
-                            <div class="stat-label">Complete Profiles</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- Controls -->
         <section class="controls-section">
             <div class="container">
                 <div class="controls-bar">
-                    <button id="myProfile" class="btn btn-primary">My Profile</button>
-                    <button id="clearProfiles" class="btn btn-danger">Clear All</button>
-                    <button id="refreshProfiles" class="btn btn-secondary">Refresh</button>
+                    <button id="myProfileBtn" class="btn btn-primary">Find My Network Profile</button>
+                    <button id="clearProfilesBtn" class="btn btn-danger">Clear All Profiles</button>
                 </div>
-        </div>
+            </div>
         </section>
 
-        <!-- Profiles Display -->
-        <section class="profiles-section">
+        <!-- Profile Display -->
+        <section class="profile-display-section">
             <div class="container">
-                <div class="profiles-header">
-                    <h2>Traffic Profiles</h2>
-                    <div class="profiles-count">
-                        <span id="profilesCount">0 profiles</span>
-    </div>
-    </div>
-
-                <div class="profiles-container">
-                    <div id="profilesList" class="profiles-list">
-                        <!-- Profiles will be dynamically inserted here -->
-                    </div>
-                    
-                    <div id="emptyState" class="empty-state">
-                        <h3>No Traffic Profiles Yet</h3>
-                        <p>Start the network collector to see live traffic analysis.</p>
-                    </div>
+                <div id="profileDisplay" class="profile-display">
+                    <!-- Profile will be dynamically inserted here -->
+                </div>
+                
+                <div id="emptyState" class="empty-state">
+                    <h3>Click "Find My Network Profile" to begin.</h3>
+                    <p>When traffic is captured, your network profile will appear here.</p>
                 </div>
             </div>
         </section>
-    </div>
-
-    <!-- Profile Detail Modal -->
-    <div id="profileModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Profile Details</h3>
-                <button class="modal-close" id="modalClose">&times;</button>
-            </div>
-            <div class="modal-body" id="modalBody">
-                <!-- Profile details will be inserted here -->
-            </div>
-        </div>
     </div>
 
     <!-- Scripts -->
