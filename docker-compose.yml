@@ -4,31 +4,15 @@ services:
     image: traefik:v3.0
     container_name: traefik
     command:
-      # -- Configuraciones Globales --
-      - "--log.level=INFO"
-      - "--api.dashboard=true"
-      # -- Carga de Plugins --
-      - "--experimental.plugins.remoteaddr.moduleName=github.com/RiskIdent/traefik-remoteaddr-plugin"
-      - "--experimental.plugins.remoteaddr.version=v0.1.1"
-      # -- Puntos de Entrada --
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      # -- Redirección HTTP a HTTPS --
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      # -- Proveedores y Certificados --
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      # Usamos un proveedor de archivos para certificados locales en lugar de Let's Encrypt
-      - "--providers.file.directory=/etc/traefik/dynamic"
-      - "--providers.file.watch=true"
+      - "--configFile=/etc/traefik/traefik.yml"
     ports:
       - "80:80"
       - "443:443"
       - "8080:8080" # Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./dynamic:/etc/traefik/dynamic
+      - ./deployment/dynamic:/etc/traefik/dynamic
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
     restart: always
     networks:
       - huginn-net
@@ -51,41 +35,22 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  # 3. Colector de Firmas HTTP (Backend para Traefik)
+  # 3. HTTP & TCP Collector
   http-collector:
     build:
       context: .
       dockerfile: ./profiler/http-collector/Dockerfile
     container_name: http-collector
     privileged: true
+    network_mode: host
     restart: always
-    networks:
-      - huginn-net
     environment:
-      - INTERFACE_NAME=lo
-      - ASSEMBLER_ENDPOINT=http://profile-assembler:8000/api/ingest/http-sig
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "8080"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      profile-assembler:
-        condition: service_healthy
-    labels:
-      - "traefik.enable=true"
-      # Este router tiene una prioridad alta para capturar el tráfico API específico
-      - "traefik.http.routers.http-collector-router.priority=10"
-      - "traefik.http.routers.http-collector-router.rule=Host(`localhost`) && PathPrefix(`/api/collect`)"
-      - "traefik.http.routers.http-collector-router.entrypoints=websecure"
-      - "traefik.http.routers.http-collector-router.tls=true"
-      - "traefik.http.routers.http-collector-router.service=http-collector-svc"
-      - "traefik.http.services.http-collector-svc.loadbalancer.server.port=8080"
-      - "traefik.http.routers.http-collector-router.middlewares=inject-client-addr"
-      - "traefik.http.middlewares.inject-client-addr.plugin.remoteaddr.headers.ip=X-Real-IP"
-      - "traefik.http.middlewares.inject-client-addr.plugin.remoteaddr.headers.port=X-Real-Port"
+      - INTERFACE_NAME=wlp0s20f3
+      - ASSEMBLER_ENDPOINT=http://host.docker.internal:8000/api/ingest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
-  # 4. Ensamblador de Perfiles (El Cerebro)
+  # 4. Profile Assembler (The Brain)
   profile-assembler:
     build:
       context: .

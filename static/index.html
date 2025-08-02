@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦉 Huginn Network Profiler</title>
+    <title>Huginn Network Profiler</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="preload" href="img/favicon.png" as="image" type="image/png">
     <link rel="icon" type="image/x-icon" href="img/favicon/favicon.ico">
-    <link rel="icon" type="image/png" href="img/favicon.png">
-    <link rel="apple-touch-icon" href="img/favicon.png">
 </head>
 <body>
     <div class="app">
@@ -17,13 +14,6 @@
             <div class="header-content">
                 <div class="logo">
                     <h1>Huginn Network Profiler</h1>
-                </div>
-                <div class="header-controls">
-                    <div class="connection-status" id="connectionStatus">
-                        <span class="status-indicator" id="statusIndicator"></span>
-                        <span id="statusText">Connecting...</span>
-                    </div>
-                    <button id="toggleConnection" class="btn btn-primary">Connect</button>
                 </div>
             </div>
         </header>
@@ -34,61 +24,33 @@
                 <h2>Live Statistics</h2>
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-icon">📊</div>
                         <div class="stat-content">
                             <div class="stat-value" id="totalProfiles">0</div>
                             <div class="stat-label">Total Profiles</div>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">🔌</div>
                         <div class="stat-content">
                             <div class="stat-value" id="tcpProfiles">0</div>
                             <div class="stat-label">TCP Profiles</div>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">🌐</div>
                         <div class="stat-content">
                             <div class="stat-value" id="httpProfiles">0</div>
                             <div class="stat-label">HTTP Profiles</div>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">🔒</div>
                         <div class="stat-content">
                             <div class="stat-value" id="tlsProfiles">0</div>
                             <div class="stat-label">TLS Profiles</div>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">✅</div>
                         <div class="stat-content">
                             <div class="stat-value" id="completeProfiles">0</div>
                             <div class="stat-label">Complete Profiles</div>
-                        </div>
-                    </div>
-                    <div class="stat-card ja4-stats-card">
-                        <div class="stat-icon">🔍</div>
-                        <div class="stat-content">
-                            <div class="stat-label">JA4 Statistics</div>
-                            <div class="ja4-stats-grid">
-                                <div class="ja4-stat-item">
-                                    <span class="ja4-icon">🔍</span>
-                                    <span class="ja4-value" id="ja4ValidatedProfiles">0</span>
-                                    <span class="ja4-label">Validated</span>
-                                </div>
-                                <div class="ja4-stat-item">
-                                    <span class="ja4-icon">✅</span>
-                                    <span class="ja4-value" id="ja4ConsistentProfiles">0</span>
-                                    <span class="ja4-label">Consistent</span>
-                                </div>
-                                <div class="ja4-stat-item">
-                                    <span class="ja4-icon">⚠️</span>
-                                    <span class="ja4-value" id="ja4SuspiciousProfiles">0</span>
-                                    <span class="ja4-label">Suspicious</span>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -99,26 +61,10 @@
         <section class="controls-section">
             <div class="container">
                 <div class="controls-bar">
-                    <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="Search profiles by IP, OS, browser..." class="search-input">
-                        <button id="searchBtn" class="btn btn-secondary">🔍 Search</button>
-                    </div>
-                    <div class="filter-controls">
-                        <select id="filterType" class="filter-select">
-                            <option value="all">All Profiles</option>
-                            <option value="tcp">TCP Only</option>
-                            <option value="http">HTTP Only</option>
-                            <option value="tls">TLS Only</option>
-                            <option value="complete">Complete Profiles</option>
-                            <option value="ja4_validated">JA4 Validated</option>
-                            <option value="ja4_consistent">JA4 Consistent</option>
-                            <option value="ja4_suspicious">JA4 Suspicious</option>
-                        </select>
-                        <button id="myProfile" class="btn btn-primary">👤 My Profile</button>
-                        <button id="clearProfiles" class="btn btn-danger">🗑️ Clear All</button>
-                        <button id="refreshProfiles" class="btn btn-secondary">🔄 Refresh</button>
-                    </div>
-        </div>
+                    <button id="myProfile" class="btn btn-primary">My Profile</button>
+                    <button id="clearProfiles" class="btn btn-danger">Clear All</button>
+                    <button id="refreshProfiles" class="btn btn-secondary">Refresh</button>
+                </div>
         </div>
         </section>
 
@@ -138,26 +84,9 @@
                     </div>
                     
                     <div id="emptyState" class="empty-state">
-                        <div class="empty-icon">📊</div>
                         <h3>No Traffic Profiles Yet</h3>
                         <p>Start the network collector to see live traffic analysis.</p>
-                        <div class="empty-actions">
-                            <button id="startCollector" class="btn btn-primary">Start Monitoring</button>
-                        </div>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Live Activity Feed -->
-        <section class="activity-section">
-            <div class="container">
-                <div class="activity-header">
-                    <h3>Live Activity</h3>
-                    <button id="clearActivity" class="btn btn-sm btn-secondary">Clear</button>
-                </div>
-                <div class="activity-feed" id="activityFeed">
-                    <!-- Activity items will be added here -->
                 </div>
             </div>
         </section>
@@ -177,7 +106,6 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/websocket.js"></script>
     <script src="js/api.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>

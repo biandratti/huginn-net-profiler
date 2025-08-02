@@ -42,68 +42,11 @@ body {
     align-items: center;
 }
 
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    user-select: none;
-}
-
-.logo-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-    object-position: center;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-    max-width: 20px;
-    max-height: 20px;
-    flex-shrink: 0;
-}
-
 .logo h1 {
     font-size: 1.5rem;
     font-weight: 700;
     color: #2d3748;
     margin: 0;
-}
-
-.header-controls {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.connection-status {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 20px;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ef4444;
-    transition: background-color 0.3s ease;
-}
-
-.status-indicator.connected {
-    background: #10b981;
-}
-
-.status-indicator.connecting {
-    background: #f59e0b;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
 }
 
 /* Buttons */
@@ -134,17 +77,6 @@ body {
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
-.btn-active {
-    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(56, 161, 105, 0.4) !important;
-}
-
-.btn-active:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(56, 161, 105, 0.5) !important;
-}
-
 .btn-secondary {
     background: rgba(255, 255, 255, 0.9);
     color: #4a5568;
@@ -165,11 +97,6 @@ body {
 .btn-danger:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(245, 101, 101, 0.3);
-}
-
-.btn-sm {
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
 }
 
 /* Stats Section */
@@ -209,11 +136,6 @@ body {
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
 }
 
-.stat-icon {
-    font-size: 2rem;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-}
-
 .stat-content {
     flex: 1;
 }
@@ -231,73 +153,6 @@ body {
     margin-top: 0.25rem;
 }
 
-/* JA4 Statistics Card */
-.ja4-stats-card {
-    min-width: 250px;
-}
-
-.ja4-stats-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 0.75rem;
-}
-
-.ja4-stat-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    background: rgba(0, 0, 0, 0.02);
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
-}
-
-.ja4-stat-item:hover {
-    background: rgba(0, 0, 0, 0.05);
-}
-
-.ja4-icon {
-    font-size: 1rem;
-    width: 1.5rem;
-    text-align: center;
-}
-
-.ja4-value {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #2d3748;
-    min-width: 2rem;
-    text-align: center;
-}
-
-.ja4-label {
-    font-size: 0.875rem;
-    color: #4a5568;
-    flex: 1;
-}
-
-/* JA4 Status in Profile Cards */
-.ja4-status-validated {
-    color: #3182ce;
-    font-weight: 500;
-}
-
-.ja4-status-consistent {
-    color: #38a169;
-    font-weight: 500;
-}
-
-.ja4-status-suspicious {
-    color: #e53e3e;
-    font-weight: 500;
-}
-
-.ja4-status-none {
-    color: #718096;
-    font-style: italic;
-}
-
 /* Controls Section */
 .controls-section {
     padding: 1.5rem 0;
@@ -310,43 +165,6 @@ body {
     gap: 1rem;
     align-items: center;
     flex-wrap: wrap;
-}
-
-.search-box {
-    display: flex;
-    gap: 0.5rem;
-    flex: 1;
-    min-width: 300px;
-}
-
-.search-input {
-    flex: 1;
-    padding: 0.75rem 1rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    transition: border-color 0.2s ease;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.filter-controls {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-.filter-select {
-    padding: 0.75rem 1rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    background: white;
-    cursor: pointer;
 }
 
 /* Profiles Section */
@@ -444,57 +262,6 @@ body {
     border-left-color: #9f7aea;
 }
 
-.data-section.http-request {
-    border-left-color: #38a169;
-    background: #f0fff4;
-}
-
-.data-section.http-response {
-    border-left-color: #3182ce;
-    background: #ebf8ff;
-}
-
-/* Raw data section styles */
-.data-section.syn-client {
-    border-left-color: #48bb78;
-    background: #f0fff4;
-}
-
-.data-section.syn-server {
-    border-left-color: #ed8936;
-    background: #fffaf0;
-}
-
-.data-section.http-client {
-    border-left-color: #4299e1;
-    background: #ebf8ff;
-}
-
-.data-section.http-server {
-    border-left-color: #9f7aea;
-    background: #faf5ff;
-}
-
-.data-section.tls-client {
-    border-left-color: #e53e3e;
-    background: #fff5f5;
-}
-
-.data-section.mtu-data {
-    border-left-color: #38b2ac;
-    background: #e6fffa;
-}
-
-.data-section.uptime-data {
-    border-left-color: #d69e2e;
-    background: #fffff0;
-}
-
-.data-section.tcp-summary {
-    border-left-color: #805ad5;
-    background: #faf5ff;
-}
-
 .data-title {
     font-size: 0.875rem;
     font-weight: 600;
@@ -510,22 +277,6 @@ body {
     line-height: 1.5;
 }
 
-.data-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.25rem;
-}
-
-.data-label {
-    font-weight: 500;
-    color: #4a5568;
-}
-
-.data-value {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    color: #2d3748;
-}
-
 /* Empty State */
 .empty-state {
     display: flex;
@@ -537,12 +288,6 @@ body {
     color: #718096;
 }
 
-.empty-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
-
 .empty-state h3 {
     font-size: 1.25rem;
     color: #4a5568;
@@ -552,81 +297,6 @@ body {
 .empty-state p {
     margin-bottom: 1.5rem;
     max-width: 400px;
-}
-
-/* Activity Section */
-.activity-section {
-    padding: 1.5rem 0;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.activity-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.activity-header h3 {
-    color: #2d3748;
-    font-size: 1.125rem;
-    font-weight: 600;
-}
-
-.activity-feed {
-    max-height: 200px;
-    overflow-y: auto;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-}
-
-.activity-item {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #f7fafc;
-    font-size: 0.875rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.activity-item:last-child {
-    border-bottom: none;
-}
-
-.activity-message {
-    color: #4a5568;
-}
-
-.activity-time {
-    color: #718096;
-    font-size: 0.75rem;
-}
-
-.activity-type {
-    display: inline-block;
-    padding: 0.125rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    margin-right: 0.5rem;
-}
-
-.activity-type.created {
-    background: #c6f6d5;
-    color: #22543d;
-}
-
-.activity-type.updated {
-    background: #bee3f8;
-    color: #2a4365;
-}
-
-.activity-type.removed {
-    background: #fed7d7;
-    color: #742a2a;
 }
 
 /* Modal */
@@ -748,24 +418,6 @@ body {
     white-space: pre-wrap;
 }
 
-/* Detail subsections for raw data */
-.detail-subsection {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-}
-
-.detail-subsection h5 {
-    color: #2d3748;
-    font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #e2e8f0;
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
     .header-content {
@@ -776,14 +428,6 @@ body {
     .controls-bar {
         flex-direction: column;
         align-items: stretch;
-    }
-
-    .search-box {
-        min-width: auto;
-    }
-
-    .filter-controls {
-        justify-content: center;
     }
 
     .stats-grid {
@@ -809,10 +453,6 @@ body {
 
 .profile-card {
     animation: fadeIn 0.3s ease-out;
-}
-
-.activity-item {
-    animation: fadeIn 0.2s ease-out;
 }
 
 /* Scrollbar Styling */

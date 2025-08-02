@@ -3,7 +3,7 @@ use huginn_net::{
     fingerprint_result::FingerprintResult,
     HuginnNet,
 };
-use log::{info, error};
+use log::{error, info};
 use reqwest::Client;
 use serde::Serialize;
 use std::env;
@@ -12,7 +12,7 @@ use tokio::sync::mpsc as tokio_mpsc;
 use tokio::signal;
 
 #[derive(Serialize)]
-struct TlsInfo {
+struct TlsIngest {
     correlation_id: String,
     ja4_fingerprint: String,
 }
@@ -23,7 +23,7 @@ struct Config {
     http_client: Client,
 }
 
-/// Bridges events from a standard sync MPSC channel to a Tokio async MPSC channel.
+/// Bridges events from a standard sync MPSC channel to a Tokio async Mpsc channel.
 fn spawn_channel_bridge(
     sync_rx: std_mpsc::Receiver<FingerprintResult>,
     async_tx: tokio_mpsc::Sender<FingerprintResult>,
@@ -44,7 +44,7 @@ async fn main() {
 
     let config = Config {
         assembler_endpoint: env::var("ASSEMBLER_ENDPOINT")
-            .unwrap_or_else(|_| "http://profile-assembler:8000/api/ingest/tls".to_string()),
+            .unwrap_or_else(|_| "http://localhost:8000/api/ingest/tls".to_string()),
         http_client: Client::new(),
     };
     
@@ -62,7 +62,7 @@ async fn main() {
             info!("Starting new TLS analysis loop...");
             let db = Box::leak(Box::new(Database::default()));
             let mut huginn = HuginnNet::new(Some(db), 1024, None);
-            
+
             if let Err(e) = huginn.analyze_network(&interface, sync_tx.clone()) {
                 error!("Huginn-net (TLS) analysis failed: {}. Restarting in 5 seconds...", e);
             } else {
@@ -75,11 +75,10 @@ async fn main() {
     let processing_task = tokio::spawn(async move {
         while let Some(result) = async_rx.recv().await {
             if let Some(tls_data) = result.tls_client {
-                let tls_info = TlsInfo {
+                let tls_info = TlsIngest {
                     correlation_id: format!("{}:{}", tls_data.source.ip, tls_data.source.port),
                     ja4_fingerprint: tls_data.sig.ja4.full.value().to_string(),
                 };
-
                 let config = config.clone();
                 tokio::spawn(async move {
                     if let Err(e) = send_to_assembler(tls_info, &config).await {
@@ -97,7 +96,7 @@ async fn main() {
     processing_task.abort();
 }
 
-async fn send_to_assembler(data: TlsInfo, config: &Config) -> Result<(), String> {
+async fn send_to_assembler(data: TlsIngest, config: &Config) -> Result<(), String> {
     let res = config.http_client.post(&config.assembler_endpoint)
         .json(&data)
         .send()
