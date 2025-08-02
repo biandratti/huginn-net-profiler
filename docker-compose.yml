@@ -1,0 +1,135 @@
+services:
+  # 1. Proxy Inverso y Terminación TLS
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      # -- Configuraciones Globales --
+      - "--log.level=INFO"
+      - "--api.dashboard=true"
+      # -- Carga de Plugins --
+      - "--experimental.plugins.remoteaddr.moduleName=github.com/RiskIdent/traefik-remoteaddr-plugin"
+      - "--experimental.plugins.remoteaddr.version=v0.1.1"
+      # -- Puntos de Entrada --
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # -- Redirección HTTP a HTTPS --
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # -- Proveedores y Certificados --
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # Usamos un proveedor de archivos para certificados locales en lugar de Let's Encrypt
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./dynamic:/etc/traefik/dynamic
+    restart: always
+    networks:
+      - huginn-net
+    labels:
+      - "traefik.http.routers.dashboard.rule=Host(`localhost`) && PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+
+  # 2. Colector de Firmas TLS
+  tls-collector:
+    build:
+      context: .
+      dockerfile: ./profiler/tls-collector/Dockerfile
+    container_name: tls-collector
+    privileged: true # Necesario para la captura de paquetes
+    network_mode: host
+    restart: always
+    environment:
+      - INTERFACE_NAME=wlp0s20f3 # Cambia esto por tu interfaz de red pública
+      - ASSEMBLER_ENDPOINT=http://host.docker.internal:8000/api/ingest/tls
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # 3. Colector de Firmas HTTP (Backend para Traefik)
+  http-collector:
+    build:
+      context: .
+      dockerfile: ./profiler/http-collector/Dockerfile
+    container_name: http-collector
+    privileged: true
+    restart: always
+    networks:
+      - huginn-net
+    environment:
+      - INTERFACE_NAME=lo
+      - ASSEMBLER_ENDPOINT=http://profile-assembler:8000/api/ingest/http-sig
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      profile-assembler:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      # Este router tiene una prioridad alta para capturar el tráfico API específico
+      - "traefik.http.routers.http-collector-router.priority=10"
+      - "traefik.http.routers.http-collector-router.rule=Host(`localhost`) && PathPrefix(`/api/collect`)"
+      - "traefik.http.routers.http-collector-router.entrypoints=websecure"
+      - "traefik.http.routers.http-collector-router.tls=true"
+      - "traefik.http.routers.http-collector-router.service=http-collector-svc"
+      - "traefik.http.services.http-collector-svc.loadbalancer.server.port=8080"
+      - "traefik.http.routers.http-collector-router.middlewares=inject-client-addr"
+      - "traefik.http.middlewares.inject-client-addr.plugin.remoteaddr.headers.ip=X-Real-IP"
+      - "traefik.http.middlewares.inject-client-addr.plugin.remoteaddr.headers.port=X-Real-Port"
+
+  # 4. Ensamblador de Perfiles (El Cerebro)
+  profile-assembler:
+    build:
+      context: .
+      dockerfile: ./profiler/profile-assembler/Dockerfile
+    container_name: profile-assembler
+    restart: always
+    networks:
+      - huginn-net
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "8000:8000"
+    labels:
+      - "traefik.enable=true"
+      # Este router también tiene prioridad alta
+      - "traefik.http.routers.assembler-api.priority=10"
+      - "traefik.http.routers.assembler-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.assembler-api.entrypoints=websecure"
+      - "traefik.http.routers.assembler-api.tls=true"
+      - "traefik.http.routers.assembler-api.service=assembler-svc"
+      - "traefik.http.services.assembler-svc.loadbalancer.server.port=8000"
+
+  # 5. Frontend
+  frontend:
+    image: nginx:alpine
+    container_name: frontend
+    volumes:
+      - ./static:/usr/share/nginx/html:ro
+    networks:
+      - huginn-net
+    labels:
+      - "traefik.enable=true"
+      # Este router tiene la prioridad más baja para actuar como "catch-all"
+      - "traefik.http.routers.frontend-router.priority=1"
+      - "traefik.http.routers.frontend-router.rule=Host(`localhost`)"
+      - "traefik.http.routers.frontend-router.entrypoints=websecure"
+      - "traefik.http.routers.frontend-router.tls=true"
+      - "traefik.http.routers.frontend-router.service=frontend-svc"
+      - "traefik.http.services.frontend-svc.loadbalancer.server.port=80"
+
+# Red Docker personalizada
+networks:
+  huginn-net:
+    driver: bridge 

@@ -8,19 +8,19 @@ license = "MIT"
 [dependencies]
 huginn-core = { path = "../huginn-core" }
 huginn-collector = { path = "../huginn-collector" }
-axum = { workspace = true }
-tokio = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-tower-http = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-clap = { workspace = true }
-chrono = { workspace = true }
-thiserror = { workspace = true }
-arc-swap = { workspace = true }
-futures = { workspace = true }
-tower = { workspace = true }
+axum = "0.7.5"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tower-http = { version = "0.5.2", features = ["fs", "trace", "cors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4.5", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"
+arc-swap = "1.6"
+futures = "0.3"
+tower = "0.4"
 
 [dev-dependencies]
 tracing-subscriber = { workspace = true }

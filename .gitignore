@@ -5,3 +5,4 @@ letsencrypt/
 
 # Traefik
 /deployment/traefik/letsencrypt
+deployment/dynamic/
