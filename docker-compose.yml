@@ -53,7 +53,7 @@ services:
       context: .
       dockerfile: ./profiler/profile-assembler/Dockerfile
     container_name: profile-assembler
-    restart: unless-stopped
+    command: ["tail", "-f", "/dev/null"]
     ports:
       - "127.0.0.1:8000:8000"
     labels:
@@ -63,8 +63,7 @@ services:
       - "traefik.http.routers.profile-assembler.tls=true"
       - "traefik.http.routers.profile-assembler.tls.certresolver=letsencrypt"
       - "traefik.http.routers.profile-assembler.tls.options=my-tls-options@file"
-      - "traefik.http.routers.profile-assembler.middlewares=remote-addr@file,api-stripprefix"
-      - "traefik.http.middlewares.api-stripprefix.stripprefix.prefixes=/api"
+      - "traefik.http.routers.profile-assembler.middlewares=remote-addr@file"
       - "traefik.http.services.profile-assembler.loadbalancer.server.port=8000"
     depends_on:
       - traefik
