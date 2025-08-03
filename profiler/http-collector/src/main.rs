@@ -1,4 +1,5 @@
 use clap::Parser;
+use huginn_net::AnalysisConfig;
 use huginn_net::{db::Database, fingerprint_result::FingerprintResult, HuginnNet};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
@@ -18,7 +19,7 @@ struct Args {
         short,
         long,
         value_parser,
-        default_value = "http://profile-assembler:8000/api/ingest"
+        default_value = "http://localhost:8000/api/ingest"
     )]
     assembler_endpoint: String,
 }
@@ -70,7 +71,11 @@ fn main() {
     thread::spawn(move || loop {
         info!("Starting new HTTP analysis loop on interface {}...", analysis_interface);
         let db = Box::leak(Box::new(Database::default()));
-        let mut huginn = HuginnNet::new(Some(db), 1024, None);
+        let mut huginn = HuginnNet::new(Some(db), 1024, Some(AnalysisConfig{
+            http_enabled: true,
+            tcp_enabled: true,
+            tls_enabled: false,
+        }));
 
         if let Err(e) = huginn.analyze_network(&analysis_interface, sync_tx.clone()) {
             error!(

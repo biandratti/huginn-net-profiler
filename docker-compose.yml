@@ -39,14 +39,16 @@ services:
       dockerfile: ./profiler/profile-assembler/Dockerfile
     container_name: profile-assembler
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
     networks:
       - huginn-net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`localhost`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.api.entrypoints=websecure"
-      - "traefik.http.routers.api.tls=true"
-      - "traefik.http.services.api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.profile-assembler.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.profile-assembler.entrypoints=websecure"
+      - "traefik.http.routers.profile-assembler.tls=true"
+      - "traefik.http.services.profile-assembler.loadbalancer.server.port=8000"
 
   tls-collector:
     build:

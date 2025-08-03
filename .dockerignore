@@ -1,5 +1,26 @@
-target/
-.git/
+# Ignore Git
+.git
 .gitignore
-Dockerfile
-.dockerignore
+
+# Ignore build artifacts
+target/
+
+# Ignore Docker-related files and runtime data
+docker-compose.yml
+deployment/
+letsencrypt/
+dynamic/
+acme.json
+
+# Ignore frontend files for backend builds
+static/
+
+# Ignore legacy crates
+huginn-api/
+huginn-collector/
+huginn-core/
+
+# Ignore markdown files and images
+README.md
+ROADMAP.md
+img.png

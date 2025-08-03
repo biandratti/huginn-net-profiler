@@ -6,49 +6,86 @@ use std::{
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
+    response::Json,
     routing::{get, post},
-    Json, Router,
+    Router,
 };
-use chrono::{DateTime, Utc};
+use chrono::{Utc};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{info, Level};
+use tracing::{info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Deserialize, Debug)]
+struct TcpIngest {
+    id: String,
+    timestamp: u64,
+    tcp_signature: String,
+    os: String,
+    nat: bool,
+}
+
+#[derive(Deserialize, Debug)]
+struct HttpIngest {
+    id: String,
+    timestamp: u64,
+    http_signature: String,
+    os: String,
+    browser: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct TlsIngest {
+    id: String,
+    timestamp: u64,
+    ja4_fingerprint: String,
+    ja4_hash: String,
+}
+
+#[derive(Serialize, Clone, Debug)]
 struct TcpSignature {
+    timestamp: u64,
+    tcp_signature: String,
     os: String,
-    browser: String,
+    nat: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Serialize, Clone, Debug)]
 struct HttpSignature {
-    browser: String,
+    timestamp: u64,
+    http_signature: String,
     os: String,
+    browser: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Serialize, Clone, Debug)]
 struct TlsSignature {
-    ja4: String,
+    timestamp: u64,
+    ja4_fingerprint: String,
+    ja4_hash: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Serialize, Clone, Debug)]
 struct Profile {
-    timestamp: DateTime<Utc>,
+    id: String,
+    timestamp: u64,
     tcp_signature: Option<TcpSignature>,
     http_signature: Option<HttpSignature>,
     tls_fingerprint: Option<TlsSignature>,
+    last_seen: String,
 }
 
 impl Default for Profile {
     fn default() -> Self {
         Self {
-            timestamp: Utc::now(),
+            id: String::new(),
+            timestamp: 0,
             tcp_signature: None,
             http_signature: None,
             tls_fingerprint: None,
+            last_seen: String::new(),
         }
     }
 }
@@ -75,6 +112,8 @@ async fn main() {
         .route("/api/profiles", get(get_profiles).delete(clear_profiles))
         .route("/api/profiles/:id", get(get_profile_by_id))
         .route("/api/stats", get(get_stats))
+        .route("/api/clear", post(clear_profiles))
+        .route("/api/my-profile", get(get_my_profile))
         .route("/health", get(health_check))
         .layer(
             CorsLayer::new()
@@ -85,7 +124,7 @@ async fn main() {
         .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
-    info!("🚀 Profile Assembler listening on {}", addr);
+    info!("Profile Assembler listening on {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
@@ -108,14 +147,39 @@ async fn get_profiles(State(state): State<AppState>) -> Json<ProfilesResponse> {
     Json(ProfilesResponse { profiles })
 }
 
+async fn get_my_profile(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Profile>, StatusCode> {
+    let client_ip = headers
+        .get("X-Forwarded-For")
+        .and_then(|h| h.to_str().ok())
+        .and_then(|s| s.split(',').next())
+        .map(|s| s.trim().to_string());
+
+    if let Some(ip) = client_ip {
+        info!("Fetching profile for client IP from X-Forwarded-For: {}", ip);
+        if let Some(profile) = state.get(&ip) {
+            Ok(Json(profile.value().clone()))
+        } else {
+            warn!("No profile found for client IP: {}", ip);
+            Err(StatusCode::NOT_FOUND)
+        }
+    } else {
+        warn!("X-Forwarded-For header not found or invalid.");
+        Err(StatusCode::BAD_REQUEST)
+    }
+}
+
 async fn get_profile_by_id(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<Profile>, StatusCode> {
     info!("Fetching profile for ID: {}", id);
-    match state.get(&id) {
-        Some(profile) => Ok(Json(profile.clone())),
-        None => Err(StatusCode::NOT_FOUND),
+    if let Some(profile) = state.get(&id) {
+        Ok(Json(profile.value().clone()))
+    } else {
+        Err(StatusCode::NOT_FOUND)
     }
 }
 
@@ -125,60 +189,62 @@ async fn clear_profiles(State(state): State<AppState>) -> StatusCode {
     StatusCode::OK
 }
 
-#[derive(Debug, Deserialize)]
-struct TcpIngest {
-    source_ip: String,
-    signature: TcpSignature,
-}
-
-#[derive(Debug, Deserialize)]
-struct HttpIngest {
-    source_ip: String,
-    signature: HttpSignature,
-}
-
-#[derive(Debug, Deserialize)]
-struct TlsIngest {
-    correlation_id: String, // source_ip:port
-    ja4: String,
-}
-
-async fn ingest_tcp(
-    State(state): State<AppState>,
-    Json(payload): Json<TcpIngest>,
-) -> StatusCode {
-    info!("Ingesting TCP data for {}", payload.source_ip);
-    let mut entry = state.entry(payload.source_ip).or_default();
-    entry.tcp_signature = Some(payload.signature);
-    entry.timestamp = Utc::now();
-    StatusCode::OK
-}
-
-async fn ingest_http(
-    State(state): State<AppState>,
-    Json(payload): Json<HttpIngest>,
-) -> StatusCode {
-    info!("Ingesting HTTP data for {}", payload.source_ip);
-    let mut entry = state.entry(payload.source_ip).or_default();
-    entry.http_signature = Some(payload.signature);
-    entry.timestamp = Utc::now();
-    StatusCode::OK
-}
-
-async fn ingest_tls(
-    State(state): State<AppState>,
-    Json(payload): Json<TlsIngest>,
-) -> StatusCode {
-    info!("Ingesting TLS data for {}", payload.correlation_id);
-    let ip = payload.correlation_id.split(':').next().unwrap_or("");
-    if !ip.is_empty() {
-        let mut entry = state.entry(ip.to_string()).or_default();
-        entry.tls_fingerprint = Some(TlsSignature { ja4: payload.ja4 });
-        entry.timestamp = Utc::now();
+async fn ingest_tcp(State(state): State<AppState>, Json(ingest): Json<TcpIngest>) {
+    let ip = ingest.id.split(':').next().unwrap_or("").to_string();
+    if ip.is_empty() {
+        warn!("Received TCP ingest with invalid ID: {}", ingest.id);
+        return;
     }
-    StatusCode::OK
+    info!("Received TCP data for {}", ip);
+    let mut profile = state.entry(ip.clone()).or_default();
+    profile.id = ip;
+    profile.tcp_signature = Some(TcpSignature {
+        timestamp: ingest.timestamp,
+        tcp_signature: ingest.tcp_signature,
+        os: ingest.os,
+        nat: ingest.nat,
+    });
+    profile.last_seen = now_rfc3339();
 }
 
+async fn ingest_http(State(state): State<AppState>, Json(ingest): Json<HttpIngest>) {
+    let ip = ingest.id.split(':').next().unwrap_or("").to_string();
+    if ip.is_empty() {
+        warn!("Received HTTP ingest with invalid ID: {}", ingest.id);
+        return;
+    }
+    info!("Received HTTP data for {}", ip);
+    let mut profile = state.entry(ip.clone()).or_default();
+    profile.id = ip;
+    profile.http_signature = Some(HttpSignature {
+        timestamp: ingest.timestamp,
+        http_signature: ingest.http_signature,
+        os: ingest.os,
+        browser: ingest.browser,
+    });
+    profile.last_seen = now_rfc3339();
+}
+
+async fn ingest_tls(State(state): State<AppState>, Json(ingest): Json<TlsIngest>) {
+    let ip = ingest.id.split(':').next().unwrap_or("").to_string();
+    if ip.is_empty() {
+        warn!("Received TLS ingest with invalid ID: {}", ingest.id);
+        return;
+    }
+    info!("Received TLS data for {}", ip);
+    let mut profile = state.entry(ip.clone()).or_default();
+    profile.id = ip;
+    profile.tls_fingerprint = Some(TlsSignature {
+        timestamp: ingest.timestamp,
+        ja4_fingerprint: ingest.ja4_fingerprint,
+        ja4_hash: ingest.ja4_hash,
+    });
+    profile.last_seen = now_rfc3339();
+}
+
+fn now_rfc3339() -> String {
+    Utc::now().to_rfc3339()
+}
 
 #[derive(Serialize)]
 struct AppStats {

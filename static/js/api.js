@@ -7,7 +7,8 @@ class HuginnAPI {
             api: '/api',
             profiles: '/api/profiles',
             stats: '/api/stats',
-            search: '/api/search'
+            search: '/api/search',
+            myProfile: '/api/my-profile'
         };
     }
 
@@ -218,6 +219,22 @@ class HuginnAPI {
                 error: error.message,
                 timestamp: new Date().toISOString()
             };
+        }
+    }
+
+    // Fetches the network profile for the current user.
+    // @returns {Promise<object>} A promise that resolves to the user's network profile.
+    async fetchMyProfile() {
+        try {
+            const response = await fetch(`${this.baseUrl}${this.endpoints.myProfile}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile' }));
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching my profile:', error);
+            throw error;
         }
     }
 }

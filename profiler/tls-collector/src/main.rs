@@ -1,5 +1,5 @@
 use clap::Parser;
-use huginn_net::{db::Database, fingerprint_result::FingerprintResult, HuginnNet};
+use huginn_net::{db::Database, fingerprint_result::FingerprintResult, AnalysisConfig, HuginnNet};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -19,7 +19,7 @@ struct Args {
         short,
         long,
         value_parser,
-        default_value = "http://profile-assembler:8000/api/ingest/tls"
+        default_value = "http://localhost:8000/api/ingest/tls"
     )]
     assembler_endpoint: String,
 }
@@ -66,7 +66,11 @@ fn main() {
     thread::spawn(move || loop {
         info!("Starting new TLS analysis loop on interface {}...", analysis_interface);
         let db = Box::leak(Box::new(Database::default()));
-        let mut huginn = HuginnNet::new(Some(db), 1024, None);
+        let mut huginn = HuginnNet::new(Some(db), 1024, Some(AnalysisConfig{
+            http_enabled: false,
+            tcp_enabled: false,
+            tls_enabled: true,
+        }));
 
         if let Err(e) = huginn.analyze_network(&analysis_interface, sync_tx.clone()) {
             error!(
