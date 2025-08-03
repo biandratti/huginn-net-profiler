@@ -152,13 +152,14 @@ async fn get_my_profile(
     headers: HeaderMap,
 ) -> Result<Json<Profile>, StatusCode> {
     let client_ip = headers
-        .get("X-Forwarded-For")
+        .get("X-Real-Ip")
+        .or_else(|| headers.get("X-Forwarded-For"))
         .and_then(|h| h.to_str().ok())
         .and_then(|s| s.split(',').next())
         .map(|s| s.trim().to_string());
-
+    
     if let Some(ip) = client_ip {
-        info!("Fetching profile for client IP from X-Forwarded-For: {}", ip);
+        info!("Fetching profile for client IP from headers: {}", ip);
         if let Some(profile) = state.get(&ip) {
             Ok(Json(profile.value().clone()))
         } else {
@@ -166,7 +167,7 @@ async fn get_my_profile(
             Err(StatusCode::NOT_FOUND)
         }
     } else {
-        warn!("X-Forwarded-For header not found or invalid.");
+        warn!("X-Real-Ip or X-Forwarded-For header not found or invalid.");
         Err(StatusCode::BAD_REQUEST)
     }
 }

@@ -25,7 +25,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
       - ./letsencrypt:/letsencrypt
-      - ./deployment/dynamic:/etc/traefik/dynamic
+      - ./middlewares.yml:/etc/traefik/middlewares.yml:ro
     networks:
       - huginn-net
 
@@ -59,6 +59,7 @@ services:
       - "traefik.http.routers.profile-assembler.rule=Host(`api.localhost`)"
       - "traefik.http.routers.profile-assembler.entrypoints=websecure"
       - "traefik.http.routers.profile-assembler.tls=true"
+      - "traefik.http.routers.profile-assembler.middlewares=remote-addr@file"
       - "traefik.http.services.profile-assembler.loadbalancer.server.port=8000"
     depends_on:
       - traefik
