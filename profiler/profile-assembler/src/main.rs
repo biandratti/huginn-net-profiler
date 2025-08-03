@@ -106,14 +106,14 @@ async fn main() {
     let state = AppState::new(DashMap::new());
 
     let app = Router::new()
-        .route("/api/ingest/tcp", post(ingest_tcp))
-        .route("/api/ingest/http", post(ingest_http))
-        .route("/api/ingest/tls", post(ingest_tls))
-        .route("/api/profiles", get(get_profiles).delete(clear_profiles))
-        .route("/api/profiles/:id", get(get_profile_by_id))
-        .route("/api/stats", get(get_stats))
-        .route("/api/clear", post(clear_profiles))
-        .route("/api/my-profile", get(get_my_profile))
+        .route("/ingest/tcp", post(ingest_tcp))
+        .route("/ingest/http", post(ingest_http))
+        .route("/ingest/tls", post(ingest_tls))
+        .route("/profiles", get(get_profiles).delete(clear_profiles))
+        .route("/profiles/:id", get(get_profile_by_id))
+        .route("/stats", get(get_stats))
+        .route("/clear", post(clear_profiles))
+        .route("/my-profile", get(get_my_profile))
         .route("/health", get(health_check))
         .layer(
             CorsLayer::new()
