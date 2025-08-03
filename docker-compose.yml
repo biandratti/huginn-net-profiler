@@ -54,12 +54,12 @@ services:
       dockerfile: ./profiler/tls-collector/Dockerfile
     container_name: tls-collector
     restart: unless-stopped
-    network_mode: "host"
+    network_mode: host
     privileged: true
     environment:
-      - INTERFACE_NAME=wlp0s20f3
-      - ASSEMBLER_ENDPOINT=http://localhost:8000/api/ingest/tls
-      - RUST_LOG=info
+      - PROFILER_INTERFACE=wlp0s20f3
+    depends_on:
+      - profile-assembler
 
   http-collector:
     build:
@@ -67,12 +67,12 @@ services:
       dockerfile: ./profiler/http-collector/Dockerfile
     container_name: http-collector
     restart: unless-stopped
-    network_mode: "host"
+    network_mode: host
     privileged: true
     environment:
-      - INTERFACE_NAME=wlp0s20f3
-      - ASSEMBLER_ENDPOINT=http://localhost:8000/api/ingest
-      - RUST_LOG=info
+      - PROFILER_INTERFACE=wlp0s20f3
+    depends_on:
+      - profile-assembler
 
 networks:
   huginn-net:
