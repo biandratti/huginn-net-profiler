@@ -62,12 +62,13 @@ services:
       - "127.0.0.1:8000:8000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.profile-assembler.rule=Host(`api.huginn-net.duckdns.org`)"
+      - "traefik.http.routers.profile-assembler.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/api`)"
       - "traefik.http.routers.profile-assembler.entrypoints=websecure"
       - "traefik.http.routers.profile-assembler.tls=true"
       - "traefik.http.routers.profile-assembler.tls.certresolver=letsencrypt"
       - "traefik.http.routers.profile-assembler.tls.options=my-tls-options@file"
-      - "traefik.http.routers.profile-assembler.middlewares=remote-addr@file"
+      - "traefik.http.routers.profile-assembler.middlewares=remote-addr@file,api-stripprefix"
+      - "traefik.http.middlewares.api-stripprefix.stripprefix.prefixes=/api"
       - "traefik.http.services.profile-assembler.loadbalancer.server.port=8000"
     depends_on:
       - traefik

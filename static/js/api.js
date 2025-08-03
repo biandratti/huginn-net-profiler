@@ -3,7 +3,7 @@ const API_BASE_URL = 'https://api.localhost';
 
 class HuginnAPI {
     constructor() {
-        this.baseUrl = API_BASE_URL;
+        this.baseUrl = ''; // API calls will be relative to the domain
         this.endpoints = {
             profiles: '/api/profiles',
             myProfile: '/api/my-profile',
@@ -226,7 +226,7 @@ class HuginnAPI {
     // Fetches the network profile for the current user.
     // @returns {Promise<object>} A promise that resolves to the user's network profile.
     async fetchMyProfile() {
-        const url = `${this.baseUrl}${this.endpoints.myProfile}`;
+        const url = `${this.baseUrl}/api/my-profile`;
         console.log(`Fetching my profile from: ${url}`);
         try {
             const response = await fetch(url);
@@ -243,7 +243,7 @@ class HuginnAPI {
     }
     
     async clearAllProfiles() {
-        const url = `${this.baseUrl}${this.endpoints.clear}`;
+        const url = `${this.baseUrl}/api/clear`;
         console.log(`Clearing all profiles from: ${url}`);
         try {
             const response = await fetch(url, { method: 'POST' });
