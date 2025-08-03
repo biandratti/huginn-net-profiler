@@ -17,6 +17,10 @@ services:
       - "--experimental.plugins.remoteaddr.version=v0.1.1"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.email=maxibiandra@gmail.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
     ports:
       - "80:80"
       - "443:443"
@@ -37,9 +41,11 @@ services:
       - ./static:/usr/share/nginx/html
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`localhost`)"
+      - "traefik.http.routers.frontend.rule=Host(`huginn-net.duckdns.org`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend.tls.options=my-tls-options@file"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
     depends_on:
       - traefik
@@ -56,9 +62,11 @@ services:
       - "127.0.0.1:8000:8000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.profile-assembler.rule=Host(`api.localhost`)"
+      - "traefik.http.routers.profile-assembler.rule=Host(`api.huginn-net.duckdns.org`)"
       - "traefik.http.routers.profile-assembler.entrypoints=websecure"
       - "traefik.http.routers.profile-assembler.tls=true"
+      - "traefik.http.routers.profile-assembler.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.profile-assembler.tls.options=my-tls-options@file"
       - "traefik.http.routers.profile-assembler.middlewares=remote-addr@file"
       - "traefik.http.services.profile-assembler.loadbalancer.server.port=8000"
     depends_on:
