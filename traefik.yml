@@ -20,28 +20,11 @@ providers:
   docker:
     exposedByDefault: false
   file:
-    filename: /etc/traefik/middlewares.yml
+    directory: /etc/traefik/dynamic
     watch: true
 
 experimental:
   plugins:
     remoteaddr:
       moduleName: "github.com/RiskIdent/traefik-remoteaddr-plugin"
-      version: "v0.1.1" 
-
-tls:
-  options:
-    my-tls-options:
-      minVersion: VersionTLS12
-      maxVersion: VersionTLS13
-      # HTTP/2 is prioritized in ALPN negotiation
-      alpnProtocols:
-        - "h2"          # HTTP/2 over TLS
-        - "http/1.1"    # HTTP/1.1 fallback
-      # Modern cipher suites that support HTTP/2
-      cipherSuites:
-        - "TLS_AES_256_GCM_SHA384"
-        - "TLS_CHACHA20_POLY1305_SHA256"
-        - "TLS_AES_128_GCM_SHA256"
-        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
-        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+      version: "v0.1.1"
