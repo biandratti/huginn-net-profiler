@@ -10,7 +10,7 @@ use tokio::sync::mpsc as tokio_mpsc;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    #[clap(short, long, value_parser, default_value = "eth0")]
+    #[clap(short, long, value_parser, default_value = "wlp0s20f3")]
     interface: String,
     #[clap(
         short,

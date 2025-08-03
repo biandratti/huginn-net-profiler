@@ -18,9 +18,9 @@ RUN cargo build --release -p tls-collector
 FROM debian:bookworm-slim
 
 # Install runtime dependencies
-RUN apt-get update && apt-get install -y libpcap0.8 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libpcap0.8 libssl3 && rm -rf /var/lib/apt/lists/*
 
 # Copy the compiled binary from the builder stage
 COPY --from=builder /usr/src/app/target/release/tls-collector /usr/local/bin/tls-collector
 
-CMD ["tls-collector"] 
+CMD ["/usr/local/bin/tls-collector"] 

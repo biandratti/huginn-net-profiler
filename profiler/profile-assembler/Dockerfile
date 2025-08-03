@@ -21,4 +21,4 @@ RUN apt-get update && apt-get install -y libssl3 && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /usr/src/app/target/release/profile-assembler /usr/local/bin/profile-assembler
 
 EXPOSE 8000
-CMD ["profile-assembler"] 
+CMD ["/usr/local/bin/profile-assembler"] 
