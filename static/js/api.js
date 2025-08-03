@@ -1,14 +1,15 @@
 // API Client for Huginn Network Profiler
+const API_BASE_URL = 'https://api.localhost';
+
 class HuginnAPI {
-    constructor(baseUrl = '') {
-        this.baseUrl = baseUrl;
+    constructor() {
+        this.baseUrl = API_BASE_URL;
         this.endpoints = {
-            health: '/health',
-            api: '/api',
             profiles: '/api/profiles',
+            myProfile: '/api/my-profile',
+            clear: '/api/clear',
             stats: '/api/stats',
-            search: '/api/search',
-            myProfile: '/api/my-profile'
+            health: '/health' // Health doesn't need /api prefix
         };
     }
 
@@ -84,8 +85,8 @@ class HuginnAPI {
 
     // Clear all profiles
     async clearProfiles() {
-        return this.request(this.endpoints.profiles, {
-            method: 'DELETE'
+        return this.request(this.endpoints.clear, {
+            method: 'POST'
         });
     }
 
@@ -103,7 +104,7 @@ class HuginnAPI {
         if (filters.type) params.append('type', filters.type);
         if (filters.quality_min) params.append('quality_min', filters.quality_min);
 
-        const endpoint = `${this.endpoints.search}?${params.toString()}`;
+        const endpoint = `${this.endpoints.profiles}/search?${params.toString()}`;
         return this.request(endpoint);
     }
 
@@ -225,15 +226,33 @@ class HuginnAPI {
     // Fetches the network profile for the current user.
     // @returns {Promise<object>} A promise that resolves to the user's network profile.
     async fetchMyProfile() {
+        const url = `${this.baseUrl}${this.endpoints.myProfile}`;
+        console.log(`Fetching my profile from: ${url}`);
         try {
-            const response = await fetch(`${this.baseUrl}${this.endpoints.myProfile}`);
+            const response = await fetch(url);
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile' }));
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                // Try to get a more specific error message from the body
+                const errorBody = await response.text();
+                throw new Error(`Failed to fetch profile. Status: ${response.status}. Body: ${errorBody}`);
             }
             return await response.json();
         } catch (error) {
             console.error('Error fetching my profile:', error);
+            throw error;
+        }
+    }
+    
+    async clearAllProfiles() {
+        const url = `${this.baseUrl}${this.endpoints.clear}`;
+        console.log(`Clearing all profiles from: ${url}`);
+        try {
+            const response = await fetch(url, { method: 'POST' });
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`Failed to clear profiles. Status: ${response.status}. Body: ${errorBody}`);
+            }
+        } catch (error) {
+            console.error('Error clearing profiles:', error);
             throw error;
         }
     }

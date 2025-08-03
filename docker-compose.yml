@@ -7,9 +7,20 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--experimental.plugins.remoteaddr.modulename=github.com/RiskIdent/traefik-remoteaddr-plugin"
+      - "--experimental.plugins.remoteaddr.version=v0.1.1"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
@@ -19,19 +30,21 @@ services:
       - huginn-net
 
   frontend:
-    image: nginx:alpine
+    image: nginx:1.29.0-alpine
     container_name: frontend
     restart: unless-stopped
     volumes:
       - ./static:/usr/share/nginx/html
-    networks:
-      - huginn-net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`localhost`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls=true"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    depends_on:
+      - traefik
+    networks:
+      - huginn-net
 
   profile-assembler:
     build:
@@ -41,14 +54,16 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8000:8000"
-    networks:
-      - huginn-net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.profile-assembler.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.profile-assembler.rule=Host(`api.localhost`)"
       - "traefik.http.routers.profile-assembler.entrypoints=websecure"
       - "traefik.http.routers.profile-assembler.tls=true"
       - "traefik.http.services.profile-assembler.loadbalancer.server.port=8000"
+    depends_on:
+      - traefik
+    networks:
+      - huginn-net
 
   tls-collector:
     build:

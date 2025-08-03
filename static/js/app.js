@@ -1,103 +1,82 @@
-// Main Application Controller
-class HuginnApp {
-    constructor() {
-        this.init();
+// Main application controller
+class AppController {
+    constructor(api, ui) {
+        this.api = api;
+        this.ui = ui;
     }
 
-    // Initialize the application
-    async init() {
-        console.log('🦉 Initializing Huginn Network Profiler...');
-        
-        // Wait for DOM to be ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.start());
-        } else {
-            this.start();
+    checkDependencies() {
+        if (!this.api) {
+            throw new Error("Missing required dependency: HuginnAPI");
+        }
+        if (!this.ui) {
+            throw new Error("Missing required dependency: UIManager");
         }
     }
 
-    // Start the application
-    start() {
+    initialize() {
         try {
             this.checkDependencies();
-            console.log('✅ Huginn Network Profiler initialized successfully');
-            // No automatic data loading, UI is now user-driven
+            console.log('Huginn Network Profiler initialized successfully');
+            this.setupEventListeners();
         } catch (error) {
-            console.error('Failed to start application:', error);
-            this.handleInitializationError(error);
+            console.error('Failed to initialize the application:', error);
+            // In a real app, you might want to show this error in the UI
+            const body = document.querySelector('body');
+            if (body) {
+                body.innerHTML = `
+                    <div class="init-error">
+                        <h1>Huginn Network Profiler</h1>
+                        <h2>Initialization Error</h2>
+                        <p>${error.message}</p>
+                    </div>`;
+            }
         }
     }
 
-    // Check if all dependencies are available
-    checkDependencies() {
-        const required = ['huginnAPI', 'uiManager'];
-        const missing = required.filter(dep => !window[dep]);
-        
-        if (missing.length > 0) {
-            throw new Error(`Missing required dependencies: ${missing.join(', ')}`);
+    setupEventListeners() {
+        const findMyProfileButton = document.getElementById('findMyProfile');
+        const clearProfilesButton = document.getElementById('clearProfiles');
+
+        if (findMyProfileButton) {
+            findMyProfileButton.addEventListener('click', async () => {
+                this.ui.showLoading();
+                try {
+                    const profile = await this.api.fetchMyProfile();
+                    this.ui.displayProfile(profile);
+                    this.ui.showSuccess('Profile loaded successfully!');
+                } catch (error) {
+                    console.error('Failed to fetch my profile:', error);
+                    this.ui.displayProfile(null);
+                    this.ui.showError(error.message || 'Could not find your profile.');
+                } finally {
+                    this.ui.hideLoading();
+                }
+            });
         }
-    }
 
-    // Handle initialization error
-    handleInitializationError(error) {
-        console.error('Initialization error:', error);
-        
-        // Show error message to user
-        document.body.innerHTML = `
-            <div style="
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                height: 100vh;
-                font-family: Arial, sans-serif;
-                text-align: center;
-                color: #721c24;
-                background: #f8d7da;
-            ">
-                <h1>Huginn Network Profiler</h1>
-                <h2>Initialization Error</h2>
-                <p>Failed to initialize the application:</p>
-                <p><strong>${error.message}</strong></p>
-                <button onclick="location.reload()" style="
-                    margin-top: 20px;
-                    padding: 10px 20px;
-                    background: #dc3545;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                ">Reload Page</button>
-            </div>
-        `;
-    }
-
-    // Shutdown logic (simplified)
-    shutdown() {
-        console.log('Shutting down Huginn Network Profiler...');
-        console.log('Application shutdown complete');
+        if (clearProfilesButton) {
+            clearProfilesButton.addEventListener('click', async () => {
+                this.ui.showLoading();
+                try {
+                    await this.api.clearAllProfiles();
+                    this.ui.clearAll();
+                    this.ui.showSuccess('All profiles cleared!');
+                } catch (error) {
+                    console.error('Failed to clear profiles:', error);
+                    this.ui.showError(error.message || 'Could not clear profiles.');
+                } finally {
+                    this.ui.hideLoading();
+                }
+            });
+        }
     }
 }
 
-// Initialize application when page loads
-const huginnApp = new HuginnApp();
-
-// Export to global scope for debugging
-window.huginnApp = huginnApp;
-
-// Handle page unload
-window.addEventListener('beforeunload', () => {
-    huginnApp.shutdown();
-});
-
-// Global error handler
-window.addEventListener('error', (event) => {
-    console.error('Global error:', event.error);
-});
-
-// Global unhandled promise rejection handler
-window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
-});
-
-console.log('🦉 Huginn Network Profiler loaded'); 
+// Entry point: Initialize the application when the DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    const api = new HuginnAPI();
+    const ui = new UIManager();
+    const app = new AppController(api, ui);
+    app.initialize();
+}); 
