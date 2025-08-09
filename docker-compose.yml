@@ -63,6 +63,7 @@ services:
       - "traefik.http.routers.profile-assembler.tls=true"
       - "traefik.http.routers.profile-assembler.tls.certresolver=letsencrypt"
       - "traefik.http.routers.profile-assembler.tls.options=my-tls-options@file"
+      - "traefik.docker.network=huginn-net"
       - "traefik.http.routers.profile-assembler.middlewares=remote-addr@file"
       - "traefik.http.services.profile-assembler.loadbalancer.server.port=8000"
     depends_on:
@@ -96,7 +97,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
-      - PROFILER_INTERFACE=docker0
+      - PROFILER_INTERFACE=br-a9082b505ee6
     depends_on:
       - profile-assembler
 
