@@ -18,14 +18,70 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
-#[derive(Deserialize, Debug)]
-struct TcpIngest {
-    id: String,
-    timestamp: u64,
-    tcp_signature: String,
-    os: String,
-    nat: bool,
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SynPacketData {
+    pub source: NetworkEndpoint,
+    pub os_detected: Option<OsDetection>,
+    pub signature: String,
+    pub details: TcpDetails,
+    pub timestamp: u64,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct NetworkEndpoint {
+    pub ip: String,
+    pub port: u16,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct OsDetection {
+    pub os: String,
+    pub quality: f64,
+    pub distance: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TcpDetails {
+    pub version: String,
+    pub initial_ttl: String,
+    pub options_length: u8,
+    pub mss: Option<u16>,
+    pub window_size: String,
+    pub window_scale: Option<u8>,
+    pub options_layout: String,
+    pub quirks: String,
+    pub payload_class: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SynAckPacketData {
+    pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
+    pub os_detected: Option<OsDetection>,
+    pub signature: String,
+    pub details: TcpDetails,
+    pub timestamp: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MtuData {
+    pub source: NetworkEndpoint,
+    pub mtu_value: u16,
+    pub timestamp: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UptimeData {
+    pub source: NetworkEndpoint,
+    pub uptime_seconds: u64,
+    pub timestamp: u64,
+}
+
+// Different types for different TCP data
+type SynIngest = SynPacketData;
+type SynAckIngest = SynAckPacketData;
+type MtuIngest = MtuData;
+type UptimeIngest = UptimeData;
 
 #[derive(Deserialize, Debug)]
 struct HttpIngest {
@@ -58,16 +114,8 @@ pub struct TlsClientObserved {
     pub elliptic_curves: Vec<u16>,
 }
 
-// TlsIngest is the same as TlsClient for simplicity
 type TlsIngest = TlsClient;
 
-#[derive(Serialize, Clone, Debug)]
-struct TcpSignature {
-    timestamp: u64,
-    tcp_signature: String,
-    os: String,
-    nat: bool,
-}
 
 #[derive(Serialize, Clone, Debug)]
 struct HttpSignature {
@@ -81,7 +129,11 @@ struct HttpSignature {
 struct Profile {
     id: String,
     timestamp: u64,
-    tcp_signature: Option<TcpSignature>,
+    syn: Option<SynPacketData>,
+    syn_ack: Option<SynAckPacketData>,
+    mtu: Option<MtuData>,
+    uptime: Option<UptimeData>,
+    tcp_client: Option<SynPacketData>,
     http_signature: Option<HttpSignature>,
     tls_client: Option<TlsClient>,
     last_seen: String,
@@ -92,7 +144,11 @@ impl Default for Profile {
         Self {
             id: String::new(),
             timestamp: 0,
-            tcp_signature: None,
+            syn: None,
+            syn_ack: None,
+            mtu: None,
+            uptime: None,
+            tcp_client: None,
             http_signature: None,
             tls_client: None,
             last_seen: String::new(),
@@ -116,7 +172,10 @@ async fn main() {
     let state = AppState::new(DashMap::new());
 
     let app = Router::new()
-        .route("/api/ingest/tcp", post(ingest_tcp))
+        .route("/api/ingest/syn", post(ingest_syn))
+        .route("/api/ingest/syn_ack", post(ingest_syn_ack))
+        .route("/api/ingest/mtu", post(ingest_mtu))
+        .route("/api/ingest/uptime", post(ingest_uptime))
         .route("/api/ingest/http", post(ingest_http))
         .route("/api/ingest/tls", post(ingest_tls))
         .route("/api/profiles", get(get_profiles).delete(clear_profiles))
@@ -200,21 +259,48 @@ async fn clear_profiles(State(state): State<AppState>) -> StatusCode {
     StatusCode::OK
 }
 
-async fn ingest_tcp(State(state): State<AppState>, Json(ingest): Json<TcpIngest>) {
-    let ip = ingest.id.split(':').next().unwrap_or("").to_string();
-    if ip.is_empty() {
-        warn!("Received TCP ingest with invalid ID: {}", ingest.id);
-        return;
-    }
-    info!("Received TCP data for {}", ip);
+async fn ingest_syn(State(state): State<AppState>, Json(ingest): Json<SynIngest>) {
+    let ip = ingest.source.ip.clone();
+    info!("Received SYN data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
-    profile.tcp_signature = Some(TcpSignature {
-        timestamp: ingest.timestamp,
-        tcp_signature: ingest.tcp_signature,
-        os: ingest.os,
-        nat: ingest.nat,
-    });
+    
+    // Store SYN packet data (client data)
+    profile.syn = Some(ingest.clone());
+    profile.tcp_client = Some(ingest); // Also store as tcp_client for compatibility
+    profile.last_seen = now_rfc3339();
+}
+
+async fn ingest_syn_ack(State(state): State<AppState>, Json(ingest): Json<SynAckIngest>) {
+    let client_ip = ingest.destination.ip.clone(); // Client IP is in destination
+    info!("Received SYN-ACK data for client {}", client_ip);
+    let mut profile = state.entry(client_ip.clone()).or_default();
+    profile.id = client_ip;
+    
+    // Store SYN-ACK packet data (server data)
+    profile.syn_ack = Some(ingest);
+    profile.last_seen = now_rfc3339();
+}
+
+async fn ingest_mtu(State(state): State<AppState>, Json(ingest): Json<MtuIngest>) {
+    let ip = ingest.source.ip.clone();
+    info!("Received MTU data for {}", ip);
+    let mut profile = state.entry(ip.clone()).or_default();
+    profile.id = ip;
+    
+    // Store MTU data
+    profile.mtu = Some(ingest);
+    profile.last_seen = now_rfc3339();
+}
+
+async fn ingest_uptime(State(state): State<AppState>, Json(ingest): Json<UptimeIngest>) {
+    let ip = ingest.source.ip.clone();
+    info!("Received uptime data for {}", ip);
+    let mut profile = state.entry(ip.clone()).or_default();
+    profile.id = ip;
+    
+    // Store uptime data
+    profile.uptime = Some(ingest);
     profile.last_seen = now_rfc3339();
 }
 
@@ -265,12 +351,12 @@ async fn get_stats(State(state): State<AppState>) -> Json<AppStats> {
     let profiles = state.iter().map(|entry| entry.value().clone()).collect::<Vec<_>>();
     let stats = AppStats {
         total_profiles: profiles.len(),
-        tcp_profiles: profiles.iter().filter(|p| p.tcp_signature.is_some()).count(),
+        tcp_profiles: profiles.iter().filter(|p| p.syn.is_some() || p.syn_ack.is_some() || p.mtu.is_some() || p.uptime.is_some() || p.tcp_client.is_some()).count(),
         http_profiles: profiles.iter().filter(|p| p.http_signature.is_some()).count(),
         tls_profiles: profiles.iter().filter(|p| p.tls_client.is_some()).count(),
         complete_profiles: profiles
             .iter()
-            .filter(|p| p.tcp_signature.is_some() && p.http_signature.is_some() && p.tls_client.is_some())
+            .filter(|p| p.tcp_client.is_some() && p.http_signature.is_some() && p.tls_client.is_some())
             .count(),
     };
     Json(stats)
