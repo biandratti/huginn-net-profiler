@@ -77,9 +77,11 @@ services:
     container_name: tls-collector
     restart: unless-stopped
     network_mode: host
-    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     environment:
-      - PROFILER_INTERFACE=wlp0s20f3
+      - PROFILER_INTERFACE=ens4
     depends_on:
       - profile-assembler
 
@@ -90,9 +92,11 @@ services:
     container_name: http-collector
     restart: unless-stopped
     network_mode: host
-    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     environment:
-      - PROFILER_INTERFACE=wlp0s20f3
+      - PROFILER_INTERFACE=docker0
     depends_on:
       - profile-assembler
 
