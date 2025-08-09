@@ -21,7 +21,7 @@ class UIManager {
 
         const tcpSignature = profile.tcp_signature ? this.formatObject(profile.tcp_signature) : 'Not captured';
         const httpSignature = profile.http_signature ? this.formatObject(profile.http_signature) : 'Not captured';
-        const tlsFingerprint = profile.tls_fingerprint ? this.formatObject(profile.tls_fingerprint) : 'Not captured';
+        const tlsClient = profile.tls_client ? this.formatTlsClient(profile.tls_client) : 'Not captured';
 
         this.profileDisplayElem.innerHTML = `
             <div class="profile-header">
@@ -38,8 +38,8 @@ class UIManager {
                     <div class="data-content">${httpSignature}</div>
                 </div>
                 <div class="data-section tls">
-                    <div class="data-title">TLS Fingerprint (JA4)</div>
-                    <div class="data-content">${tlsFingerprint}</div>
+                    <div class="data-title">TLS Client</div>
+                    <div class="data-content">${tlsClient}</div>
                 </div>
             </div>
         `;
@@ -49,6 +49,24 @@ class UIManager {
         return Object.entries(obj)
             .map(([key, value]) => `<strong>${this.formatKey(key)}:</strong> ${value}`)
             .join('<br>');
+    }
+
+    formatTlsClient(tlsClient) {
+        const allInfo = [
+            `<strong>JA4 Hash:</strong> ${tlsClient.ja4}`,
+            `<strong>JA4 Raw:</strong> ${tlsClient.ja4_raw}`,
+            `<strong>JA4 Original:</strong> ${tlsClient.ja4_original}`,
+            `<strong>JA4 Original Raw:</strong> ${tlsClient.ja4_original_raw}`,
+            `<strong>Version:</strong> ${tlsClient.observed.version}`,
+            `<strong>SNI:</strong> ${tlsClient.observed.sni || 'None'}`,
+            `<strong>ALPN:</strong> ${tlsClient.observed.alpn || 'None'}`,
+            `<strong>Cipher Suites:</strong> [${tlsClient.observed.cipher_suites.join(', ')}]`,
+            `<strong>Extensions:</strong> [${tlsClient.observed.extensions.join(', ')}]`,
+            `<strong>Signature Algorithms:</strong> [${tlsClient.observed.signature_algorithms.join(', ')}]`,
+            `<strong>Elliptic Curves:</strong> [${tlsClient.observed.elliptic_curves.join(', ')}]`,
+        ];
+
+        return allInfo.join('<br>');
     }
     
     formatKey(key) {

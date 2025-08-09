@@ -1,7 +1,7 @@
 use clap::Parser;
 use huginn_net::{db::Database, fingerprint_result::FingerprintResult, AnalysisConfig, HuginnNet};
 use log::{error, info};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::env;
 use std::sync::mpsc as std_mpsc;
 use std::thread;
@@ -24,12 +24,26 @@ struct Args {
     assembler_endpoint: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct TlsIngest {
-    id: String,
-    timestamp: u64,
-    ja4_fingerprint: String,
-    ja4_hash: String,
+#[derive(Serialize, Clone, Debug)]
+pub struct TlsClient {
+    pub id: String,
+    pub timestamp: u64,
+    pub ja4: String,
+    pub ja4_raw: String,
+    pub ja4_original: String,
+    pub ja4_original_raw: String,
+    pub observed: TlsClientObserved,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct TlsClientObserved {
+    pub version: String,
+    pub sni: Option<String>,
+    pub alpn: Option<String>,
+    pub cipher_suites: Vec<u16>,
+    pub extensions: Vec<u16>,
+    pub signature_algorithms: Vec<u16>,
+    pub elliptic_curves: Vec<u16>,
 }
 
 fn main() {
@@ -96,11 +110,22 @@ fn main() {
                     .unwrap_or_default()
                     .as_secs();
 
-                let ingest = TlsIngest {
-                    id: format!("{}:{}", tls_data.source.ip, tls_data.source.port),
+                let ingest: TlsClient = TlsClient {
+                    id: tls_data.source.ip.to_string(),
                     timestamp: now,
-                    ja4_fingerprint: tls_data.sig.ja4.full.value().to_string(),
-                    ja4_hash: tls_data.sig.ja4.ja4_a.to_string(),
+                    ja4: tls_data.sig.ja4.full.value().to_string(),
+                    ja4_raw: tls_data.sig.ja4.raw.value().to_string(),
+                    ja4_original: tls_data.sig.ja4_original.full.value().to_string(),
+                    ja4_original_raw: tls_data.sig.ja4_original.raw.value().to_string(),
+                    observed: TlsClientObserved {
+                        version: tls_data.sig.version.to_string(),
+                        sni: tls_data.sig.sni.as_ref().map(|s| s.to_string()),
+                        alpn: tls_data.sig.alpn.as_ref().map(|s| s.to_string()),
+                        cipher_suites: tls_data.sig.cipher_suites.clone(),
+                        extensions: tls_data.sig.extensions.clone(),
+                        signature_algorithms: tls_data.sig.signature_algorithms.clone(),
+                        elliptic_curves: tls_data.sig.elliptic_curves.clone(),
+                    },
                 };
                 send_tls_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
@@ -108,7 +133,7 @@ fn main() {
     });
 }
 
-async fn send_tls_to_assembler(data: TlsIngest, client: &reqwest::Client, endpoint: &str) {
+async fn send_tls_to_assembler(data: TlsClient, client: &reqwest::Client, endpoint: &str) {
     info!("Sending TLS data for {}", data.id);
     match client.post(endpoint).json(&data).send().await {
         Ok(response) => {

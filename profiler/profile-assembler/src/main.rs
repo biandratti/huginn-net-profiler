@@ -36,13 +36,30 @@ struct HttpIngest {
     browser: String,
 }
 
-#[derive(Deserialize, Debug)]
-struct TlsIngest {
-    id: String,
-    timestamp: u64,
-    ja4_fingerprint: String,
-    ja4_hash: String,
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct TlsClient {
+    pub id: String,
+    pub timestamp: u64,
+    pub ja4: String,
+    pub ja4_raw: String,
+    pub ja4_original: String,
+    pub ja4_original_raw: String,
+    pub observed: TlsClientObserved,
 }
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct TlsClientObserved {
+    pub version: String,
+    pub sni: Option<String>,
+    pub alpn: Option<String>,
+    pub cipher_suites: Vec<u16>,
+    pub extensions: Vec<u16>,
+    pub signature_algorithms: Vec<u16>,
+    pub elliptic_curves: Vec<u16>,
+}
+
+// TlsIngest is the same as TlsClient for simplicity
+type TlsIngest = TlsClient;
 
 #[derive(Serialize, Clone, Debug)]
 struct TcpSignature {
@@ -61,19 +78,12 @@ struct HttpSignature {
 }
 
 #[derive(Serialize, Clone, Debug)]
-struct TlsSignature {
-    timestamp: u64,
-    ja4_fingerprint: String,
-    ja4_hash: String,
-}
-
-#[derive(Serialize, Clone, Debug)]
 struct Profile {
     id: String,
     timestamp: u64,
     tcp_signature: Option<TcpSignature>,
     http_signature: Option<HttpSignature>,
-    tls_fingerprint: Option<TlsSignature>,
+    tls_client: Option<TlsClient>,
     last_seen: String,
 }
 
@@ -84,7 +94,7 @@ impl Default for Profile {
             timestamp: 0,
             tcp_signature: None,
             http_signature: None,
-            tls_fingerprint: None,
+            tls_client: None,
             last_seen: String::new(),
         }
     }
@@ -227,19 +237,13 @@ async fn ingest_http(State(state): State<AppState>, Json(ingest): Json<HttpInges
 }
 
 async fn ingest_tls(State(state): State<AppState>, Json(ingest): Json<TlsIngest>) {
-    let ip = ingest.id.split(':').next().unwrap_or("").to_string();
-    if ip.is_empty() {
-        warn!("Received TLS ingest with invalid ID: {}", ingest.id);
-        return;
-    }
+    let ip = ingest.id.clone();
     info!("Received TLS data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
-    profile.tls_fingerprint = Some(TlsSignature {
-        timestamp: ingest.timestamp,
-        ja4_fingerprint: ingest.ja4_fingerprint,
-        ja4_hash: ingest.ja4_hash,
-    });
+    
+    // Store the TLS client data directly - contains all the information
+    profile.tls_client = Some(ingest);
     profile.last_seen = now_rfc3339();
 }
 
@@ -263,10 +267,10 @@ async fn get_stats(State(state): State<AppState>) -> Json<AppStats> {
         total_profiles: profiles.len(),
         tcp_profiles: profiles.iter().filter(|p| p.tcp_signature.is_some()).count(),
         http_profiles: profiles.iter().filter(|p| p.http_signature.is_some()).count(),
-        tls_profiles: profiles.iter().filter(|p| p.tls_fingerprint.is_some()).count(),
+        tls_profiles: profiles.iter().filter(|p| p.tls_client.is_some()).count(),
         complete_profiles: profiles
             .iter()
-            .filter(|p| p.tcp_signature.is_some() && p.http_signature.is_some() && p.tls_fingerprint.is_some())
+            .filter(|p| p.tcp_signature.is_some() && p.http_signature.is_some() && p.tls_client.is_some())
             .count(),
     };
     Json(stats)
