@@ -87,19 +87,47 @@ pub struct UptimeData {
     pub timestamp: u64,
 }
 
+/// HTTP request data (from client)
+#[derive(Serialize, Deserialize, Debug)]
+pub struct HttpRequestData {
+    pub source: NetworkEndpoint,
+    pub user_agent: Option<String>,
+    pub accept: Option<String>,
+    pub accept_language: Option<String>,
+    pub accept_encoding: Option<String>,
+    pub connection: Option<String>,
+    pub method: Option<String>,
+    pub host: Option<String>,
+    pub signature: String,
+    pub quality: f64,
+    pub timestamp: u64,
+}
+
+/// HTTP response data (from server)
+#[derive(Serialize, Deserialize, Debug)]
+pub struct HttpResponseData {
+    pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
+    pub server: Option<String>,
+    pub content_type: Option<String>,
+    pub content_length: Option<String>,
+    pub set_cookie: Option<String>,
+    pub cache_control: Option<String>,
+    pub status: Option<String>,
+    pub signature: String,
+    pub quality: f64,
+    pub timestamp: u64,
+}
+
+// Different types for different TCP data
 type SynIngest = SynPacketData;
 type SynAckIngest = SynAckPacketData;
 type MtuIngest = MtuData;
 type UptimeIngest = UptimeData;
 
-#[derive(Serialize, Deserialize, Debug)]
-struct HttpIngest {
-    id: String,
-    timestamp: u64,
-    http_signature: String,
-    os: String,
-    browser: String,
-}
+// Different types for different HTTP data
+type HttpRequestIngest = HttpRequestData;
+type HttpResponseIngest = HttpResponseData;
 
 fn main() {
     env_logger::init();
@@ -250,17 +278,49 @@ fn main() {
                 send_uptime_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
 
-            if let Some(http_data) = result.http_request {
-                if let Some(browser_match) = http_data.browser_matched {
-                    let ingest = HttpIngest {
-                        id: format!("{}:{}", http_data.source.ip, http_data.source.port),
-                        timestamp: now,
-                        http_signature: http_data.sig.to_string(),
-                        os: "".to_string(), // OS info comes from TCP fingerprint
-                        browser: browser_match.browser.name.to_string(),
-                    };
-                    send_http_to_assembler(ingest, &client, &assembler_endpoint).await;
-                }
+            // Process HTTP requests (client data)
+            if let Some(http_req) = result.http_request {
+                let ingest = HttpRequestIngest {
+                    source: NetworkEndpoint {
+                        ip: http_req.source.ip.to_string(),
+                        port: http_req.source.port,
+                    },
+                    user_agent: None, // Would need to extract from signature
+                    accept: None,
+                    accept_language: None,
+                    accept_encoding: None,
+                    connection: None,
+                    method: Some("GET".to_string()), // Default
+                    host: None,
+                    signature: http_req.sig.to_string(),
+                    quality: http_req.browser_matched.as_ref().map(|m| m.quality as f64).unwrap_or(0.0),
+                    timestamp: now,
+                };
+                send_http_request_to_assembler(ingest, &client, &assembler_endpoint).await;
+            }
+
+            // Process HTTP responses (server data)
+            if let Some(http_res) = result.http_response {
+                let ingest = HttpResponseIngest {
+                    source: NetworkEndpoint {
+                        ip: http_res.source.ip.to_string(),
+                        port: http_res.source.port,
+                    },
+                    destination: NetworkEndpoint {
+                        ip: http_res.destination.ip.to_string(),
+                        port: http_res.destination.port,
+                    },
+                    server: None, // Would need to extract from signature
+                    content_type: None,
+                    content_length: None,
+                    set_cookie: None,
+                    cache_control: None,
+                    status: Some("200".to_string()), // Default
+                    signature: http_res.sig.to_string(),
+                    quality: http_res.web_server_matched.as_ref().map(|m| m.quality as f64).unwrap_or(0.0),
+                    timestamp: now,
+                };
+                send_http_response_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
         }
     });
@@ -319,20 +379,29 @@ async fn send_uptime_to_assembler(data: UptimeIngest, client: &reqwest::Client, 
     }
 }
 
-async fn send_http_to_assembler(data: HttpIngest, client: &reqwest::Client, endpoint: &str) {
-    info!("Sending HTTP data for {}", data.id);
-    let url = format!("{}/http", endpoint);
+async fn send_http_request_to_assembler(data: HttpRequestIngest, client: &reqwest::Client, endpoint: &str) {
+    info!("Sending HTTP request data for {}:{}", data.source.ip, data.source.port);
+    let url = format!("{}/http_request", endpoint);
     match client.post(&url).json(&data).send().await {
         Ok(response) => {
             if !response.status().is_success() {
-                error!(
-                    "Failed to send HTTP data for {}. Status: {}, Body: {:?}",
-                    data.id,
-                    response.status(),
-                    response.text().await
-                );
+                error!("Failed to send HTTP request data, status: {}", response.status());
             }
         }
-        Err(e) => error!("Error sending HTTP data for {}: {:?}", data.id, e),
+        Err(e) => error!("Failed to send HTTP request data: {}", e),
     }
-} 
+}
+
+async fn send_http_response_to_assembler(data: HttpResponseIngest, client: &reqwest::Client, endpoint: &str) {
+    info!("Sending HTTP response data for {}:{} -> {}:{}", 
+          data.source.ip, data.source.port, data.destination.ip, data.destination.port);
+    let url = format!("{}/http_response", endpoint);
+    match client.post(&url).json(&data).send().await {
+        Ok(response) => {
+            if !response.status().is_success() {
+                error!("Failed to send HTTP response data, status: {}", response.status());
+            }
+        }
+        Err(e) => error!("Failed to send HTTP response data: {}", e),
+    }
+}

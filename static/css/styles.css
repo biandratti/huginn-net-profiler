@@ -202,6 +202,38 @@ body {
     white-space: normal;
 }
 
+/* HTTP Subcards */
+.http-subcard {
+    background: #2a2a2a;
+    border-radius: 6px;
+    padding: 0.8rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #555555;
+}
+
+.http-subcard:last-child {
+    margin-bottom: 0;
+}
+
+.http-subcard-title {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #444444;
+    padding-bottom: 0.3rem;
+}
+
+.http-subcard-content {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.8rem;
+    color: #ffffff;
+    line-height: 1.6;
+    white-space: normal;
+}
+
 
 /* Empty State */
 .empty-state {

@@ -20,7 +20,7 @@ class UIManager {
         this.hideEmptyState();
 
         const tcpData = profile.tcp_client || profile.syn || profile.syn_ack || profile.mtu || profile.uptime ? this.formatTcpData(profile) : 'Not captured';
-        const httpSignature = profile.http_signature ? this.formatObject(profile.http_signature) : 'Not captured';
+        const httpData = profile.http_request || profile.http_response ? this.formatHttpData(profile) : 'Not captured';
         const tlsClient = profile.tls_client ? this.formatTlsClient(profile.tls_client) : 'Not captured';
 
         this.profileDisplayElem.innerHTML = `
@@ -34,8 +34,8 @@ class UIManager {
                     <div class="data-content">${tcpData}</div>
                 </div>
                 <div class="data-section http">
-                    <div class="data-title">HTTP Signature</div>
-                    <div class="data-content">${httpSignature}</div>
+                    <div class="data-title">HTTP</div>
+                    <div class="data-content">${httpData}</div>
                 </div>
                 <div class="data-section tls">
                     <div class="data-title">TLS Client</div>
@@ -80,6 +80,22 @@ class UIManager {
         }
 
         return subcards.length > 0 ? subcards.join('') : 'No TCP data captured';
+    }
+
+    formatHttpData(profile) {
+        const subcards = [];
+
+        // HTTP request data (client)
+        if (profile.http_request) {
+            subcards.push(this.formatHttpSubcard('HTTP Request (Client)', profile.http_request));
+        }
+
+        // HTTP response data (server)
+        if (profile.http_response) {
+            subcards.push(this.formatHttpSubcard('HTTP Response (Server)', profile.http_response));
+        }
+
+        return subcards.length > 0 ? subcards.join('') : 'No HTTP data captured';
     }
 
     formatTcpSubcard(title, data) {
@@ -137,6 +153,89 @@ ${this.formatTcpFields(data)}
             if (data.details.quirks) {
                 fields.push(`<strong>Quirks:</strong> ${data.details.quirks}`);
             }
+        }
+        
+        return fields.join('<br>');
+    }
+
+    formatHttpSubcard(title, data) {
+        return `<div class="http-subcard">
+<div class="http-subcard-title">${title}</div>
+<div class="http-subcard-content">
+${this.formatHttpFields(data)}
+</div>
+</div>`;
+    }
+
+    formatHttpFields(data) {
+        const fields = [];
+        
+        if (data.source) {
+            fields.push(`<strong>Source:</strong> ${data.source.ip}:${data.source.port}`);
+        }
+        
+        if (data.destination) {
+            fields.push(`<strong>Destination:</strong> ${data.destination.ip}:${data.destination.port}`);
+        }
+        
+        if (data.signature) {
+            fields.push(`<strong>Signature:</strong> ${data.signature}`);
+        }
+        
+        if (data.quality !== undefined) {
+            fields.push(`<strong>Quality:</strong> ${data.quality.toFixed(2)}`);
+        }
+        
+        if (data.method) {
+            fields.push(`<strong>Method:</strong> ${data.method}`);
+        }
+        
+        if (data.host) {
+            fields.push(`<strong>Host:</strong> ${data.host}`);
+        }
+        
+        if (data.user_agent) {
+            fields.push(`<strong>User-Agent:</strong> ${data.user_agent}`);
+        }
+        
+        if (data.accept) {
+            fields.push(`<strong>Accept:</strong> ${data.accept}`);
+        }
+        
+        if (data.accept_language) {
+            fields.push(`<strong>Accept-Language:</strong> ${data.accept_language}`);
+        }
+        
+        if (data.accept_encoding) {
+            fields.push(`<strong>Accept-Encoding:</strong> ${data.accept_encoding}`);
+        }
+        
+        if (data.connection) {
+            fields.push(`<strong>Connection:</strong> ${data.connection}`);
+        }
+        
+        if (data.status) {
+            fields.push(`<strong>Status:</strong> ${data.status}`);
+        }
+        
+        if (data.server) {
+            fields.push(`<strong>Server:</strong> ${data.server}`);
+        }
+        
+        if (data.content_type) {
+            fields.push(`<strong>Content-Type:</strong> ${data.content_type}`);
+        }
+        
+        if (data.content_length) {
+            fields.push(`<strong>Content-Length:</strong> ${data.content_length}`);
+        }
+        
+        if (data.set_cookie) {
+            fields.push(`<strong>Set-Cookie:</strong> ${data.set_cookie}`);
+        }
+        
+        if (data.cache_control) {
+            fields.push(`<strong>Cache-Control:</strong> ${data.cache_control}`);
         }
         
         return fields.join('<br>');

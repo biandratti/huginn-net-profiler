@@ -83,13 +83,40 @@ type SynAckIngest = SynAckPacketData;
 type MtuIngest = MtuData;
 type UptimeIngest = UptimeData;
 
-#[derive(Deserialize, Debug)]
-struct HttpIngest {
-    id: String,
-    timestamp: u64,
-    http_signature: String,
-    os: String,
-    browser: String,
+// Different types for different HTTP data
+type HttpRequestIngest = HttpRequestData;
+type HttpResponseIngest = HttpResponseData;
+
+/// HTTP request data (from client)
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HttpRequestData {
+    pub source: NetworkEndpoint,
+    pub user_agent: Option<String>,
+    pub accept: Option<String>,
+    pub accept_language: Option<String>,
+    pub accept_encoding: Option<String>,
+    pub connection: Option<String>,
+    pub method: Option<String>,
+    pub host: Option<String>,
+    pub signature: String,
+    pub quality: f64,
+    pub timestamp: u64,
+}
+
+/// HTTP response data (from server)
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HttpResponseData {
+    pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
+    pub server: Option<String>,
+    pub content_type: Option<String>,
+    pub content_length: Option<String>,
+    pub set_cookie: Option<String>,
+    pub cache_control: Option<String>,
+    pub status: Option<String>,
+    pub signature: String,
+    pub quality: f64,
+    pub timestamp: u64,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
@@ -116,15 +143,6 @@ pub struct TlsClientObserved {
 
 type TlsIngest = TlsClient;
 
-
-#[derive(Serialize, Clone, Debug)]
-struct HttpSignature {
-    timestamp: u64,
-    http_signature: String,
-    os: String,
-    browser: String,
-}
-
 #[derive(Serialize, Clone, Debug)]
 struct Profile {
     id: String,
@@ -134,7 +152,8 @@ struct Profile {
     mtu: Option<MtuData>,
     uptime: Option<UptimeData>,
     tcp_client: Option<SynPacketData>,
-    http_signature: Option<HttpSignature>,
+    http_request: Option<HttpRequestData>,
+    http_response: Option<HttpResponseData>,
     tls_client: Option<TlsClient>,
     last_seen: String,
 }
@@ -149,7 +168,8 @@ impl Default for Profile {
             mtu: None,
             uptime: None,
             tcp_client: None,
-            http_signature: None,
+            http_request: None,
+            http_response: None,
             tls_client: None,
             last_seen: String::new(),
         }
@@ -176,7 +196,8 @@ async fn main() {
         .route("/api/ingest/syn_ack", post(ingest_syn_ack))
         .route("/api/ingest/mtu", post(ingest_mtu))
         .route("/api/ingest/uptime", post(ingest_uptime))
-        .route("/api/ingest/http", post(ingest_http))
+        .route("/api/ingest/http_request", post(ingest_http_request))
+        .route("/api/ingest/http_response", post(ingest_http_response))
         .route("/api/ingest/tls", post(ingest_tls))
         .route("/api/profiles", get(get_profiles).delete(clear_profiles))
         .route("/api/profiles/:id", get(get_profile_by_id))
@@ -304,21 +325,25 @@ async fn ingest_uptime(State(state): State<AppState>, Json(ingest): Json<UptimeI
     profile.last_seen = now_rfc3339();
 }
 
-async fn ingest_http(State(state): State<AppState>, Json(ingest): Json<HttpIngest>) {
-    let ip = ingest.id.split(':').next().unwrap_or("").to_string();
-    if ip.is_empty() {
-        warn!("Received HTTP ingest with invalid ID: {}", ingest.id);
-        return;
-    }
-    info!("Received HTTP data for {}", ip);
+async fn ingest_http_request(State(state): State<AppState>, Json(ingest): Json<HttpRequestIngest>) {
+    let ip = ingest.source.ip.clone();
+    info!("Received HTTP request data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
-    profile.http_signature = Some(HttpSignature {
-        timestamp: ingest.timestamp,
-        http_signature: ingest.http_signature,
-        os: ingest.os,
-        browser: ingest.browser,
-    });
+    
+    // Store HTTP request data (client data)
+    profile.http_request = Some(ingest);
+    profile.last_seen = now_rfc3339();
+}
+
+async fn ingest_http_response(State(state): State<AppState>, Json(ingest): Json<HttpResponseIngest>) {
+    let client_ip = ingest.destination.ip.clone(); // Client IP is in destination
+    info!("Received HTTP response data for client {}", client_ip);
+    let mut profile = state.entry(client_ip.clone()).or_default();
+    profile.id = client_ip;
+    
+    // Store HTTP response data (server data)
+    profile.http_response = Some(ingest);
     profile.last_seen = now_rfc3339();
 }
 
@@ -352,11 +377,11 @@ async fn get_stats(State(state): State<AppState>) -> Json<AppStats> {
     let stats = AppStats {
         total_profiles: profiles.len(),
         tcp_profiles: profiles.iter().filter(|p| p.syn.is_some() || p.syn_ack.is_some() || p.mtu.is_some() || p.uptime.is_some() || p.tcp_client.is_some()).count(),
-        http_profiles: profiles.iter().filter(|p| p.http_signature.is_some()).count(),
+        http_profiles: profiles.iter().filter(|p| p.http_request.is_some() || p.http_response.is_some()).count(),
         tls_profiles: profiles.iter().filter(|p| p.tls_client.is_some()).count(),
         complete_profiles: profiles
             .iter()
-            .filter(|p| p.tcp_client.is_some() && p.http_signature.is_some() && p.tls_client.is_some())
+            .filter(|p| p.tcp_client.is_some() && (p.http_request.is_some() || p.http_response.is_some()) && p.tls_client.is_some())
             .count(),
     };
     Json(stats)
