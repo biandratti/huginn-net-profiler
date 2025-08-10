@@ -157,7 +157,6 @@ struct Profile {
     syn_ack: Option<SynAckPacketData>,
     mtu: Option<MtuData>,
     uptime: Option<UptimeData>,
-    tcp_client: Option<SynPacketData>,
     http_request: Option<HttpRequestData>,
     http_response: Option<HttpResponseData>,
     tls_client: Option<TlsClient>,
@@ -173,7 +172,6 @@ impl Default for Profile {
             syn_ack: None,
             mtu: None,
             uptime: None,
-            tcp_client: None,
             http_request: None,
             http_response: None,
             tls_client: None,
@@ -293,8 +291,7 @@ async fn ingest_syn(State(state): State<AppState>, Json(ingest): Json<SynIngest>
     profile.id = ip;
     
     // Store SYN packet data (client data)
-    profile.syn = Some(ingest.clone());
-    profile.tcp_client = Some(ingest); // Also store as tcp_client for compatibility
+    profile.syn = Some(ingest);
     profile.last_seen = now_rfc3339();
 }
 
@@ -321,7 +318,8 @@ async fn ingest_mtu(State(state): State<AppState>, Json(ingest): Json<MtuIngest>
 }
 
 async fn ingest_uptime(State(state): State<AppState>, Json(ingest): Json<UptimeIngest>) {
-    let ip = ingest.source.ip.clone();
+    // Correct: key by destination (client) IP
+    let ip = ingest.destination.ip.clone();
     info!("Received uptime data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
@@ -383,12 +381,12 @@ async fn get_stats(State(state): State<AppState>) -> Json<AppStats> {
     let profiles = state.iter().map(|entry| entry.value().clone()).collect::<Vec<_>>();
     let stats = AppStats {
         total_profiles: profiles.len(),
-        tcp_profiles: profiles.iter().filter(|p| p.syn.is_some() || p.syn_ack.is_some() || p.mtu.is_some() || p.uptime.is_some() || p.tcp_client.is_some()).count(),
+        tcp_profiles: profiles.iter().filter(|p| p.syn.is_some() || p.syn_ack.is_some() || p.mtu.is_some() || p.uptime.is_some()).count(),
         http_profiles: profiles.iter().filter(|p| p.http_request.is_some() || p.http_response.is_some()).count(),
         tls_profiles: profiles.iter().filter(|p| p.tls_client.is_some()).count(),
         complete_profiles: profiles
             .iter()
-            .filter(|p| p.tcp_client.is_some() && (p.http_request.is_some() || p.http_response.is_some()) && p.tls_client.is_some())
+            .filter(|p| (p.http_request.is_some() || p.http_response.is_some()) && p.tls_client.is_some())
             .count(),
     };
     Json(stats)

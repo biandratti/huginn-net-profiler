@@ -1,5 +1,6 @@
 use clap::Parser;
 use huginn_net::AnalysisConfig;
+use huginn_net::Ttl;
 use huginn_net::{db::Database, fingerprint_result::FingerprintResult, HuginnNet};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
@@ -28,6 +29,7 @@ struct Args {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SynPacketData {
     pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
     pub os_detected: Option<OsDetection>,
     pub signature: String,
     pub details: TcpDetails,
@@ -192,18 +194,16 @@ fn main() {
             // Process SYN packets (client data)
             if let Some(syn_data) = result.syn {
                 let ingest = SynIngest {
-                    source: NetworkEndpoint {
-                        ip: syn_data.source.ip.to_string(),
-                        port: syn_data.source.port,
-                    },
+                    source: NetworkEndpoint { ip: syn_data.source.ip.to_string(), port: syn_data.source.port },
+                    destination: NetworkEndpoint { ip: syn_data.destination.ip.to_string(), port: syn_data.destination.port },
                     os_detected: syn_data.os_matched.as_ref().map(|m| OsDetection {
                         os: m.os.name.clone(),
                         quality: m.quality as f64,
-                        distance: 0, // Will be extracted from TTL if available
+                        distance: extract_distance(&syn_data.sig.ittl),
                     }),
                     signature: syn_data.sig.to_string(),
                     details: TcpDetails {
-                        version: "IPv4".to_string(), // Default, could extract from syn_data.sig
+                        version: syn_data.sig.version.to_string(),
                         initial_ttl: syn_data.sig.ittl.to_string(),
                         options_length: syn_data.sig.olen,
                         mss: syn_data.sig.mss,
@@ -232,11 +232,11 @@ fn main() {
                     os_detected: syn_ack_data.os_matched.as_ref().map(|m| OsDetection {
                         os: m.os.name.clone(),
                         quality: m.quality as f64,
-                        distance: 0,
+                        distance: extract_distance(&syn_ack_data.sig.ittl),
                     }),
                     signature: syn_ack_data.sig.to_string(),
                     details: TcpDetails {
-                        version: "IPv4".to_string(),
+                        version: syn_ack_data.sig.version.to_string(),
                         initial_ttl: syn_ack_data.sig.ittl.to_string(),
                         options_length: syn_ack_data.sig.olen,
                         mss: syn_ack_data.sig.mss,
@@ -338,13 +338,22 @@ fn main() {
     });
 }
 
+fn extract_distance(ttl: &Ttl) -> u8 {
+    match ttl {
+        Ttl::Distance(_, hops) => *hops,
+        _ => 0,
+    }
+}
+
 async fn send_syn_to_assembler(data: SynIngest, client: &reqwest::Client, endpoint: &str) {
     info!("Sending SYN data for {}:{}", data.source.ip, data.source.port);
     let url = format!("{}/syn", endpoint);
     match client.post(&url).json(&data).send().await {
         Ok(response) => {
             if !response.status().is_success() {
-                error!("Failed to send SYN data, status: {}", response.status());
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                error!("Failed to send SYN data, status: {} body: {}", status, body);
             }
         }
         Err(e) => error!("Failed to send SYN data: {}", e),
@@ -358,7 +367,9 @@ async fn send_syn_ack_to_assembler(data: SynAckIngest, client: &reqwest::Client,
     match client.post(&url).json(&data).send().await {
         Ok(response) => {
             if !response.status().is_success() {
-                error!("Failed to send SYN-ACK data, status: {}", response.status());
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                error!("Failed to send SYN-ACK data, status: {} body: {}", status, body);
             }
         }
         Err(e) => error!("Failed to send SYN-ACK data: {}", e),
@@ -371,7 +382,9 @@ async fn send_mtu_to_assembler(data: MtuIngest, client: &reqwest::Client, endpoi
     match client.post(&url).json(&data).send().await {
         Ok(response) => {
             if !response.status().is_success() {
-                error!("Failed to send MTU data, status: {}", response.status());
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                error!("Failed to send MTU data, status: {} body: {}", status, body);
             }
         }
         Err(e) => error!("Failed to send MTU data: {}", e),
@@ -384,7 +397,9 @@ async fn send_uptime_to_assembler(data: UptimeIngest, client: &reqwest::Client, 
     match client.post(&url).json(&data).send().await {
         Ok(response) => {
             if !response.status().is_success() {
-                error!("Failed to send uptime data, status: {}", response.status());
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                error!("Failed to send uptime data, status: {} body: {}", status, body);
             }
         }
         Err(e) => error!("Failed to send uptime data: {}", e),
