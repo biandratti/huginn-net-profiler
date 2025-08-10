@@ -13,6 +13,3 @@ clap = { version = "4.0", features = ["derive"] }
 log = "0.4"
 env_logger = "0.10"
 anyhow = "1.0"
-
-[build-dependencies]
-vergen = { version = "8.2.1", features = ["build", "cargo", "git", "rustc"] } 
