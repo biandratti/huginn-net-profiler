@@ -19,9 +19,9 @@ class UIManager {
 
         this.hideEmptyState();
 
-        const tcpData = profile.tcp_client || profile.syn || profile.syn_ack || profile.mtu || profile.uptime ? this.formatTcpData(profile) : 'Not captured';
-        const httpData = profile.http_request || profile.http_response ? this.formatHttpData(profile) : 'Not captured';
-        const tlsClient = profile.tls_client ? this.formatTlsClient(profile.tls_client) : 'Not captured';
+        const tcpData = this.formatTcpData(profile);
+        const httpData = this.formatHttpData(profile);
+        const tlsData = this.formatTlsData(profile);
 
         this.profileDisplayElem.innerHTML = `
             <div class="profile-header">
@@ -38,8 +38,8 @@ class UIManager {
                     <div class="data-content">${httpData}</div>
                 </div>
                 <div class="data-section tls">
-                    <div class="data-title">TLS Client</div>
-                    <div class="data-content">${tlsClient}</div>
+                    <div class="data-title">TLS</div>
+                    <div class="data-content">${tlsData}</div>
                 </div>
             </div>
         `;
@@ -54,55 +54,75 @@ class UIManager {
     formatTcpData(profile) {
         const subcards = [];
 
-        // SYN data (client)
+        // Always show SYN subcard
         if (profile.syn) {
             subcards.push(this.formatTcpSubcard('SYN (Client)', profile.syn));
+        } else {
+            subcards.push(this.formatTcpSubcard('SYN (Client)', null, 'No SYN packet data found yet'));
         }
 
-        // SYN-ACK data (server)
+        // Always show SYN-ACK subcard
         if (profile.syn_ack) {
             subcards.push(this.formatTcpSubcard('SYN-ACK (Server)', profile.syn_ack));
+        } else {
+            subcards.push(this.formatTcpSubcard('SYN-ACK (Server)', null, 'No SYN-ACK packet data found yet'));
         }
 
-        // MTU data
+        // Always show MTU subcard
         if (profile.mtu) {
             subcards.push(this.formatTcpSubcard('MTU Detection', profile.mtu));
+        } else {
+            subcards.push(this.formatTcpSubcard('MTU Detection', null, 'No MTU discovery data found yet'));
         }
 
-        // Uptime data
+        // Always show Uptime subcard
         if (profile.uptime) {
             subcards.push(this.formatTcpSubcard('Uptime Detection', profile.uptime));
+        } else {
+            subcards.push(this.formatTcpSubcard('Uptime Detection', null, 'No uptime detection data found yet'));
         }
 
-        // TCP Client (compatibility)
-        if (profile.tcp_client && !profile.syn) {
-            subcards.push(this.formatTcpSubcard('TCP Client', profile.tcp_client));
-        }
-
-        return subcards.length > 0 ? subcards.join('') : 'No TCP data captured';
+        return subcards.join('');
     }
 
     formatHttpData(profile) {
         const subcards = [];
 
-        // HTTP request data (client)
+        // Always show HTTP Request subcard
         if (profile.http_request) {
             subcards.push(this.formatHttpSubcard('HTTP Request (Client)', profile.http_request));
+        } else {
+            subcards.push(this.formatHttpSubcard('HTTP Request (Client)', null, 'No HTTP request data found yet'));
         }
 
-        // HTTP response data (server)
+        // Always show HTTP Response subcard
         if (profile.http_response) {
             subcards.push(this.formatHttpSubcard('HTTP Response (Server)', profile.http_response));
+        } else {
+            subcards.push(this.formatHttpSubcard('HTTP Response (Server)', null, 'No HTTP response data found yet'));
         }
 
-        return subcards.length > 0 ? subcards.join('') : 'No HTTP data captured';
+        return subcards.join('');
     }
 
-    formatTcpSubcard(title, data) {
+    formatTlsData(profile) {
+        const subcards = [];
+
+        // Always show TLS Client subcard
+        if (profile.tls_client) {
+            subcards.push(this.formatTlsSubcard('TLS (Client)', profile.tls_client));
+        } else {
+            subcards.push(this.formatTlsSubcard('TLS (Client)', null, 'No TLS client data found yet'));
+        }
+
+        return subcards.join('');
+    }
+
+    formatTcpSubcard(title, data, emptyMessage = null) {
         return `<div class="tcp-subcard">
 <div class="tcp-subcard-title">${title}</div>
 <div class="tcp-subcard-content">
-${this.formatTcpFields(data)}
+${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
 </div>
 </div>`;
     }
@@ -158,11 +178,20 @@ ${this.formatTcpFields(data)}
         return fields.join('<br>');
     }
 
-    formatHttpSubcard(title, data) {
+    formatHttpSubcard(title, data, emptyMessage = null) {
         return `<div class="http-subcard">
 <div class="http-subcard-title">${title}</div>
 <div class="http-subcard-content">
-${this.formatHttpFields(data)}
+${data ? this.formatHttpFields(data) : (emptyMessage || 'No data available')}
+</div>
+</div>`;
+    }
+
+    formatTlsSubcard(title, data, emptyMessage = null) {
+        return `<div class="tcp-subcard">
+<div class="tcp-subcard-title">${title}</div>
+<div class="tcp-subcard-content">
+${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
 </div>
 </div>`;
     }

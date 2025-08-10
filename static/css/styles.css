@@ -234,6 +234,8 @@ body {
     white-space: normal;
 }
 
+/* TLS Subcards - reusing tcp-subcard styles since formatTlsSubcard uses tcp-subcard class */
+
 
 /* Empty State */
 .empty-state {
