@@ -75,6 +75,7 @@ pub struct SynAckPacketData {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MtuData {
     pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
     pub mtu_value: u16,
     pub timestamp: u64,
 }
@@ -83,6 +84,7 @@ pub struct MtuData {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UptimeData {
     pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
     pub uptime_seconds: u64,
     pub timestamp: u64,
 }
@@ -91,6 +93,7 @@ pub struct UptimeData {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HttpRequestData {
     pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
     pub user_agent: Option<String>,
     pub accept: Option<String>,
     pub accept_language: Option<String>,
@@ -255,6 +258,10 @@ fn main() {
                         ip: mtu_data.source.ip.to_string(),
                         port: mtu_data.source.port,
                     },
+                    destination: NetworkEndpoint {
+                        ip: mtu_data.destination.ip.to_string(),
+                        port: mtu_data.destination.port,
+                    },
                     mtu_value: mtu_data.mtu,
                     timestamp: now,
                 };
@@ -272,6 +279,10 @@ fn main() {
                         ip: uptime_data.source.ip.to_string(),
                         port: uptime_data.source.port,
                     },
+                    destination: NetworkEndpoint {
+                        ip: uptime_data.destination.ip.to_string(),
+                        port: uptime_data.destination.port,
+                    },
                     uptime_seconds: total_seconds,
                     timestamp: now,
                 };
@@ -285,6 +296,7 @@ fn main() {
                         ip: http_req.source.ip.to_string(),
                         port: http_req.source.port,
                     },
+                    destination: NetworkEndpoint { ip: http_req.destination.ip.to_string(), port: http_req.destination.port },
                     user_agent: None, // Would need to extract from signature
                     accept: None,
                     accept_language: None,

@@ -55,7 +55,7 @@ services:
     container_name: profile-assembler
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.profile-assembler.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/api`)"
@@ -82,7 +82,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
-      - PROFILER_INTERFACE=ens4
+      - PROFILER_INTERFACE=wlp0s20f3
     depends_on:
       - profile-assembler
 
@@ -97,7 +97,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
-      - PROFILER_INTERFACE=br-a9082b505ee6
+      - PROFILER_INTERFACE=br-bea6f286a7ca
     depends_on:
       - profile-assembler
 

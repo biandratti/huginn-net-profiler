@@ -28,6 +28,8 @@ struct Args {
 pub struct TlsClient {
     pub id: String,
     pub timestamp: u64,
+    pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
     pub ja4: String,
     pub ja4_raw: String,
     pub ja4_original: String,
@@ -44,6 +46,12 @@ pub struct TlsClientObserved {
     pub extensions: Vec<u16>,
     pub signature_algorithms: Vec<u16>,
     pub elliptic_curves: Vec<u16>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct NetworkEndpoint {
+    pub ip: String,
+    pub port: u16,
 }
 
 fn main() {
@@ -113,6 +121,8 @@ fn main() {
                 let ingest: TlsClient = TlsClient {
                     id: tls_data.source.ip.to_string(),
                     timestamp: now,
+                    source: NetworkEndpoint { ip: tls_data.source.ip.to_string(), port: tls_data.source.port },
+                    destination: NetworkEndpoint { ip: tls_data.destination.ip.to_string(), port: tls_data.destination.port },
                     ja4: tls_data.sig.ja4.full.value().to_string(),
                     ja4_raw: tls_data.sig.ja4.raw.value().to_string(),
                     ja4_original: tls_data.sig.ja4_original.full.value().to_string(),

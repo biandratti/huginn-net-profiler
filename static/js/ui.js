@@ -242,7 +242,11 @@ ${this.formatHttpFields(data)}
     }
 
     formatTlsClient(tlsClient) {
+        const sourceLabel = tlsClient.source ? `${tlsClient.source.ip}:${tlsClient.source.port}` : (tlsClient.id || 'N/A');
+        const destLabel = `${tlsClient.destination.ip}:${tlsClient.destination.port}`;
         const allInfo = [
+            `<strong>Source:</strong> ${sourceLabel}`,
+            `<strong>Destination:</strong> ${destLabel}`,
             `<strong>JA4 Hash:</strong> ${tlsClient.ja4}`,
             `<strong>JA4 Raw:</strong> ${tlsClient.ja4_raw}`,
             `<strong>JA4 Original:</strong> ${tlsClient.ja4_original}`,
@@ -254,7 +258,7 @@ ${this.formatHttpFields(data)}
             `<strong>Extensions:</strong> [${tlsClient.observed.extensions.join(', ')}]`,
             `<strong>Signature Algorithms:</strong> [${tlsClient.observed.signature_algorithms.join(', ')}]`,
             `<strong>Elliptic Curves:</strong> [${tlsClient.observed.elliptic_curves.join(', ')}]`,
-        ];
+        ].filter(Boolean);
 
         return allInfo.join('<br>');
     }

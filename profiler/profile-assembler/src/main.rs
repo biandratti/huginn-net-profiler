@@ -21,6 +21,7 @@ use tracing_subscriber::FmtSubscriber;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SynPacketData {
     pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
     pub os_detected: Option<OsDetection>,
     pub signature: String,
     pub details: TcpDetails,
@@ -66,6 +67,7 @@ pub struct SynAckPacketData {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MtuData {
     pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
     pub mtu_value: u16,
     pub timestamp: u64,
 }
@@ -73,6 +75,7 @@ pub struct MtuData {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UptimeData {
     pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
     pub uptime_seconds: u64,
     pub timestamp: u64,
 }
@@ -91,6 +94,7 @@ type HttpResponseIngest = HttpResponseData;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HttpRequestData {
     pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
     pub user_agent: Option<String>,
     pub accept: Option<String>,
     pub accept_language: Option<String>,
@@ -123,6 +127,8 @@ pub struct HttpResponseData {
 pub struct TlsClient {
     pub id: String,
     pub timestamp: u64,
+    pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
     pub ja4: String,
     pub ja4_raw: String,
     pub ja4_original: String,
@@ -326,7 +332,8 @@ async fn ingest_uptime(State(state): State<AppState>, Json(ingest): Json<UptimeI
 }
 
 async fn ingest_http_request(State(state): State<AppState>, Json(ingest): Json<HttpRequestIngest>) {
-    let ip = ingest.source.ip.clone();
+    // Key strictly by destination (client) IP; forwarded_client_ip (if present) is only a hint
+    let ip = ingest.destination.ip.clone();
     info!("Received HTTP request data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
