@@ -34,7 +34,7 @@ services:
     container_name: frontend
     restart: unless-stopped
     volumes:
-      - ./static:/usr/share/nginx/html
+      - ../static:/usr/share/nginx/html
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`huginn-net.duckdns.org`)"
@@ -50,7 +50,7 @@ services:
 
   profile-assembler:
     build:
-      context: .
+      context: ../
       dockerfile: ./profiler/profile-assembler/Dockerfile
     container_name: profile-assembler
     restart: unless-stopped
@@ -73,7 +73,7 @@ services:
 
   tls-collector:
     build:
-      context: .
+      context: ../
       dockerfile: ./profiler/tls-collector/Dockerfile
     container_name: tls-collector
     restart: unless-stopped
@@ -88,7 +88,7 @@ services:
 
   http-collector:
     build:
-      context: .
+      context: ../
       dockerfile: ./profiler/http-collector/Dockerfile
     container_name: http-collector
     restart: unless-stopped
@@ -103,7 +103,7 @@ services:
 
   tcp-collector:
     build:
-      context: .
+      context: ../
       dockerfile: ./profiler/tcp-collector/Dockerfile
     container_name: tcp-collector
     restart: unless-stopped
@@ -118,4 +118,4 @@ services:
 
 networks:
   huginn-net:
-    driver: bridge 
+    driver: bridge

@@ -6,19 +6,17 @@
 target/
 
 # Ignore Docker-related files and runtime data
-docker-compose.yml
 deployment/
 letsencrypt/
 dynamic/
 acme.json
 
-# Ignore frontend files for backend builds
-static/
+# Ignore IDE files
+.idea/
+.vscode/
 
-# Ignore legacy crates
-huginn-api/
-huginn-collector/
-huginn-core/
+# Ignore logs
+logs/
 
 # Ignore markdown files and images
 README.md
