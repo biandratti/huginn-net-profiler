@@ -101,6 +101,21 @@ services:
     depends_on:
       - profile-assembler
 
+  tcp-collector:
+    build:
+      context: .
+      dockerfile: ./profiler/tcp-collector/Dockerfile
+    container_name: tcp-collector
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - PROFILER_INTERFACE=wlp0s20f3
+    depends_on:
+      - profile-assembler
+
 networks:
   huginn-net:
     driver: bridge 

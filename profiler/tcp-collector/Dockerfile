@@ -30,7 +30,7 @@ COPY . .
 
 # Build the specific binary for this service, which will be very fast
 # as all dependencies are already cached.
-RUN cargo build --release -p http-collector
+RUN cargo build --release -p tcp-collector
 
 # Stage 2: Final Image
 # Use the corresponding modern Debian version
@@ -40,6 +40,7 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y libpcap0.8 libssl3 && rm -rf /var/lib/apt/lists/*
 
 # Copy the compiled binary from the builder stage
-COPY --from=builder /usr/src/app/target/release/http-collector /usr/local/bin/http-collector
+COPY --from=builder /usr/src/app/target/release/tcp-collector /usr/local/bin/tcp-collector
 
-CMD ["/usr/local/bin/http-collector"] 
+CMD ["/usr/local/bin/tcp-collector"]
+

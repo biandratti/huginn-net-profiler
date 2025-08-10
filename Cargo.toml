@@ -2,6 +2,7 @@
 members = [
     "profiler/tls-collector",
     "profiler/http-collector",
+    "profiler/tcp-collector",
     "profiler/profile-assembler",
 ]
 resolver = "2"

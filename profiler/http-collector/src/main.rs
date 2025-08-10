@@ -1,6 +1,6 @@
 use clap::Parser;
 use huginn_net::AnalysisConfig;
-use huginn_net::Ttl;
+
 use huginn_net::{db::Database, fingerprint_result::FingerprintResult, HuginnNet};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
@@ -25,70 +25,11 @@ struct Args {
     assembler_endpoint: String,
 }
 
-// TCP structures matching huginn-core
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SynPacketData {
-    pub source: NetworkEndpoint,
-    pub destination: NetworkEndpoint,
-    pub os_detected: Option<OsDetection>,
-    pub signature: String,
-    pub details: TcpDetails,
-    pub timestamp: u64,
-}
-
+// HTTP structures
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NetworkEndpoint {
     pub ip: String,
     pub port: u16,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct OsDetection {
-    pub os: String,
-    pub quality: f64,
-    pub distance: u8,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct TcpDetails {
-    pub version: String,
-    pub initial_ttl: String,
-    pub options_length: u8,
-    pub mss: Option<u16>,
-    pub window_size: String,
-    pub window_scale: Option<u8>,
-    pub options_layout: String,
-    pub quirks: String,
-    pub payload_class: String,
-}
-
-/// SYN-ACK packet data (from server)
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SynAckPacketData {
-    pub source: NetworkEndpoint,
-    pub destination: NetworkEndpoint,
-    pub os_detected: Option<OsDetection>,
-    pub signature: String,
-    pub details: TcpDetails,
-    pub timestamp: u64,
-}
-
-/// MTU detection data
-#[derive(Serialize, Deserialize, Debug)]
-pub struct MtuData {
-    pub source: NetworkEndpoint,
-    pub destination: NetworkEndpoint,
-    pub mtu_value: u16,
-    pub timestamp: u64,
-}
-
-/// Uptime detection data
-#[derive(Serialize, Deserialize, Debug)]
-pub struct UptimeData {
-    pub source: NetworkEndpoint,
-    pub destination: NetworkEndpoint,
-    pub uptime_seconds: u64,
-    pub timestamp: u64,
 }
 
 /// HTTP request data (from client)
@@ -123,12 +64,6 @@ pub struct HttpResponseData {
     pub quality: f64,
     pub timestamp: u64,
 }
-
-// Different types for different TCP data
-type SynIngest = SynPacketData;
-type SynAckIngest = SynAckPacketData;
-type MtuIngest = MtuData;
-type UptimeIngest = UptimeData;
 
 // Different types for different HTTP data
 type HttpRequestIngest = HttpRequestData;
@@ -165,7 +100,7 @@ fn main() {
         let db = Box::leak(Box::new(Database::default()));
         let mut huginn = HuginnNet::new(Some(db), 1024, Some(AnalysisConfig{
             http_enabled: true,
-            tcp_enabled: true,
+            tcp_enabled: false,
             tls_enabled: false,
         }));
 
@@ -191,103 +126,6 @@ fn main() {
                 .unwrap_or_default()
                 .as_secs();
 
-            // Process SYN packets (client data)
-            if let Some(syn_data) = result.syn {
-                let ingest = SynIngest {
-                    source: NetworkEndpoint { ip: syn_data.source.ip.to_string(), port: syn_data.source.port },
-                    destination: NetworkEndpoint { ip: syn_data.destination.ip.to_string(), port: syn_data.destination.port },
-                    os_detected: syn_data.os_matched.as_ref().map(|m| OsDetection {
-                        os: m.os.name.clone(),
-                        quality: m.quality as f64,
-                        distance: extract_distance(&syn_data.sig.ittl),
-                    }),
-                    signature: syn_data.sig.to_string(),
-                    details: TcpDetails {
-                        version: syn_data.sig.version.to_string(),
-                        initial_ttl: syn_data.sig.ittl.to_string(),
-                        options_length: syn_data.sig.olen,
-                        mss: syn_data.sig.mss,
-                        window_size: syn_data.sig.wsize.to_string(),
-                        window_scale: syn_data.sig.wscale,
-                        options_layout: syn_data.sig.olayout.iter().map(|o| format!("{:?}", o)).collect::<Vec<_>>().join(","),
-                        quirks: syn_data.sig.quirks.iter().map(|q| format!("{:?}", q)).collect::<Vec<_>>().join(","),
-                        payload_class: syn_data.sig.pclass.to_string(),
-                    },
-                    timestamp: now,
-                };
-                send_syn_to_assembler(ingest, &client, &assembler_endpoint).await;
-            }
-
-            // Process SYN-ACK packets (server data)
-            if let Some(syn_ack_data) = result.syn_ack {
-                let ingest = SynAckIngest {
-                    source: NetworkEndpoint {
-                        ip: syn_ack_data.source.ip.to_string(),
-                        port: syn_ack_data.source.port,
-                    },
-                    destination: NetworkEndpoint {
-                        ip: syn_ack_data.destination.ip.to_string(),
-                        port: syn_ack_data.destination.port,
-                    },
-                    os_detected: syn_ack_data.os_matched.as_ref().map(|m| OsDetection {
-                        os: m.os.name.clone(),
-                        quality: m.quality as f64,
-                        distance: extract_distance(&syn_ack_data.sig.ittl),
-                    }),
-                    signature: syn_ack_data.sig.to_string(),
-                    details: TcpDetails {
-                        version: syn_ack_data.sig.version.to_string(),
-                        initial_ttl: syn_ack_data.sig.ittl.to_string(),
-                        options_length: syn_ack_data.sig.olen,
-                        mss: syn_ack_data.sig.mss,
-                        window_size: syn_ack_data.sig.wsize.to_string(),
-                        window_scale: syn_ack_data.sig.wscale,
-                        options_layout: syn_ack_data.sig.olayout.iter().map(|o| format!("{:?}", o)).collect::<Vec<_>>().join(","),
-                        quirks: syn_ack_data.sig.quirks.iter().map(|q| format!("{:?}", q)).collect::<Vec<_>>().join(","),
-                        payload_class: syn_ack_data.sig.pclass.to_string(),
-                    },
-                    timestamp: now,
-                };
-                send_syn_ack_to_assembler(ingest, &client, &assembler_endpoint).await;
-            }
-
-            // Process MTU data
-            if let Some(mtu_data) = result.mtu {
-                let ingest = MtuIngest {
-                    source: NetworkEndpoint {
-                        ip: mtu_data.source.ip.to_string(),
-                        port: mtu_data.source.port,
-                    },
-                    destination: NetworkEndpoint {
-                        ip: mtu_data.destination.ip.to_string(),
-                        port: mtu_data.destination.port,
-                    },
-                    mtu_value: mtu_data.mtu,
-                    timestamp: now,
-                };
-                send_mtu_to_assembler(ingest, &client, &assembler_endpoint).await;
-            }
-
-            // Process uptime data
-            if let Some(uptime_data) = result.uptime {
-                let total_seconds = (uptime_data.days as u64 * 24 * 3600)
-                    + (uptime_data.hours as u64 * 3600)
-                    + (uptime_data.min as u64 * 60);
-                
-                let ingest = UptimeIngest {
-                    source: NetworkEndpoint {
-                        ip: uptime_data.source.ip.to_string(),
-                        port: uptime_data.source.port,
-                    },
-                    destination: NetworkEndpoint {
-                        ip: uptime_data.destination.ip.to_string(),
-                        port: uptime_data.destination.port,
-                    },
-                    uptime_seconds: total_seconds,
-                    timestamp: now,
-                };
-                send_uptime_to_assembler(ingest, &client, &assembler_endpoint).await;
-            }
 
             // Process HTTP requests (client data)
             if let Some(http_req) = result.http_request {
@@ -338,73 +176,7 @@ fn main() {
     });
 }
 
-fn extract_distance(ttl: &Ttl) -> u8 {
-    match ttl {
-        Ttl::Distance(_, hops) => *hops,
-        _ => 0,
-    }
-}
 
-async fn send_syn_to_assembler(data: SynIngest, client: &reqwest::Client, endpoint: &str) {
-    info!("Sending SYN data for {}:{}", data.source.ip, data.source.port);
-    let url = format!("{}/syn", endpoint);
-    match client.post(&url).json(&data).send().await {
-        Ok(response) => {
-            if !response.status().is_success() {
-                let status = response.status();
-                let body = response.text().await.unwrap_or_default();
-                error!("Failed to send SYN data, status: {} body: {}", status, body);
-            }
-        }
-        Err(e) => error!("Failed to send SYN data: {}", e),
-    }
-}
-
-async fn send_syn_ack_to_assembler(data: SynAckIngest, client: &reqwest::Client, endpoint: &str) {
-    info!("Sending SYN-ACK data for {}:{} -> {}:{}", 
-          data.source.ip, data.source.port, data.destination.ip, data.destination.port);
-    let url = format!("{}/syn_ack", endpoint);
-    match client.post(&url).json(&data).send().await {
-        Ok(response) => {
-            if !response.status().is_success() {
-                let status = response.status();
-                let body = response.text().await.unwrap_or_default();
-                error!("Failed to send SYN-ACK data, status: {} body: {}", status, body);
-            }
-        }
-        Err(e) => error!("Failed to send SYN-ACK data: {}", e),
-    }
-}
-
-async fn send_mtu_to_assembler(data: MtuIngest, client: &reqwest::Client, endpoint: &str) {
-    info!("Sending MTU data for {}:{}", data.source.ip, data.source.port);
-    let url = format!("{}/mtu", endpoint);
-    match client.post(&url).json(&data).send().await {
-        Ok(response) => {
-            if !response.status().is_success() {
-                let status = response.status();
-                let body = response.text().await.unwrap_or_default();
-                error!("Failed to send MTU data, status: {} body: {}", status, body);
-            }
-        }
-        Err(e) => error!("Failed to send MTU data: {}", e),
-    }
-}
-
-async fn send_uptime_to_assembler(data: UptimeIngest, client: &reqwest::Client, endpoint: &str) {
-    info!("Sending uptime data for {}:{}", data.source.ip, data.source.port);
-    let url = format!("{}/uptime", endpoint);
-    match client.post(&url).json(&data).send().await {
-        Ok(response) => {
-            if !response.status().is_success() {
-                let status = response.status();
-                let body = response.text().await.unwrap_or_default();
-                error!("Failed to send uptime data, status: {} body: {}", status, body);
-            }
-        }
-        Err(e) => error!("Failed to send uptime data: {}", e),
-    }
-}
 
 async fn send_http_request_to_assembler(data: HttpRequestIngest, client: &reqwest::Client, endpoint: &str) {
     info!("Sending HTTP request data for {}:{}", data.source.ip, data.source.port);
