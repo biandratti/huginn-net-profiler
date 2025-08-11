@@ -30,8 +30,14 @@ jobs:
             ${{ runner.os }}-cargo-
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y libpcap-dev
-      - name: Build
+      - name: Build workspace
         run: cargo build --workspace --verbose
+      - name: Build each binary individually
+        run: |
+          cargo build --release -p profile-assembler
+          cargo build --release -p http-collector
+          cargo build --release -p tcp-collector
+          cargo build --release -p tls-collector
         
   format:
     runs-on: ubuntu-latest
