@@ -13,8 +13,12 @@ Each collector monitors a specific network interface via `PROFILER_INTERFACE`:
 ```bash
 cd deployment/
 
-# Auto-detect Docker bridge (recommended)
-export HUGINN_BRIDGE=$(ip link show | grep huginn-net-bridge | cut -d: -f2 | awk '{print $1}')
+docker-compose up --no-start  # Create networks first
+
+# Auto-detect Docker bridge (most reliable)
+export HUGINN_BRIDGE=$(ip link show | grep -E '^[0-9]+: br-[a-f0-9]{12}:' | tail -1 | cut -d: -f2 | awk '{print $1}')
+
+echo "Using bridge: $HUGINN_BRIDGE"
 docker-compose up -d --build
 ```
 
