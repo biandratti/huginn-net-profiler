@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--experimental.plugins.remoteaddr.modulename=github.com/RiskIdent/traefik-remoteaddr-plugin"
+      - "--experimental.plugins.remoteaddr.version=v0.1.1"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./letsencrypt:/letsencrypt
+      - ./traefik_dynamic:/etc/traefik/dynamic
+    networks:
+      - huginn-net
+
+  frontend:
+    image: nginx:1.29.0-alpine
+    container_name: frontend
+    restart: unless-stopped
+    volumes:
+      - ../static:/usr/share/nginx/html
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`huginn-net.duckdns.org`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend.tls.options=my-tls-options@file"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    depends_on:
+      - traefik
+    networks:
+      - huginn-net
+
+  profile-assembler:
+    build:
+      context: ..
+      dockerfile: profiler/profile-assembler/Dockerfile
+    container_name: profile-assembler
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.profile-assembler.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.profile-assembler.entrypoints=websecure"
+      - "traefik.http.routers.profile-assembler.tls=true"
+      - "traefik.http.routers.profile-assembler.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.profile-assembler.tls.options=my-tls-options@file"
+      - "traefik.docker.network=huginn-net"
+      - "traefik.http.routers.profile-assembler.middlewares=remote-addr@file"
+      - "traefik.http.services.profile-assembler.loadbalancer.server.port=8000"
+    depends_on:
+      - traefik
+    networks:
+      - huginn-net
+
+  tls-collector:
+    build:
+      context: ..
+      dockerfile: profiler/tls-collector/Dockerfile
+    container_name: tls-collector
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - PROFILER_INTERFACE=wlp0s20f3
+    depends_on:
+      - profile-assembler
+
+  http-collector:
+    build:
+      context: ..
+      dockerfile: profiler/http-collector/Dockerfile
+    container_name: http-collector
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - PROFILER_INTERFACE=${HUGINN_BRIDGE}
+    depends_on:
+      - profile-assembler
+
+  tcp-collector:
+    build:
+      context: ..
+      dockerfile: profiler/tcp-collector/Dockerfile
+    container_name: tcp-collector
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - PROFILER_INTERFACE=wlp0s20f3
+    depends_on:
+      - profile-assembler
+
+networks:
+  huginn-net:
+    driver: bridge
+    name: huginn-net-bridge

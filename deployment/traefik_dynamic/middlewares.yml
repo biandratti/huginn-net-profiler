@@ -1,0 +1,7 @@
+http:
+  middlewares:
+    remote-addr:
+      plugin:
+        remoteaddr:
+          headers:
+            ip: "X-Real-Ip"

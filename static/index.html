@@ -3,82 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCP Fingerprint</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        pre {
-            background-color: #f5f5f5;
-            padding: 15px;
-            overflow: auto;
-        }
-    </style>
+    <title>huginn-net profiler</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" type="image/x-icon" href="img/favicon/favicon.ico">
 </head>
 <body>
-    <h1>TCP Fingerprint</h1>
-    <div class="form-group">
-        <label for="x-forwarded-for">X-Forwarded-For:</label>
-        <input type="text" id="x-forwarded-for" placeholder="Enter IP address">
-    </div>
-    <div class="form-group">
-        <label for="x-remote-port">X-Remote-Port:</label>
-        <input type="text" id="x-remote-port" placeholder="Enter port number">
-    </div>
-    <button onclick="sendRequest()">Send Request</button>
-    <h2>Response:</h2>
-    <pre id="response">No response yet</pre>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content container">
+                <div class="logo">
+                    <img src="img/favicon/favicon.ico" alt="Huginn" class="logo-icon">
+                    <h1>huginn-net</h1>
+                </div>
+            </div>
+        </header>
 
-    <script>
-        async function sendRequest() {
-            const xForwardedFor = document.getElementById('x-forwarded-for').value;
-            const xRemotePort = document.getElementById('x-remote-port').value;
-            
-            const headers = {};
-            if (xForwardedFor) {
-                headers['X-Forwarded-For'] = xForwardedFor;
-            }
-            if (xRemotePort) {
-                headers['X-Remote-Port'] = xRemotePort;
-            }
-            
-            try {
-                const response = await fetch('/tcp-info', {
-                    method: 'GET',
-                    headers: headers
-                });
+        <!-- Controls -->
+        <section class="controls-section">
+            <div class="container">
+                <div class="controls-bar">
+                    <button id="findMyProfile" class="btn btn-primary">Find My Network Profile</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Display -->
+        <section class="profile-display-section">
+            <div class="container">
+                <div id="profileDisplay" class="profile-display">
+                    <!-- Profile will be dynamically inserted here -->
+                </div>
                 
-                const data = await response.json();
-                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-            } catch (error) {
-                document.getElementById('response').textContent = 'Error: ' + error.message;
-            }
-        }
-    </script>
+                <div id="emptyState" class="empty-state">
+                    <h3>Click "Find My Network Profile" to begin.</h3>
+                    <p>huginn-net will capture and analyze your network traffic to create a detailed profile.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
