@@ -18,87 +18,116 @@ This project aims to make advanced profiling accessible and interactive, helping
 ## Architecture
 ```
 huginn-net-profiler/
-├── huginn-core/          # Core analysis engine
-├── huginn-collector/     # Network traffic collection
-├── huginn-api/           # Web API server
-└── static/               # Web UI assets
+├── profiler/
+│   ├── profile-assembler/    # Central data aggregation service
+│   ├── tcp-collector/        # TCP fingerprinting collector
+│   ├── http-collector/       # HTTP fingerprinting collector
+│   └── tls-collector/        # TLS fingerprinting collector
+├── deployment/               # Docker deployment configuration
+└── static/                   # Web UI assets
 ```
 
 ## Modules
 
-### huginn-core
-Core library for traffic analysis and fingerprinting.
-- Clean data structures for TCP, HTTP, and TLS analysis
-- Event system for real-time notifications
-- Configurable analyzer with quality thresholds
-- Error handling with thiserror integration
-
-### huginn-collector
-Network traffic collector that bridges huginn-net with huginn-core.
-- Real-time network traffic collection
-- Async/sync channel bridging
-- Profile caching and merging
-- Graceful shutdown handling
-```
-huginn-net (blocking) → ChannelBridge (thread) → ProfileProcessor (async) → huginn-core
-```
-
-### huginn-api
-Web API server with REST endpoints and WebSocket support.
-- Complete REST API for profile management
-- Real-time WebSocket updates
+### profile-assembler
+Central service that aggregates fingerprinting data from all collectors.
+- REST API for profile management (`/api/profiles`, `/api/my-profile`)
+- Real-time data ingestion from collectors
+- Profile correlation by client IP address
+- Statistics and health endpoints
 - CORS support for web applications
-- Static file serving
-- Integrated network collection
+
+### tcp-collector
+Specialized collector for TCP fingerprinting using huginn-net.
+- SYN packet analysis and OS detection
+- SYN-ACK response profiling
+- MTU discovery and uptime detection
+- Sends data to profile-assembler via HTTP API
+
+### http-collector
+HTTP traffic analysis with client IP correlation.
+- HTTP request/response fingerprinting
+- Real client IP extraction from X-Real-IP headers
+- User-Agent, Accept headers, and method detection
+- Monitors Docker bridge network for internal traffic
+
+### tls-collector
+TLS handshake analysis and JA4 fingerprinting.
+- TLS client hello analysis
+- JA4 ingerprint generation
+- SNI and ALPN extraction
+- Cipher suite and extension profiling
 
 ## System Requirements
 
-- Rust 1.80 or higher
-- libpcap development libraries (use your system's package manager)
-- Network interface access (requires root/sudo privileges)
+- Docker and Docker Compose
+- Network interface access (requires privileged containers)
+- Linux host (for network capture capabilities)
 
 ## Quick Start
 
-### 1. Build All Modules
+### 1. Navigate to deployment directory
+```bash
+cd deployment/
+```
+
+### 2. Configure network interface
+Edit `docker-compose.yml` to set your network interface:
+```yaml
+environment:
+  - PROFILER_INTERFACE=your_interface_name  # e.g., eth0, wlan0
+```
+
+### 3. Deploy all services
+```bash
+docker-compose up -d --build
+```
+
+### 4. Access the application
+- **Web interface**: https://huginn-net.duckdns.org (or your configured domain)
+- **API**: https://huginn-net.duckdns.org/api
+- **Traefik Dashboard**: http://localhost:8080
+
+## Development Setup
+
+### Build manually (without Docker)
 ```bash
 cargo build --workspace --release
 ```
 
-### 2. Run Web Application
+### Run individual collectors
 ```bash
-# Find your network interface (e.g., ip link show, ifconfig)
-ip link show
+# TCP collector (monitors host interface)
+sudo ./target/release/tcp-collector --interface eth0
 
-# Run the API server with your interface (defaults to port 3000)
-# Use sudo if required for network capture
-sudo ./target/release/huginn-api --interface eth0
+# HTTP collector (monitors Docker bridge)
+sudo ./target/release/http-collector --interface br-xxxxx
 
-# To run on a different port (e.g., 8080)
-# sudo ./target/release/huginn-api --interface eth0 --bind 0.0.0.0:8080
+# TLS collector (monitors host interface)  
+sudo ./target/release/tls-collector --interface eth0
+
+# Profile assembler (API server)
+./target/release/profile-assembler
 ```
-
-### 3. Access the Web Interface
-- Open your browser and go to `http://localhost:3000` (or your custom port)
-- The web interface will show real-time network traffic analysis
-- Replace `eth0` with your network interface name.
 
 ## Data Flow
 
 ```
-Network Traffic
-    ↓
-huginn-net (TCP, HTTP. TLS packages process)
-    ↓
-huginn-collector (collection & processing)
-    ↓
-huginn-core (analysis & events)
-    ↓
-huginn-api (REST API & WebSocket)
-    ↓
-Web Client / External Applications
+External Client
+    ↓ (TLS/TCP traffic)
+Traefik (Reverse Proxy)
+    ↓ (HTTP traffic)
+Backend Services
+    ↑                    ↑                    ↑
+tcp-collector       http-collector      tls-collector
+(host interface)   (Docker bridge)     (host interface)
+    ↓                    ↓                    ↓
+            profile-assembler (API)
+                     ↓
+              Web Client / API
 ```
 
 ## UI as example
-![Huginn Network Profiler UI](img.png)
+![Huginn Network Profiler UI](image.png)
 
 The web interface shows real-time network traffic analysis with detailed TCP, HTTP, and TLS profiling information for connected devices.

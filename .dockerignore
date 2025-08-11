@@ -1,5 +1,24 @@
-target/
-.git/
+# Ignore Git
+.git
 .gitignore
-Dockerfile
-.dockerignore
+
+# Ignore build artifacts
+target/
+
+# Ignore Docker-related files and runtime data
+deployment/
+letsencrypt/
+dynamic/
+acme.json
+
+# Ignore IDE files
+.idea/
+.vscode/
+
+# Ignore logs
+logs/
+
+# Ignore markdown files and images
+README.md
+ROADMAP.md
+img.png

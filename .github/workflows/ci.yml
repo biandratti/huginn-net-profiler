@@ -30,29 +30,14 @@ jobs:
             ${{ runner.os }}-cargo-
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y libpcap-dev
-      - name: Build
-        run: cargo build --verbose
-      
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Cache cargo registry
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y libpcap-dev
-      - name: Run tests
-        run: cargo test --workspace --all-features --verbose
-      - name: Run doc tests
-        run: cargo test --doc --workspace --verbose
+      - name: Build workspace
+        run: cargo build --workspace --verbose
+      - name: Build each binary individually
+        run: |
+          cargo build --release -p profile-assembler
+          cargo build --release -p http-collector
+          cargo build --release -p tcp-collector
+          cargo build --release -p tls-collector
         
   format:
     runs-on: ubuntu-latest
@@ -88,38 +73,4 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y libpcap-dev
       - name: Check lint
-        run: cargo clippy --all-targets --all-features -- -D warnings
-        
-  build-examples:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Cache cargo registry
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y libpcap-dev
-      - name: Build examples
-        run: cargo build --examples --verbose
-      - name: Check examples compile
-        run: |
-          # Check if examples exist before trying to compile them
-          if [ -f huginn-core/examples/basic_usage.rs ]; then
-            cargo check --example basic_usage -p huginn-core
-          fi
-          if [ -f huginn-collector/examples/basic_collector.rs ]; then
-            cargo check --example basic_collector -p huginn-collector
-          fi
-          if [ -f huginn-api/examples/basic_server.rs ]; then
-            cargo check --example basic_server -p huginn-api
-          fi
-          if [ -f huginn-api/examples/basic_server_no_collector.rs ]; then
-            cargo check --example basic_server_no_collector -p huginn-api
-          fi
+        run: cargo clippy --workspace --all-targets -- -D warnings

@@ -1,17 +1,17 @@
-// API Client for Huginn Network Profiler
+const API_BASE_URL = 'https://api.localhost';
+
 class HuginnAPI {
-    constructor(baseUrl = '') {
-        this.baseUrl = baseUrl;
+    constructor() {
+        this.baseUrl = '';
         this.endpoints = {
-            health: '/health',
-            api: '/api',
             profiles: '/api/profiles',
+            myProfile: '/api/my-profile',
+            clear: '/api/clear',
             stats: '/api/stats',
-            search: '/api/search'
+            health: '/health'
         };
     }
 
-    // Generic HTTP request method
     async request(endpoint, options = {}) {
         const url = this.baseUrl + endpoint;
         const defaultOptions = {
@@ -42,17 +42,14 @@ class HuginnAPI {
         }
     }
 
-    // Health check
     async getHealth() {
         return this.request(this.endpoints.health);
     }
 
-    // Get API information
     async getAPIInfo() {
         return this.request(this.endpoints.api);
     }
 
-    // Get all profiles
     async getProfiles(filters = {}) {
         const params = new URLSearchParams();
         
@@ -69,31 +66,26 @@ class HuginnAPI {
         return this.request(endpoint);
     }
 
-    // Get specific profile
     async getProfile(key) {
         return this.request(`${this.endpoints.profiles}/${encodeURIComponent(key)}`);
     }
 
-    // Delete specific profile
     async deleteProfile(key) {
         return this.request(`${this.endpoints.profiles}/${encodeURIComponent(key)}`, {
             method: 'DELETE'
         });
     }
 
-    // Clear all profiles
     async clearProfiles() {
-        return this.request(this.endpoints.profiles, {
-            method: 'DELETE'
+        return this.request(this.endpoints.clear, {
+            method: 'POST'
         });
     }
 
-    // Get statistics
     async getStats() {
         return this.request(this.endpoints.stats);
     }
 
-    // Search profiles
     async searchProfiles(query, filters = {}) {
         const params = new URLSearchParams();
         params.append('q', query);
@@ -102,17 +94,15 @@ class HuginnAPI {
         if (filters.type) params.append('type', filters.type);
         if (filters.quality_min) params.append('quality_min', filters.quality_min);
 
-        const endpoint = `${this.endpoints.search}?${params.toString()}`;
+        const endpoint = `${this.endpoints.profiles}/search?${params.toString()}`;
         return this.request(endpoint);
     }
 
-    // Batch operations
     async batchDeleteProfiles(keys) {
         const promises = keys.map(key => this.deleteProfile(key));
         return Promise.allSettled(promises);
     }
 
-    // Get profiles with pagination
     async getProfilesPaginated(page = 1, pageSize = 20, filters = {}) {
         const offset = (page - 1) * pageSize;
         return this.getProfiles({
@@ -122,7 +112,6 @@ class HuginnAPI {
         });
     }
 
-    // Get filtered profiles
     async getFilteredProfiles(type = 'all', complete = null, qualityMin = null) {
         const filters = {};
         
@@ -141,13 +130,11 @@ class HuginnAPI {
         return this.getProfiles(filters);
     }
 
-    // Get recent profiles
     async getRecentProfiles(minutes = 60) {
         const since = new Date(Date.now() - minutes * 60 * 1000).toISOString();
         return this.getProfiles({ since });
     }
 
-    // Export profiles
     async exportProfiles(format = 'json') {
         const profiles = await this.getProfiles();
         
@@ -161,7 +148,6 @@ class HuginnAPI {
         }
     }
 
-    // Convert profiles to CSV format
     convertToCSV(data) {
         if (!data.profiles || Object.keys(data.profiles).length === 0) {
             return 'No profiles available';
@@ -188,7 +174,6 @@ class HuginnAPI {
         ).join('\n');
     }
 
-    // Check if API is available
     async isAvailable() {
         try {
             await this.getHealth();
@@ -198,7 +183,6 @@ class HuginnAPI {
         }
     }
 
-    // Get API status
     async getStatus() {
         try {
             const [health, stats] = await Promise.all([
@@ -220,7 +204,38 @@ class HuginnAPI {
             };
         }
     }
+
+    async fetchMyProfile() {
+        const url = `${this.baseUrl}/api/my-profile`;
+        console.log(`Fetching my profile from: ${url}`);
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+
+                const errorBody = await response.text();
+                throw new Error(`Failed to fetch profile. Status: ${response.status}. Body: ${errorBody}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching my profile:', error);
+            throw error;
+        }
+    }
+    
+    async clearAllProfiles() {
+        const url = `${this.baseUrl}/api/clear`;
+        console.log(`Clearing all profiles from: ${url}`);
+        try {
+            const response = await fetch(url, { method: 'POST' });
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`Failed to clear profiles. Status: ${response.status}. Body: ${errorBody}`);
+            }
+        } catch (error) {
+            console.error('Error clearing profiles:', error);
+            throw error;
+        }
+    }
 }
 
-// Export singleton instance
 window.huginnAPI = new HuginnAPI(); 

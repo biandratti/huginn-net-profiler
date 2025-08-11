@@ -3,154 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦉 Huginn Network Profiler</title>
+    <title>Huginn Network Profiler</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="preload" href="img/favicon.png" as="image" type="image/png">
     <link rel="icon" type="image/x-icon" href="img/favicon/favicon.ico">
-    <link rel="icon" type="image/png" href="img/favicon.png">
-    <link rel="apple-touch-icon" href="img/favicon.png">
 </head>
 <body>
     <div class="app">
         <!-- Header -->
         <header class="header">
-            <div class="header-content">
+            <div class="header-content container">
                 <div class="logo">
                     <h1>Huginn Network Profiler</h1>
                 </div>
-                <div class="header-controls">
-                    <div class="connection-status" id="connectionStatus">
-                        <span class="status-indicator" id="statusIndicator"></span>
-                        <span id="statusText">Connecting...</span>
-                    </div>
-                    <button id="toggleConnection" class="btn btn-primary">Connect</button>
-                </div>
             </div>
         </header>
-
-        <!-- Stats Dashboard -->
-        <section class="stats-section">
-            <div class="container">
-                <h2>Live Statistics</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="totalProfiles">0</div>
-                            <div class="stat-label">Total Profiles</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🔌</div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="tcpProfiles">0</div>
-                            <div class="stat-label">TCP Profiles</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🌐</div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="httpProfiles">0</div>
-                            <div class="stat-label">HTTP Profiles</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🔒</div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="tlsProfiles">0</div>
-                            <div class="stat-label">TLS Profiles</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">✅</div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="completeProfiles">0</div>
-                            <div class="stat-label">Complete Profiles</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
 
         <!-- Controls -->
         <section class="controls-section">
             <div class="container">
                 <div class="controls-bar">
-                    <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="Search profiles by IP, OS, browser..." class="search-input">
-                        <button id="searchBtn" class="btn btn-secondary">🔍 Search</button>
-                    </div>
-                    <div class="filter-controls">
-                        <select id="filterType" class="filter-select">
-                            <option value="all">All Profiles</option>
-                            <option value="tcp">TCP Only</option>
-                            <option value="http">HTTP Only</option>
-                            <option value="tls">TLS Only</option>
-                            <option value="complete">Complete Profiles</option>
-                        </select>
-                        <button id="clearProfiles" class="btn btn-danger">🗑️ Clear All</button>
-                        <button id="refreshProfiles" class="btn btn-secondary">🔄 Refresh</button>
-                    </div>
-        </div>
-        </div>
+                    <button id="findMyProfile" class="btn btn-primary">Find My Network Profile</button>
+                    <button id="clearProfiles" class="btn btn-danger">Clear All Profiles</button>
+                </div>
+            </div>
         </section>
 
-        <!-- Profiles Display -->
-        <section class="profiles-section">
+        <!-- Profile Display -->
+        <section class="profile-display-section">
             <div class="container">
-                <div class="profiles-header">
-                    <h2>Traffic Profiles</h2>
-                    <div class="profiles-count">
-                        <span id="profilesCount">0 profiles</span>
-    </div>
-    </div>
-
-                <div class="profiles-container">
-                    <div id="profilesList" class="profiles-list">
-                        <!-- Profiles will be dynamically inserted here -->
-                    </div>
-                    
-                    <div id="emptyState" class="empty-state">
-                        <div class="empty-icon">📊</div>
-                        <h3>No Traffic Profiles Yet</h3>
-                        <p>Start the network collector to see live traffic analysis.</p>
-                        <div class="empty-actions">
-                            <button id="startCollector" class="btn btn-primary">Start Monitoring</button>
-                        </div>
-                    </div>
+                <div id="profileDisplay" class="profile-display">
+                    <!-- Profile will be dynamically inserted here -->
+                </div>
+                
+                <div id="emptyState" class="empty-state">
+                    <h3>Click "Find My Network Profile" to begin.</h3>
+                    <p>When traffic is captured, your network profile will appear here.</p>
                 </div>
             </div>
         </section>
-
-        <!-- Live Activity Feed -->
-        <section class="activity-section">
-            <div class="container">
-                <div class="activity-header">
-                    <h3>Live Activity</h3>
-                    <button id="clearActivity" class="btn btn-sm btn-secondary">Clear</button>
-                </div>
-                <div class="activity-feed" id="activityFeed">
-                    <!-- Activity items will be added here -->
-                </div>
-            </div>
-        </section>
-    </div>
-
-    <!-- Profile Detail Modal -->
-    <div id="profileModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Profile Details</h3>
-                <button class="modal-close" id="modalClose">&times;</button>
-            </div>
-            <div class="modal-body" id="modalBody">
-                <!-- Profile details will be inserted here -->
-            </div>
-        </div>
     </div>
 
     <!-- Scripts -->
-    <script src="js/websocket.js"></script>
     <script src="js/api.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
