@@ -97,7 +97,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
-      - PROFILER_INTERFACE=br-4ca56b2ef2a4
+      - PROFILER_INTERFACE=${HUGINN_BRIDGE}
     depends_on:
       - profile-assembler
 
@@ -119,3 +119,4 @@ services:
 networks:
   huginn-net:
     driver: bridge
+    name: huginn-net-bridge

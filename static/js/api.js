@@ -76,7 +76,6 @@ class HuginnAPI {
     }
 
 
-
     async getStats() {
         return this.request(this.endpoints.stats);
     }

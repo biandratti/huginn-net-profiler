@@ -127,7 +127,6 @@ fn enforce_connection_limit(connection_map: &ConnectionMap) {
 
     connections.sort_by(|a, b| a.1.cmp(&b.1));
 
-    // Remove oldest connections until we're at the limit
     let to_remove = map.len() - MAX_CONNECTIONS;
     for (key, _) in connections.iter().take(to_remove) {
         map.remove(key);
