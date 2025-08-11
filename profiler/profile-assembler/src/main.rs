@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    net::SocketAddr,
-    sync::Arc,
-};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
 use axum::{
     extract::{Path, State},
@@ -11,7 +7,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use chrono::{Utc};
+use chrono::Utc;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
@@ -103,7 +99,6 @@ pub struct HttpRequestData {
     pub timestamp: u64,
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HttpResponseData {
     pub source: NetworkEndpoint,
@@ -145,7 +140,7 @@ pub struct TlsClientObserved {
 
 type TlsIngest = TlsClient;
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, Default)]
 struct Profile {
     id: String,
     timestamp: u64,
@@ -159,22 +154,7 @@ struct Profile {
     last_seen: String,
 }
 
-impl Default for Profile {
-    fn default() -> Self {
-        Self {
-            id: String::new(),
-            timestamp: 0,
-            syn: None,
-            syn_ack: None,
-            mtu: None,
-            uptime: None,
-            http_request: None,
-            http_response: None,
-            tls_client: None,
-            last_seen: String::new(),
-        }
-    }
-}
+
 
 type AppState = Arc<DashMap<String, Profile>>;
 
@@ -184,8 +164,7 @@ async fn main() {
         .with_max_level(Level::INFO)
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     info!("Initializing Profile Assembler");
 
@@ -247,7 +226,7 @@ async fn get_my_profile(
         .and_then(|h| h.to_str().ok())
         .and_then(|s| s.split(',').next())
         .map(|s| s.trim().to_string());
-    
+
     if let Some(ip) = client_ip {
         info!("Fetching profile for client IP from headers: {}", ip);
         if let Some(profile) = state.get(&ip) {
@@ -325,7 +304,10 @@ async fn ingest_http_request(State(state): State<AppState>, Json(ingest): Json<H
     profile.last_seen = now_rfc3339();
 }
 
-async fn ingest_http_response(State(state): State<AppState>, Json(ingest): Json<HttpResponseIngest>) {
+async fn ingest_http_response(
+    State(state): State<AppState>,
+    Json(ingest): Json<HttpResponseIngest>,
+) {
     let client_ip = ingest.destination.ip.clone();
     info!("Received HTTP response data for client {}", client_ip);
     let mut profile = state.entry(client_ip.clone()).or_default();
@@ -358,16 +340,29 @@ struct AppStats {
 
 async fn get_stats(State(state): State<AppState>) -> Json<AppStats> {
     info!("Calculating statistics");
-    let profiles = state.iter().map(|entry| entry.value().clone()).collect::<Vec<_>>();
+    let profiles = state
+        .iter()
+        .map(|entry| entry.value().clone())
+        .collect::<Vec<_>>();
     let stats = AppStats {
         total_profiles: profiles.len(),
-        tcp_profiles: profiles.iter().filter(|p| p.syn.is_some() || p.syn_ack.is_some() || p.mtu.is_some() || p.uptime.is_some()).count(),
-        http_profiles: profiles.iter().filter(|p| p.http_request.is_some() || p.http_response.is_some()).count(),
+        tcp_profiles: profiles
+            .iter()
+            .filter(|p| {
+                p.syn.is_some() || p.syn_ack.is_some() || p.mtu.is_some() || p.uptime.is_some()
+            })
+            .count(),
+        http_profiles: profiles
+            .iter()
+            .filter(|p| p.http_request.is_some() || p.http_response.is_some())
+            .count(),
         tls_profiles: profiles.iter().filter(|p| p.tls_client.is_some()).count(),
         complete_profiles: profiles
             .iter()
-            .filter(|p| (p.http_request.is_some() || p.http_response.is_some()) && p.tls_client.is_some())
+            .filter(|p| {
+                (p.http_request.is_some() || p.http_response.is_some()) && p.tls_client.is_some()
+            })
             .count(),
     };
     Json(stats)
-} 
+}

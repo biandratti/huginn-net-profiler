@@ -25,13 +25,11 @@ struct Args {
     assembler_endpoint: String,
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NetworkEndpoint {
     pub ip: String,
     pub port: u16,
 }
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HttpRequestData {
@@ -48,7 +46,6 @@ pub struct HttpRequestData {
     pub timestamp: u64,
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HttpResponseData {
     pub source: NetworkEndpoint,
@@ -63,25 +60,11 @@ pub struct HttpResponseData {
     pub timestamp: u64,
 }
 
-
 type HttpRequestIngest = HttpRequestData;
 type HttpResponseIngest = HttpResponseData;
 
 
-fn extract_client_ip_from_signature(signature: &str, fallback_ip: &str) -> String {
-    for line in signature.lines() {
-        if line.to_lowercase().starts_with("x-real-ip:") {
-            if let Some(ip) = line.split(':').nth(1) {
-                return ip.trim().to_string();
-            }
-        }
-    }
-    fallback_ip.to_string()
-}
-fn extract_header_value_from_horder(
-    horder: &[String],
-    header_name: &str,
-) -> Option<String> {
+fn extract_header_value_from_horder(horder: &[String], header_name: &str) -> Option<String> {
     for header in horder {
         if let Some(eq_pos) = header.find('=') {
             let (name, value_part) = header.split_at(eq_pos);
@@ -106,10 +89,7 @@ fn main() {
         .unwrap_or_else(|| env::var("PROFILER_INTERFACE").unwrap_or("wlp0s20f3".to_string()));
     let assembler_endpoint = args.assembler_endpoint;
 
-    info!(
-        "Booting http-collector on interface {} pointed to {}",
-        interface, assembler_endpoint
-    );
+    info!("Booting http-collector on interface {interface} pointed to {assembler_endpoint}");
 
     let (sync_tx, sync_rx) = std_mpsc::channel::<FingerprintResult>();
     let (async_tx, mut async_rx) = tokio_mpsc::channel(1000);
@@ -125,19 +105,20 @@ fn main() {
 
     let analysis_interface = interface.clone();
     thread::spawn(move || loop {
-        info!("Starting new HTTP analysis loop on interface {}...", analysis_interface);
+        info!("Starting new HTTP analysis loop on interface {analysis_interface}...");
         let db = Box::leak(Box::new(Database::default()));
-        let mut huginn = HuginnNet::new(Some(db), 1024, Some(AnalysisConfig{
-            http_enabled: true,
-            tcp_enabled: false,
-            tls_enabled: false,
-        }));
+        let mut huginn = HuginnNet::new(
+            Some(db),
+            1024,
+            Some(AnalysisConfig {
+                http_enabled: true,
+                tcp_enabled: false,
+                tls_enabled: false,
+            }),
+        );
 
         if let Err(e) = huginn.analyze_network(&analysis_interface, sync_tx.clone()) {
-            error!(
-                "Huginn-net (HTTP) analysis failed: {}. Restarting in 5 seconds...",
-                e
-            );
+            error!("Huginn-net (HTTP) analysis failed: {e}. Restarting in 5 seconds...");
             thread::sleep(Duration::from_secs(5));
         } else {
             info!("HTTP analysis loop finished cleanly. Restarting immediately.");
@@ -155,8 +136,6 @@ fn main() {
                 .unwrap_or_default()
                 .as_secs();
 
-
-
             if let Some(http_req) = result.http_request {
                 let horder_strings: Vec<String> =
                     http_req.sig.horder.iter().map(|h| h.to_string()).collect();
@@ -165,11 +144,20 @@ fn main() {
                         ip: http_req.source.ip.to_string(),
                         port: http_req.source.port,
                     },
-                    destination: NetworkEndpoint { ip: http_req.destination.ip.to_string(), port: http_req.destination.port },
+                    destination: NetworkEndpoint {
+                        ip: http_req.destination.ip.to_string(),
+                        port: http_req.destination.port,
+                    },
                     user_agent: extract_header_value_from_horder(&horder_strings, "user-agent"),
                     accept: extract_header_value_from_horder(&horder_strings, "accept"),
-                    accept_language: extract_header_value_from_horder(&horder_strings, "accept-language"),
-                    accept_encoding: extract_header_value_from_horder(&horder_strings, "accept-encoding"),
+                    accept_language: extract_header_value_from_horder(
+                        &horder_strings,
+                        "accept-language",
+                    ),
+                    accept_encoding: extract_header_value_from_horder(
+                        &horder_strings,
+                        "accept-encoding",
+                    ),
                     connection: extract_header_value_from_horder(&horder_strings, "connection"),
                     host: extract_header_value_from_horder(&horder_strings, "host"),
                     signature: http_req.sig.to_string(),
@@ -182,7 +170,6 @@ fn main() {
                 };
                 send_http_request_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
-
 
             if let Some(http_res) = result.http_response {
                 let horder_strings: Vec<String> =
@@ -198,9 +185,15 @@ fn main() {
                     },
                     server: extract_header_value_from_horder(&horder_strings, "server"),
                     content_type: extract_header_value_from_horder(&horder_strings, "content-type"),
-                    content_length: extract_header_value_from_horder(&horder_strings, "content-length"),
+                    content_length: extract_header_value_from_horder(
+                        &horder_strings,
+                        "content-length",
+                    ),
                     set_cookie: extract_header_value_from_horder(&horder_strings, "set-cookie"),
-                    cache_control: extract_header_value_from_horder(&horder_strings, "cache-control"),
+                    cache_control: extract_header_value_from_horder(
+                        &horder_strings,
+                        "cache-control",
+                    ),
                     signature: http_res.sig.to_string(),
                     quality: http_res
                         .web_server_matched
@@ -215,29 +208,48 @@ fn main() {
     });
 }
 
-async fn send_http_request_to_assembler(data: HttpRequestIngest, client: &reqwest::Client, endpoint: &str) {
-    info!("Sending HTTP request data for {}:{}", data.source.ip, data.source.port);
-    let url = format!("{}/http_request", endpoint);
+async fn send_http_request_to_assembler(
+    data: HttpRequestIngest,
+    client: &reqwest::Client,
+    endpoint: &str,
+) {
+    info!(
+        "Sending HTTP request data for {}:{}",
+        data.source.ip, data.source.port
+    );
+    let url = format!("{endpoint}/http_request");
     match client.post(&url).json(&data).send().await {
         Ok(response) => {
             if !response.status().is_success() {
-                error!("Failed to send HTTP request data, status: {}", response.status());
+                error!(
+                    "Failed to send HTTP request data, status: {}",
+                    response.status()
+                );
             }
         }
-        Err(e) => error!("Failed to send HTTP request data: {}", e),
+        Err(e) => error!("Failed to send HTTP request data: {e}"),
     }
 }
 
-async fn send_http_response_to_assembler(data: HttpResponseIngest, client: &reqwest::Client, endpoint: &str) {
-    info!("Sending HTTP response data for {}:{} -> {}:{}", 
-          data.source.ip, data.source.port, data.destination.ip, data.destination.port);
-    let url = format!("{}/http_response", endpoint);
+async fn send_http_response_to_assembler(
+    data: HttpResponseIngest,
+    client: &reqwest::Client,
+    endpoint: &str,
+) {
+    info!(
+        "Sending HTTP response data for {}:{} -> {}:{}",
+        data.source.ip, data.source.port, data.destination.ip, data.destination.port
+    );
+    let url = format!("{endpoint}/http_response");
     match client.post(&url).json(&data).send().await {
         Ok(response) => {
             if !response.status().is_success() {
-                error!("Failed to send HTTP response data, status: {}", response.status());
+                error!(
+                    "Failed to send HTTP response data, status: {}",
+                    response.status()
+                );
             }
         }
-        Err(e) => error!("Failed to send HTTP response data: {}", e),
+        Err(e) => error!("Failed to send HTTP response data: {e}"),
     }
 }

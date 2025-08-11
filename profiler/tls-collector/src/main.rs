@@ -6,9 +6,9 @@ use std::env;
 use std::sync::mpsc as std_mpsc;
 use std::thread;
 use std::time::Duration;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc as tokio_mpsc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -57,15 +57,12 @@ pub struct NetworkEndpoint {
 fn main() {
     env_logger::init();
     let args = Args::parse();
-    let interface = args.interface.unwrap_or_else(|| {
-        env::var("PROFILER_INTERFACE").unwrap_or("wlp0s20f3".to_string())
-    });
+    let interface = args
+        .interface
+        .unwrap_or_else(|| env::var("PROFILER_INTERFACE").unwrap_or("wlp0s20f3".to_string()));
     let assembler_endpoint = args.assembler_endpoint;
 
-    info!(
-        "Booting tls-collector on interface {} pointed to {}",
-        interface, assembler_endpoint
-    );
+    info!("Booting tls-collector on interface {interface} pointed to {assembler_endpoint}");
 
     let (sync_tx, sync_rx) = std_mpsc::channel::<FingerprintResult>();
     let (async_tx, mut async_rx) = tokio_mpsc::channel(1000);
@@ -78,28 +75,27 @@ fn main() {
         }
     });
 
-
     let analysis_interface = interface.clone();
     thread::spawn(move || loop {
-        info!("Starting new TLS analysis loop on interface {}...", analysis_interface);
+        info!("Starting new TLS analysis loop on interface {analysis_interface}...");
         let db = Box::leak(Box::new(Database::default()));
-        let mut huginn = HuginnNet::new(Some(db), 1024, Some(AnalysisConfig{
-            http_enabled: false,
-            tcp_enabled: false,
-            tls_enabled: true,
-        }));
+        let mut huginn = HuginnNet::new(
+            Some(db),
+            1024,
+            Some(AnalysisConfig {
+                http_enabled: false,
+                tcp_enabled: false,
+                tls_enabled: true,
+            }),
+        );
 
         if let Err(e) = huginn.analyze_network(&analysis_interface, sync_tx.clone()) {
-            error!(
-                "Huginn-net (TLS) analysis failed: {}. Restarting in 5 seconds...",
-                e
-            );
+            error!("Huginn-net (TLS) analysis failed: {e}. Restarting in 5 seconds...");
             thread::sleep(Duration::from_secs(5));
         } else {
             info!("TLS analysis loop finished cleanly. Restarting immediately.");
         }
     });
-
 
     let rt = Runtime::new().unwrap();
     rt.block_on(async {
@@ -116,8 +112,14 @@ fn main() {
                 let ingest: TlsClient = TlsClient {
                     id: tls_data.source.ip.to_string(),
                     timestamp: now,
-                    source: NetworkEndpoint { ip: tls_data.source.ip.to_string(), port: tls_data.source.port },
-                    destination: NetworkEndpoint { ip: tls_data.destination.ip.to_string(), port: tls_data.destination.port },
+                    source: NetworkEndpoint {
+                        ip: tls_data.source.ip.to_string(),
+                        port: tls_data.source.port,
+                    },
+                    destination: NetworkEndpoint {
+                        ip: tls_data.destination.ip.to_string(),
+                        port: tls_data.destination.port,
+                    },
                     ja4: tls_data.sig.ja4.full.value().to_string(),
                     ja4_raw: tls_data.sig.ja4.raw.value().to_string(),
                     ja4_original: tls_data.sig.ja4_original.full.value().to_string(),
