@@ -88,8 +88,8 @@ services:
 
   http-collector:
     build:
-      context: ../..
-      dockerfile: huginn-net-profiler/profiler/http-collector/Dockerfile
+      context: ..
+      dockerfile: profiler/http-collector/Dockerfile
     container_name: http-collector
     restart: unless-stopped
     network_mode: host
