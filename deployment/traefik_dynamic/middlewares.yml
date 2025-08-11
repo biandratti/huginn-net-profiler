@@ -4,4 +4,4 @@ http:
       plugin:
         remoteaddr:
           headers:
-            ip: "X-Real-Ip" 
+            ip: "X-Real-Ip"

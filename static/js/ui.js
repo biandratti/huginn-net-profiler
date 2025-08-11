@@ -218,6 +218,10 @@ ${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
             fields.push(`<strong>User-Agent:</strong> ${data.user_agent}`);
         }
         
+        if (data.lang) {
+            fields.push(`<strong>Language:</strong> ${data.lang}`);
+        }
+        
         if (data.accept) {
             fields.push(`<strong>Accept:</strong> ${data.accept}`);
         }

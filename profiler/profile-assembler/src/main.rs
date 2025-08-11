@@ -89,6 +89,7 @@ pub struct HttpRequestData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
     pub user_agent: Option<String>,
+    pub lang: Option<String>,
     pub accept: Option<String>,
     pub accept_language: Option<String>,
     pub accept_encoding: Option<String>,
