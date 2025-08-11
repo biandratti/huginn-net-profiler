@@ -4,6 +4,7 @@ use huginn_net::AnalysisConfig;
 use huginn_net::{db::Database, fingerprint_result::FingerprintResult, HuginnNet};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::env;
 use std::sync::mpsc as std_mpsc;
 use std::thread;
@@ -80,6 +81,14 @@ fn extract_header_value_from_horder(horder: &[String], header_name: &str) -> Opt
     None
 }
 
+fn extract_client_ip_from_raw_headers(raw_headers: &std::collections::HashMap<String, String>, fallback_ip: &str) -> String {
+    raw_headers.get("x-real-ip")
+        .or_else(|| raw_headers.get("X-Real-IP"))
+        .or_else(|| raw_headers.get("X-Real-Ip"))
+        .cloned()
+        .unwrap_or_else(|| fallback_ip.to_string())
+}
+
 fn main() {
     env_logger::init();
     let args = Args::parse();
@@ -140,7 +149,7 @@ fn main() {
                     http_req.sig.horder.iter().map(|h| h.to_string()).collect();
                 let ingest = HttpRequestIngest {
                     source: NetworkEndpoint {
-                        ip: http_req.source.ip.to_string(),
+                        ip: extract_client_ip_from_raw_headers(&http_req.sig.raw_headers, &http_req.source.ip.to_string()),
                         port: http_req.source.port,
                     },
                     destination: NetworkEndpoint {

@@ -88,8 +88,8 @@ services:
 
   http-collector:
     build:
-      context: ..
-      dockerfile: profiler/http-collector/Dockerfile
+      context: ../..
+      dockerfile: huginn-net-profiler/profiler/http-collector/Dockerfile
     container_name: http-collector
     restart: unless-stopped
     network_mode: host
@@ -97,7 +97,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
-      - PROFILER_INTERFACE=wlp0s20f3
+      - PROFILER_INTERFACE=br-3c6ec22b38a3
     depends_on:
       - profile-assembler
 
