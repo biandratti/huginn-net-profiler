@@ -42,7 +42,6 @@ pub struct HttpRequestData {
     pub accept_language: Option<String>,
     pub accept_encoding: Option<String>,
     pub connection: Option<String>,
-    pub method: Option<String>,
     pub host: Option<String>,
     pub signature: String,
     pub quality: f64,
@@ -59,7 +58,6 @@ pub struct HttpResponseData {
     pub content_length: Option<String>,
     pub set_cookie: Option<String>,
     pub cache_control: Option<String>,
-    pub status: Option<String>,
     pub signature: String,
     pub quality: f64,
     pub timestamp: u64,
@@ -68,6 +66,38 @@ pub struct HttpResponseData {
 // Different types for different HTTP data
 type HttpRequestIngest = HttpRequestData;
 type HttpResponseIngest = HttpResponseData;
+
+// Extract real client IP from X-Real-IP header in HTTP signature
+fn extract_client_ip_from_signature(signature: &str, fallback_ip: &str) -> String {
+    for line in signature.lines() {
+        if line.to_lowercase().starts_with("x-real-ip:") {
+            if let Some(ip) = line.split(':').nth(1) {
+                return ip.trim().to_string();
+            }
+        }
+    }
+    fallback_ip.to_string()
+}
+fn extract_header_value_from_horder(
+    horder: &[String],
+    header_name: &str,
+) -> Option<String> {
+    for header in horder {
+        if let Some(eq_pos) = header.find('=') {
+            let (name, value_part) = header.split_at(eq_pos);
+            if name.to_lowercase() == header_name.to_lowercase() {
+                // Remove the '=' and extract value between brackets
+                let value_part = &value_part[1..]; // Remove '='
+                if value_part.starts_with('[') && value_part.ends_with(']') {
+                    return Some(value_part[1..value_part.len() - 1].to_string());
+                } else {
+                    return Some(value_part.to_string());
+                }
+            }
+        }
+    }
+    None
+}
 
 fn main() {
     env_logger::init();
@@ -129,21 +159,26 @@ fn main() {
 
             // Process HTTP requests (client data)
             if let Some(http_req) = result.http_request {
+                let horder_strings: Vec<String> =
+                    http_req.sig.horder.iter().map(|h| h.to_string()).collect();
                 let ingest = HttpRequestIngest {
                     source: NetworkEndpoint {
                         ip: http_req.source.ip.to_string(),
                         port: http_req.source.port,
                     },
                     destination: NetworkEndpoint { ip: http_req.destination.ip.to_string(), port: http_req.destination.port },
-                    user_agent: None, // Would need to extract from signature
-                    accept: None,
-                    accept_language: None,
-                    accept_encoding: None,
-                    connection: None,
-                    method: Some("GET".to_string()), // Default
-                    host: None,
+                    user_agent: extract_header_value_from_horder(&horder_strings, "user-agent"),
+                    accept: extract_header_value_from_horder(&horder_strings, "accept"),
+                    accept_language: extract_header_value_from_horder(&horder_strings, "accept-language"),
+                    accept_encoding: extract_header_value_from_horder(&horder_strings, "accept-encoding"),
+                    connection: extract_header_value_from_horder(&horder_strings, "connection"),
+                    host: extract_header_value_from_horder(&horder_strings, "host"),
                     signature: http_req.sig.to_string(),
-                    quality: http_req.browser_matched.as_ref().map(|m| m.quality as f64).unwrap_or(0.0),
+                    quality: http_req
+                        .browser_matched
+                        .as_ref()
+                        .map(|m| m.quality as f64)
+                        .unwrap_or(0.0),
                     timestamp: now,
                 };
                 send_http_request_to_assembler(ingest, &client, &assembler_endpoint).await;
@@ -151,6 +186,8 @@ fn main() {
 
             // Process HTTP responses (server data)
             if let Some(http_res) = result.http_response {
+                let horder_strings: Vec<String> =
+                    http_res.sig.horder.iter().map(|h| h.to_string()).collect();
                 let ingest = HttpResponseIngest {
                     source: NetworkEndpoint {
                         ip: http_res.source.ip.to_string(),
@@ -160,14 +197,17 @@ fn main() {
                         ip: http_res.destination.ip.to_string(),
                         port: http_res.destination.port,
                     },
-                    server: None, // Would need to extract from signature
-                    content_type: None,
-                    content_length: None,
-                    set_cookie: None,
-                    cache_control: None,
-                    status: Some("200".to_string()), // Default
+                    server: extract_header_value_from_horder(&horder_strings, "server"),
+                    content_type: extract_header_value_from_horder(&horder_strings, "content-type"),
+                    content_length: extract_header_value_from_horder(&horder_strings, "content-length"),
+                    set_cookie: extract_header_value_from_horder(&horder_strings, "set-cookie"),
+                    cache_control: extract_header_value_from_horder(&horder_strings, "cache-control"),
                     signature: http_res.sig.to_string(),
-                    quality: http_res.web_server_matched.as_ref().map(|m| m.quality as f64).unwrap_or(0.0),
+                    quality: http_res
+                        .web_server_matched
+                        .as_ref()
+                        .map(|m| m.quality as f64)
+                        .unwrap_or(0.0),
                     timestamp: now,
                 };
                 send_http_response_to_assembler(ingest, &client, &assembler_endpoint).await;

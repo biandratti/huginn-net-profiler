@@ -331,7 +331,7 @@ async fn ingest_uptime(State(state): State<AppState>, Json(ingest): Json<UptimeI
 
 async fn ingest_http_request(State(state): State<AppState>, Json(ingest): Json<HttpRequestIngest>) {
     // Key strictly by destination (client) IP; forwarded_client_ip (if present) is only a hint
-    let ip = ingest.destination.ip.clone();
+    let ip = ingest.source.ip.clone();
     info!("Received HTTP request data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
