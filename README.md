@@ -128,6 +128,6 @@ tcp-collector       http-collector      tls-collector
 ```
 
 ## UI as example
-![Huginn Network Profiler UI](img.png)
+![Huginn Network Profiler UI](image.png)
 
 The web interface shows real-time network traffic analysis with detailed TCP, HTTP, and TLS profiling information for connected devices.

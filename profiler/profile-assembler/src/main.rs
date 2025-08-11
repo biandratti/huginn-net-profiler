@@ -93,7 +93,6 @@ pub struct HttpRequestData {
     pub accept_language: Option<String>,
     pub accept_encoding: Option<String>,
     pub connection: Option<String>,
-    pub method: Option<String>,
     pub host: Option<String>,
     pub signature: String,
     pub quality: f64,
