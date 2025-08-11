@@ -186,9 +186,9 @@ fn main() {
                         ip: http_req.destination.ip.to_string(),
                         port: http_req.destination.port,
                     },
-                    user_agent: http_req.sig.user_agent,
+                    user_agent: http_req.sig.user_agent.clone(),
+                    lang: extract_header_value_from_horder(&horder_strings, "accept-language"),
                     accept: extract_header_value_from_horder(&horder_strings, "accept"),
-                    language: http_req.sig.lang,
                     accept_language: extract_header_value_from_horder(
                         &horder_strings,
                         "accept-language",
