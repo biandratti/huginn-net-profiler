@@ -92,7 +92,15 @@ struct ConnectionKey {
     dest_port: u16,
 }
 
-type ConnectionMap = Arc<Mutex<HashMap<ConnectionKey, String>>>;
+const MAX_CONNECTIONS: usize = 100;
+
+#[derive(Debug, Clone)]
+struct ConnectionInfo {
+    real_ip: String,
+    timestamp: std::time::Instant,
+}
+
+type ConnectionMap = Arc<Mutex<HashMap<ConnectionKey, ConnectionInfo>>>;
 
 fn extract_client_ip_from_raw_headers(
     raw_headers: &std::collections::HashMap<String, String>,
@@ -104,6 +112,26 @@ fn extract_client_ip_from_raw_headers(
         .or_else(|| raw_headers.get("X-Real-Ip"))
         .cloned()
         .unwrap_or_else(|| fallback_ip.to_string())
+}
+
+fn enforce_connection_limit(connection_map: &ConnectionMap) {
+    let mut map = connection_map.lock().unwrap();
+    if map.len() <= MAX_CONNECTIONS {
+        return;
+    }
+
+    let mut connections: Vec<(ConnectionKey, std::time::Instant)> = map
+        .iter()
+        .map(|(key, info)| (key.clone(), info.timestamp))
+        .collect();
+
+    connections.sort_by(|a, b| a.1.cmp(&b.1));
+
+    // Remove oldest connections until we're at the limit
+    let to_remove = map.len() - MAX_CONNECTIONS;
+    for (key, _) in connections.iter().take(to_remove) {
+        map.remove(key);
+    }
 }
 
 fn main() {
@@ -181,8 +209,15 @@ fn main() {
                 };
 
                 if let Ok(mut map) = connection_map.lock() {
-                    map.insert(conn_key, real_client_ip.clone());
+                    map.insert(
+                        conn_key,
+                        ConnectionInfo {
+                            real_ip: real_client_ip.clone(),
+                            timestamp: std::time::Instant::now(),
+                        },
+                    );
                 }
+                enforce_connection_limit(&connection_map);
 
                 let ingest = HttpRequestIngest {
                     source: NetworkEndpoint {
@@ -230,7 +265,7 @@ fn main() {
 
                 let real_client_ip = if let Ok(map) = connection_map.lock() {
                     map.get(&conn_key)
-                        .cloned()
+                        .map(|info| info.real_ip.clone())
                         .unwrap_or_else(|| http_res.destination.ip.to_string())
                 } else {
                     http_res.destination.ip.to_string()

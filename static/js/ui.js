@@ -299,10 +299,6 @@ ${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
     hideEmptyState() {
         this.emptyStateElem.style.display = 'none';
     }
-
-    clearAll() {
-        this.showEmptyState();
-    }
     
     showLoading() {
         const button = document.getElementById('findMyProfile');

@@ -34,7 +34,6 @@ class AppController {
 
     setupEventListeners() {
         const findMyProfileButton = document.getElementById('findMyProfile');
-        const clearProfilesButton = document.getElementById('clearProfiles');
 
         if (findMyProfileButton) {
             findMyProfileButton.addEventListener('click', async () => {
@@ -47,22 +46,6 @@ class AppController {
                     console.error('Failed to fetch my profile:', error);
                     this.ui.displayProfile(null);
                     this.ui.showError(error.message || 'Could not find your profile.');
-                } finally {
-                    this.ui.hideLoading();
-                }
-            });
-        }
-
-        if (clearProfilesButton) {
-            clearProfilesButton.addEventListener('click', async () => {
-                this.ui.showLoading();
-                try {
-                    await this.api.clearAllProfiles();
-                    this.ui.clearAll();
-                    this.ui.showSuccess('All profiles cleared!');
-                } catch (error) {
-                    console.error('Failed to clear profiles:', error);
-                    this.ui.showError(error.message || 'Could not clear profiles.');
                 } finally {
                     this.ui.hideLoading();
                 }

@@ -11,7 +11,7 @@ use chrono::Utc;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{info, warn, Level};
+use tracing::{debug, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -156,6 +156,8 @@ struct Profile {
 
 type AppState = Arc<DashMap<String, Profile>>;
 
+const MAX_PROFILES: usize = 100;
+
 #[tokio::main]
 async fn main() {
     let subscriber = FmtSubscriber::builder()
@@ -176,10 +178,9 @@ async fn main() {
         .route("/api/ingest/http_request", post(ingest_http_request))
         .route("/api/ingest/http_response", post(ingest_http_response))
         .route("/api/ingest/tls", post(ingest_tls))
-        .route("/api/profiles", get(get_profiles).delete(clear_profiles))
+        .route("/api/profiles", get(get_profiles))
         .route("/api/profiles/:id", get(get_profile_by_id))
         .route("/api/stats", get(get_stats))
-        .route("/api/clear", post(clear_profiles))
         .route("/api/my-profile", get(get_my_profile))
         .route("/health", get(health_check))
         .layer(
@@ -251,12 +252,6 @@ async fn get_profile_by_id(
     }
 }
 
-async fn clear_profiles(State(state): State<AppState>) -> StatusCode {
-    info!("Clearing all profiles");
-    state.clear();
-    StatusCode::OK
-}
-
 async fn ingest_syn(State(state): State<AppState>, Json(ingest): Json<SynIngest>) {
     let ip = ingest.source.ip.clone();
     info!("Received SYN data for {}", ip);
@@ -264,6 +259,8 @@ async fn ingest_syn(State(state): State<AppState>, Json(ingest): Json<SynIngest>
     profile.id = ip;
     profile.syn = Some(ingest);
     profile.last_seen = now_rfc3339();
+    drop(profile); // Release the lock before cleanup
+    enforce_profile_limit(&state);
 }
 
 async fn ingest_syn_ack(State(state): State<AppState>, Json(ingest): Json<SynAckIngest>) {
@@ -273,6 +270,8 @@ async fn ingest_syn_ack(State(state): State<AppState>, Json(ingest): Json<SynAck
     profile.id = client_ip;
     profile.syn_ack = Some(ingest);
     profile.last_seen = now_rfc3339();
+    drop(profile);
+    enforce_profile_limit(&state);
 }
 
 async fn ingest_mtu(State(state): State<AppState>, Json(ingest): Json<MtuIngest>) {
@@ -282,6 +281,8 @@ async fn ingest_mtu(State(state): State<AppState>, Json(ingest): Json<MtuIngest>
     profile.id = ip;
     profile.mtu = Some(ingest);
     profile.last_seen = now_rfc3339();
+    drop(profile);
+    enforce_profile_limit(&state);
 }
 
 async fn ingest_uptime(State(state): State<AppState>, Json(ingest): Json<UptimeIngest>) {
@@ -291,6 +292,8 @@ async fn ingest_uptime(State(state): State<AppState>, Json(ingest): Json<UptimeI
     profile.id = ip;
     profile.uptime = Some(ingest);
     profile.last_seen = now_rfc3339();
+    drop(profile);
+    enforce_profile_limit(&state);
 }
 
 async fn ingest_http_request(State(state): State<AppState>, Json(ingest): Json<HttpRequestIngest>) {
@@ -300,6 +303,8 @@ async fn ingest_http_request(State(state): State<AppState>, Json(ingest): Json<H
     profile.id = ip;
     profile.http_request = Some(ingest);
     profile.last_seen = now_rfc3339();
+    drop(profile);
+    enforce_profile_limit(&state);
 }
 
 async fn ingest_http_response(
@@ -312,6 +317,8 @@ async fn ingest_http_response(
     profile.id = client_ip;
     profile.http_response = Some(ingest);
     profile.last_seen = now_rfc3339();
+    drop(profile);
+    enforce_profile_limit(&state);
 }
 
 async fn ingest_tls(State(state): State<AppState>, Json(ingest): Json<TlsIngest>) {
@@ -321,10 +328,34 @@ async fn ingest_tls(State(state): State<AppState>, Json(ingest): Json<TlsIngest>
     profile.id = ip;
     profile.tls_client = Some(ingest);
     profile.last_seen = now_rfc3339();
+    drop(profile);
+    enforce_profile_limit(&state);
 }
 
 fn now_rfc3339() -> String {
     Utc::now().to_rfc3339()
+}
+
+fn enforce_profile_limit(state: &AppState) {
+    if state.len() <= MAX_PROFILES {
+        return;
+    }
+
+    let mut profiles: Vec<(String, String)> = state
+        .iter()
+        .map(|entry| (entry.key().clone(), entry.value().last_seen.clone()))
+        .collect();
+
+    profiles.sort_by(|a, b| a.1.cmp(&b.1));
+
+    let to_remove = state.len() - MAX_PROFILES;
+    for (ip, _) in profiles.iter().take(to_remove) {
+        state.remove(ip);
+        debug!(
+            "Removed old profile for {} to maintain limit of {}",
+            ip, MAX_PROFILES
+        );
+    }
 }
 
 #[derive(Serialize)]

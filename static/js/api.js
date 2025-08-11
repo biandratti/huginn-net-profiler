@@ -6,7 +6,6 @@ class HuginnAPI {
         this.endpoints = {
             profiles: '/api/profiles',
             myProfile: '/api/my-profile',
-            clear: '/api/clear',
             stats: '/api/stats',
             health: '/health'
         };
@@ -76,11 +75,7 @@ class HuginnAPI {
         });
     }
 
-    async clearProfiles() {
-        return this.request(this.endpoints.clear, {
-            method: 'POST'
-        });
-    }
+
 
     async getStats() {
         return this.request(this.endpoints.stats);
@@ -222,20 +217,7 @@ class HuginnAPI {
         }
     }
     
-    async clearAllProfiles() {
-        const url = `${this.baseUrl}/api/clear`;
-        console.log(`Clearing all profiles from: ${url}`);
-        try {
-            const response = await fetch(url, { method: 'POST' });
-            if (!response.ok) {
-                const errorBody = await response.text();
-                throw new Error(`Failed to clear profiles. Status: ${response.status}. Body: ${errorBody}`);
-            }
-        } catch (error) {
-            console.error('Error clearing profiles:', error);
-            throw error;
-        }
-    }
+
 }
 
 window.huginnAPI = new HuginnAPI(); 
