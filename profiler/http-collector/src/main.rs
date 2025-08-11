@@ -215,8 +215,6 @@ fn main() {
     });
 }
 
-
-
 async fn send_http_request_to_assembler(data: HttpRequestIngest, client: &reqwest::Client, endpoint: &str) {
     info!("Sending HTTP request data for {}:{}", data.source.ip, data.source.port);
     let url = format!("{}/http_request", endpoint);

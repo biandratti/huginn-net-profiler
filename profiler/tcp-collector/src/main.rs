@@ -213,5 +213,3 @@ async fn send_uptime_to_assembler(data: UptimeIngest, client: &reqwest::Client, 
         Err(e) => error!("Failed to send uptime data: {}", e),
     }
 }
-
-
