@@ -6,8 +6,8 @@ use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc as std_mpsc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
@@ -94,8 +94,12 @@ struct ConnectionKey {
 
 type ConnectionMap = Arc<Mutex<HashMap<ConnectionKey, String>>>;
 
-fn extract_client_ip_from_raw_headers(raw_headers: &std::collections::HashMap<String, String>, fallback_ip: &str) -> String {
-    raw_headers.get("x-real-ip")
+fn extract_client_ip_from_raw_headers(
+    raw_headers: &std::collections::HashMap<String, String>,
+    fallback_ip: &str,
+) -> String {
+    raw_headers
+        .get("x-real-ip")
         .or_else(|| raw_headers.get("X-Real-IP"))
         .or_else(|| raw_headers.get("X-Real-Ip"))
         .cloned()
@@ -162,9 +166,12 @@ fn main() {
             if let Some(http_req) = result.http_request {
                 let horder_strings: Vec<String> =
                     http_req.sig.horder.iter().map(|h| h.to_string()).collect();
-                
-                let real_client_ip = extract_client_ip_from_raw_headers(&http_req.sig.raw_headers, &http_req.source.ip.to_string());
-                
+
+                let real_client_ip = extract_client_ip_from_raw_headers(
+                    &http_req.sig.raw_headers,
+                    &http_req.source.ip.to_string(),
+                );
+
                 // Store connection mapping for responses
                 let conn_key = ConnectionKey {
                     source_ip: http_req.source.ip.to_string(),
@@ -172,11 +179,11 @@ fn main() {
                     dest_ip: http_req.destination.ip.to_string(),
                     dest_port: http_req.destination.port,
                 };
-                
+
                 if let Ok(mut map) = connection_map.lock() {
                     map.insert(conn_key, real_client_ip.clone());
                 }
-                
+
                 let ingest = HttpRequestIngest {
                     source: NetworkEndpoint {
                         ip: real_client_ip,
@@ -213,21 +220,22 @@ fn main() {
             if let Some(http_res) = result.http_response {
                 let horder_strings: Vec<String> =
                     http_res.sig.horder.iter().map(|h| h.to_string()).collect();
-                
+
                 let conn_key = ConnectionKey {
                     source_ip: http_res.destination.ip.to_string(),
                     source_port: http_res.destination.port,
                     dest_ip: http_res.source.ip.to_string(),
                     dest_port: http_res.source.port,
                 };
-                
+
                 let real_client_ip = if let Ok(map) = connection_map.lock() {
-                    map.get(&conn_key).cloned()
+                    map.get(&conn_key)
+                        .cloned()
                         .unwrap_or_else(|| http_res.destination.ip.to_string())
                 } else {
                     http_res.destination.ip.to_string()
                 };
-                
+
                 let ingest = HttpResponseIngest {
                     source: NetworkEndpoint {
                         ip: http_res.source.ip.to_string(),

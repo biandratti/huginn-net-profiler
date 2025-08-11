@@ -97,7 +97,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
-      - PROFILER_INTERFACE=br-587238c655de
+      - PROFILER_INTERFACE=br-4ca56b2ef2a4
     depends_on:
       - profile-assembler
 
