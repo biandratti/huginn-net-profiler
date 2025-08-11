@@ -1,19 +1,17 @@
-// API Client for Huginn Network Profiler
 const API_BASE_URL = 'https://api.localhost';
 
 class HuginnAPI {
     constructor() {
-        this.baseUrl = ''; // API calls will be relative to the domain
+        this.baseUrl = '';
         this.endpoints = {
             profiles: '/api/profiles',
             myProfile: '/api/my-profile',
             clear: '/api/clear',
             stats: '/api/stats',
-            health: '/health' // Health doesn't need /api prefix
+            health: '/health'
         };
     }
 
-    // Generic HTTP request method
     async request(endpoint, options = {}) {
         const url = this.baseUrl + endpoint;
         const defaultOptions = {
@@ -44,17 +42,14 @@ class HuginnAPI {
         }
     }
 
-    // Health check
     async getHealth() {
         return this.request(this.endpoints.health);
     }
 
-    // Get API information
     async getAPIInfo() {
         return this.request(this.endpoints.api);
     }
 
-    // Get all profiles
     async getProfiles(filters = {}) {
         const params = new URLSearchParams();
         
@@ -71,31 +66,26 @@ class HuginnAPI {
         return this.request(endpoint);
     }
 
-    // Get specific profile
     async getProfile(key) {
         return this.request(`${this.endpoints.profiles}/${encodeURIComponent(key)}`);
     }
 
-    // Delete specific profile
     async deleteProfile(key) {
         return this.request(`${this.endpoints.profiles}/${encodeURIComponent(key)}`, {
             method: 'DELETE'
         });
     }
 
-    // Clear all profiles
     async clearProfiles() {
         return this.request(this.endpoints.clear, {
             method: 'POST'
         });
     }
 
-    // Get statistics
     async getStats() {
         return this.request(this.endpoints.stats);
     }
 
-    // Search profiles
     async searchProfiles(query, filters = {}) {
         const params = new URLSearchParams();
         params.append('q', query);
@@ -108,13 +98,11 @@ class HuginnAPI {
         return this.request(endpoint);
     }
 
-    // Batch operations
     async batchDeleteProfiles(keys) {
         const promises = keys.map(key => this.deleteProfile(key));
         return Promise.allSettled(promises);
     }
 
-    // Get profiles with pagination
     async getProfilesPaginated(page = 1, pageSize = 20, filters = {}) {
         const offset = (page - 1) * pageSize;
         return this.getProfiles({
@@ -124,7 +112,6 @@ class HuginnAPI {
         });
     }
 
-    // Get filtered profiles
     async getFilteredProfiles(type = 'all', complete = null, qualityMin = null) {
         const filters = {};
         
@@ -143,13 +130,11 @@ class HuginnAPI {
         return this.getProfiles(filters);
     }
 
-    // Get recent profiles
     async getRecentProfiles(minutes = 60) {
         const since = new Date(Date.now() - minutes * 60 * 1000).toISOString();
         return this.getProfiles({ since });
     }
 
-    // Export profiles
     async exportProfiles(format = 'json') {
         const profiles = await this.getProfiles();
         
@@ -163,7 +148,6 @@ class HuginnAPI {
         }
     }
 
-    // Convert profiles to CSV format
     convertToCSV(data) {
         if (!data.profiles || Object.keys(data.profiles).length === 0) {
             return 'No profiles available';
@@ -190,7 +174,6 @@ class HuginnAPI {
         ).join('\n');
     }
 
-    // Check if API is available
     async isAvailable() {
         try {
             await this.getHealth();
@@ -200,7 +183,6 @@ class HuginnAPI {
         }
     }
 
-    // Get API status
     async getStatus() {
         try {
             const [health, stats] = await Promise.all([
@@ -223,15 +205,13 @@ class HuginnAPI {
         }
     }
 
-    // Fetches the network profile for the current user.
-    // @returns {Promise<object>} A promise that resolves to the user's network profile.
     async fetchMyProfile() {
         const url = `${this.baseUrl}/api/my-profile`;
         console.log(`Fetching my profile from: ${url}`);
         try {
             const response = await fetch(url);
             if (!response.ok) {
-                // Try to get a more specific error message from the body
+
                 const errorBody = await response.text();
                 throw new Error(`Failed to fetch profile. Status: ${response.status}. Body: ${errorBody}`);
             }
@@ -258,5 +238,4 @@ class HuginnAPI {
     }
 }
 
-// Export singleton instance
 window.huginnAPI = new HuginnAPI(); 

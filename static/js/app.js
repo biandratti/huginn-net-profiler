@@ -1,4 +1,3 @@
-// Main application controller
 class AppController {
     constructor(api, ui) {
         this.api = api;
@@ -21,7 +20,6 @@ class AppController {
             this.setupEventListeners();
         } catch (error) {
             console.error('Failed to initialize the application:', error);
-            // In a real app, you might want to show this error in the UI
             const body = document.querySelector('body');
             if (body) {
                 body.innerHTML = `
@@ -73,7 +71,6 @@ class AppController {
     }
 }
 
-// Entry point: Initialize the application when the DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     const api = new HuginnAPI();
     const ui = new UIManager();

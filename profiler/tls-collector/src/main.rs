@@ -67,13 +67,8 @@ fn main() {
         interface, assembler_endpoint
     );
 
-    // Create a channel for sync communication (huginn-net to our bridge)
     let (sync_tx, sync_rx) = std_mpsc::channel::<FingerprintResult>();
-
-    // Create a channel for async communication (our bridge to tokio tasks)
     let (async_tx, mut async_rx) = tokio_mpsc::channel(1000);
-
-    // Bridge the sync and async worlds
     thread::spawn(move || {
         while let Ok(item) = sync_rx.recv() {
             if async_tx.blocking_send(item).is_err() {
@@ -83,7 +78,7 @@ fn main() {
         }
     });
 
-    // Start the network analysis in its own thread
+
     let analysis_interface = interface.clone();
     thread::spawn(move || loop {
         info!("Starting new TLS analysis loop on interface {}...", analysis_interface);
@@ -105,7 +100,7 @@ fn main() {
         }
     });
 
-    // Create a tokio runtime to process results
+
     let rt = Runtime::new().unwrap();
     rt.block_on(async {
         let client = reqwest::Client::new();

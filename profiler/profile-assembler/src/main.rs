@@ -80,17 +80,13 @@ pub struct UptimeData {
     pub timestamp: u64,
 }
 
-// Different types for different TCP data
 type SynIngest = SynPacketData;
 type SynAckIngest = SynAckPacketData;
 type MtuIngest = MtuData;
 type UptimeIngest = UptimeData;
 
-// Different types for different HTTP data
 type HttpRequestIngest = HttpRequestData;
 type HttpResponseIngest = HttpResponseData;
-
-/// HTTP request data (from client)
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HttpRequestData {
     pub source: NetworkEndpoint,
@@ -107,7 +103,7 @@ pub struct HttpRequestData {
     pub timestamp: u64,
 }
 
-/// HTTP response data (from server)
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HttpResponseData {
     pub source: NetworkEndpoint,
@@ -289,19 +285,15 @@ async fn ingest_syn(State(state): State<AppState>, Json(ingest): Json<SynIngest>
     info!("Received SYN data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
-    
-    // Store SYN packet data (client data)
     profile.syn = Some(ingest);
     profile.last_seen = now_rfc3339();
 }
 
 async fn ingest_syn_ack(State(state): State<AppState>, Json(ingest): Json<SynAckIngest>) {
-    let client_ip = ingest.destination.ip.clone(); // Client IP is in destination
+    let client_ip = ingest.destination.ip.clone();
     info!("Received SYN-ACK data for client {}", client_ip);
     let mut profile = state.entry(client_ip.clone()).or_default();
     profile.id = client_ip;
-    
-    // Store SYN-ACK packet data (server data)
     profile.syn_ack = Some(ingest);
     profile.last_seen = now_rfc3339();
 }
@@ -311,43 +303,33 @@ async fn ingest_mtu(State(state): State<AppState>, Json(ingest): Json<MtuIngest>
     info!("Received MTU data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
-    
-    // Store MTU data
     profile.mtu = Some(ingest);
     profile.last_seen = now_rfc3339();
 }
 
 async fn ingest_uptime(State(state): State<AppState>, Json(ingest): Json<UptimeIngest>) {
-    // Correct: key by destination (client) IP
     let ip = ingest.destination.ip.clone();
     info!("Received uptime data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
-    
-    // Store uptime data
     profile.uptime = Some(ingest);
     profile.last_seen = now_rfc3339();
 }
 
 async fn ingest_http_request(State(state): State<AppState>, Json(ingest): Json<HttpRequestIngest>) {
-    // Key strictly by destination (client) IP; forwarded_client_ip (if present) is only a hint
     let ip = ingest.source.ip.clone();
     info!("Received HTTP request data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
-    
-    // Store HTTP request data (client data)
     profile.http_request = Some(ingest);
     profile.last_seen = now_rfc3339();
 }
 
 async fn ingest_http_response(State(state): State<AppState>, Json(ingest): Json<HttpResponseIngest>) {
-    let client_ip = ingest.destination.ip.clone(); // Client IP is in destination
+    let client_ip = ingest.destination.ip.clone();
     info!("Received HTTP response data for client {}", client_ip);
     let mut profile = state.entry(client_ip.clone()).or_default();
     profile.id = client_ip;
-    
-    // Store HTTP response data (server data)
     profile.http_response = Some(ingest);
     profile.last_seen = now_rfc3339();
 }
@@ -357,8 +339,6 @@ async fn ingest_tls(State(state): State<AppState>, Json(ingest): Json<TlsIngest>
     info!("Received TLS data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;
-    
-    // Store the TLS client data directly - contains all the information
     profile.tls_client = Some(ingest);
     profile.last_seen = now_rfc3339();
 }

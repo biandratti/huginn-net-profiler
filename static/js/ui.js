@@ -1,4 +1,3 @@
-// UI Manager for Huginn Network Profiler
 class UIManager {
     constructor() {
         this.cacheElements();
@@ -8,7 +7,6 @@ class UIManager {
     cacheElements() {
         this.profileDisplayElem = document.getElementById('profileDisplay');
         this.emptyStateElem = document.getElementById('emptyState');
-        // The main find button is now controlled by app.js
     }
 
     displayProfile(profile) {
@@ -54,28 +52,24 @@ class UIManager {
     formatTcpData(profile) {
         const subcards = [];
 
-        // Always show SYN subcard
         if (profile.syn) {
             subcards.push(this.formatTcpSubcard('SYN (Client)', profile.syn));
         } else {
             subcards.push(this.formatTcpSubcard('SYN (Client)', null, 'No SYN packet data found yet'));
         }
 
-        // Always show SYN-ACK subcard
         if (profile.syn_ack) {
             subcards.push(this.formatTcpSubcard('SYN-ACK (Server)', profile.syn_ack));
         } else {
             subcards.push(this.formatTcpSubcard('SYN-ACK (Server)', null, 'No SYN-ACK packet data found yet'));
         }
 
-        // Always show MTU subcard
         if (profile.mtu) {
             subcards.push(this.formatTcpSubcard('MTU Detection', profile.mtu));
         } else {
             subcards.push(this.formatTcpSubcard('MTU Detection', null, 'No MTU discovery data found yet'));
         }
 
-        // Always show Uptime subcard
         if (profile.uptime) {
             subcards.push(this.formatTcpSubcard('Uptime Detection', profile.uptime));
         } else {
@@ -88,14 +82,12 @@ class UIManager {
     formatHttpData(profile) {
         const subcards = [];
 
-        // Always show HTTP Request subcard
         if (profile.http_request) {
             subcards.push(this.formatHttpSubcard('HTTP Request (Client)', profile.http_request));
         } else {
             subcards.push(this.formatHttpSubcard('HTTP Request (Client)', null, 'No HTTP request data found yet'));
         }
 
-        // Always show HTTP Response subcard
         if (profile.http_response) {
             subcards.push(this.formatHttpSubcard('HTTP Response (Server)', profile.http_response));
         } else {
@@ -108,7 +100,6 @@ class UIManager {
     formatTlsData(profile) {
         const subcards = [];
 
-        // Always show TLS Client subcard
         if (profile.tls_client) {
             subcards.push(this.formatTlsSubcard('TLS (Client)', profile.tls_client));
         } else {

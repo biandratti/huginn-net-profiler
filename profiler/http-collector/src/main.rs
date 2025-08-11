@@ -25,14 +25,14 @@ struct Args {
     assembler_endpoint: String,
 }
 
-// HTTP structures
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NetworkEndpoint {
     pub ip: String,
     pub port: u16,
 }
 
-/// HTTP request data (from client)
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HttpRequestData {
     pub source: NetworkEndpoint,
@@ -48,7 +48,7 @@ pub struct HttpRequestData {
     pub timestamp: u64,
 }
 
-/// HTTP response data (from server)
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HttpResponseData {
     pub source: NetworkEndpoint,
@@ -63,11 +63,11 @@ pub struct HttpResponseData {
     pub timestamp: u64,
 }
 
-// Different types for different HTTP data
+
 type HttpRequestIngest = HttpRequestData;
 type HttpResponseIngest = HttpResponseData;
 
-// Extract real client IP from X-Real-IP header in HTTP signature
+
 fn extract_client_ip_from_signature(signature: &str, fallback_ip: &str) -> String {
     for line in signature.lines() {
         if line.to_lowercase().starts_with("x-real-ip:") {
@@ -86,8 +86,7 @@ fn extract_header_value_from_horder(
         if let Some(eq_pos) = header.find('=') {
             let (name, value_part) = header.split_at(eq_pos);
             if name.to_lowercase() == header_name.to_lowercase() {
-                // Remove the '=' and extract value between brackets
-                let value_part = &value_part[1..]; // Remove '='
+                let value_part = &value_part[1..];
                 if value_part.starts_with('[') && value_part.ends_with(']') {
                     return Some(value_part[1..value_part.len() - 1].to_string());
                 } else {
@@ -157,7 +156,7 @@ fn main() {
                 .as_secs();
 
 
-            // Process HTTP requests (client data)
+
             if let Some(http_req) = result.http_request {
                 let horder_strings: Vec<String> =
                     http_req.sig.horder.iter().map(|h| h.to_string()).collect();
@@ -184,7 +183,7 @@ fn main() {
                 send_http_request_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
 
-            // Process HTTP responses (server data)
+
             if let Some(http_res) = result.http_response {
                 let horder_strings: Vec<String> =
                     http_res.sig.horder.iter().map(|h| h.to_string()).collect();
