@@ -63,7 +63,6 @@ pub struct HttpResponseData {
 type HttpRequestIngest = HttpRequestData;
 type HttpResponseIngest = HttpResponseData;
 
-
 fn extract_header_value_from_horder(horder: &[String], header_name: &str) -> Option<String> {
     for header in horder {
         if let Some(eq_pos) = header.find('=') {

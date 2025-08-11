@@ -154,8 +154,6 @@ struct Profile {
     last_seen: String,
 }
 
-
-
 type AppState = Arc<DashMap<String, Profile>>;
 
 #[tokio::main]
