@@ -696,7 +696,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "env_logger",
- "huginn-net 1.4.1",
+ "huginn-net",
  "log",
  "reqwest",
  "serde",
@@ -718,26 +718,9 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "huginn-net"
-version = "1.4.1"
-dependencies = [
- "crossbeam",
- "httparse",
- "lazy_static",
- "nom 8.0.0",
- "pcap-file",
- "pnet",
- "sha2",
- "thiserror 2.0.12",
- "tls-parser",
- "tracing",
- "ttl_cache",
-]
-
-[[package]]
-name = "huginn-net"
-version = "1.4.1"
+version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8467364716afef810548ec5e8459fa3a6f323e2306683ccecda6f0a26dfd9175"
+checksum = "a3fc018c31966e525ed991cfc97ecd9432dc79e354adba96abe64d34f823c49c"
 dependencies = [
  "crossbeam",
  "httparse",
@@ -1946,7 +1929,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "env_logger",
- "huginn-net 1.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "huginn-net",
  "log",
  "reqwest",
  "serde",
@@ -2041,7 +2024,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "env_logger",
- "huginn-net 1.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "huginn-net",
  "log",
  "reqwest",
  "serde",
