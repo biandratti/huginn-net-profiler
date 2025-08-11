@@ -12,10 +12,12 @@ class UIManager {
     displayProfile(profile) {
         if (!profile || Object.keys(profile).length === 0) {
             this.showEmptyState("Your profile could not be found or is empty. Please generate some traffic and try again.");
+            this.profileDisplayElem.classList.remove('visible');
             return;
         }
 
         this.hideEmptyState();
+        this.profileDisplayElem.classList.add('visible');
 
         const tcpData = this.formatTcpData(profile);
         const httpData = this.formatHttpData(profile);
@@ -287,11 +289,14 @@ ${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
         return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
 
-    showEmptyState(message = 'Click "Find My Network Profile" to begin.') {
+    showEmptyState(message = null) {
         this.profileDisplayElem.innerHTML = '';
-        const p = this.emptyStateElem.querySelector('p');
-        if (p) {
-            p.textContent = message;
+        this.profileDisplayElem.classList.remove('visible');
+        if (message) {
+            const p = this.emptyStateElem.querySelector('p');
+            if (p) {
+                p.textContent = message;
+            }
         }
         this.emptyStateElem.style.display = 'flex';
     }
