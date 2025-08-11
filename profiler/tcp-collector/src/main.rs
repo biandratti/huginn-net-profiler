@@ -1,4 +1,5 @@
 use clap::Parser;
+use huginn_net::fingerprint_result::OSQualityMatched;
 use huginn_net::{
     db::Database, fingerprint_result::FingerprintResult, AnalysisConfig, HuginnNet, Ttl,
 };
@@ -155,7 +156,7 @@ fn main() {
                         port: syn.destination.port,
                     },
                     os_detected: syn.os_matched.as_ref().map(|m| OsDetection {
-                        os: m.os.name.clone(),
+                        os: format_os_detection(m),
                         quality: m.quality as f64,
                         distance: extract_distance(&syn.sig.ittl),
                     }),
@@ -176,7 +177,7 @@ fn main() {
                         port: syn_ack.destination.port,
                     },
                     os_detected: syn_ack.os_matched.as_ref().map(|m| OsDetection {
-                        os: m.os.name.clone(),
+                        os: format_os_detection(m),
                         quality: m.quality as f64,
                         distance: extract_distance(&syn_ack.sig.ittl),
                     }),
@@ -253,6 +254,24 @@ fn extract_distance(ttl: &Ttl) -> u8 {
         Ttl::Distance(_, hops) => *hops,
         _ => 0,
     }
+}
+
+fn format_os_detection(os_match: &OSQualityMatched) -> String {
+    let mut parts = vec![os_match.os.name.clone()];
+
+    if let Some(family) = &os_match.os.family {
+        if !family.is_empty() {
+            parts.push(family.clone());
+        }
+    }
+
+    if let Some(variant) = &os_match.os.variant {
+        if !variant.is_empty() {
+            parts.push(variant.clone());
+        }
+    }
+
+    parts.join("/")
 }
 
 async fn send_syn_to_assembler(data: SynIngest, client: &reqwest::Client, endpoint: &str) {
