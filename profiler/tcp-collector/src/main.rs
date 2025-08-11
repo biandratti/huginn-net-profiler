@@ -75,6 +75,7 @@ pub struct SynAckPacketData {
 pub struct MtuData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
+    pub link: String,
     pub mtu_value: u16,
     pub timestamp: u64,
 }
@@ -195,6 +196,7 @@ fn main() {
                         ip: mtu.destination.ip.to_string(),
                         port: mtu.destination.port,
                     },
+                    link: mtu.link,
                     mtu_value: mtu.mtu,
                     timestamp: now,
                 };

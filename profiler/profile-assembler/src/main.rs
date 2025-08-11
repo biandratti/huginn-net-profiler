@@ -64,6 +64,7 @@ pub struct SynAckPacketData {
 pub struct MtuData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
+    pub link: String,
     pub mtu_value: u16,
     pub timestamp: u64,
 }
@@ -108,7 +109,6 @@ pub struct HttpResponseData {
     pub content_length: Option<String>,
     pub set_cookie: Option<String>,
     pub cache_control: Option<String>,
-    pub status: Option<String>,
     pub signature: String,
     pub quality: f64,
     pub timestamp: u64,

@@ -54,7 +54,7 @@ HTTP traffic analysis with client IP correlation.
 ### tls-collector
 TLS handshake analysis and JA4 fingerprinting.
 - TLS client hello analysis
-- JA4 and JA4+ fingerprint generation
+- JA4 ingerprint generation
 - SNI and ALPN extraction
 - Cipher suite and extension profiling
 
@@ -126,12 +126,6 @@ tcp-collector       http-collector      tls-collector
                      ↓
               Web Client / API
 ```
-
-### Traffic Monitoring Strategy
-- **tcp-collector** and **tls-collector**: Monitor host interface (`wlp0s20f3`) to capture original client connections
-- **http-collector**: Monitors Docker bridge network to capture internal HTTP traffic between Traefik and backends
-- **Client IP correlation**: HTTP collector extracts real client IP from `X-Real-IP` headers added by Traefik
-- **Profile assembly**: All data is correlated by client IP in the profile-assembler service
 
 ## UI as example
 ![Huginn Network Profiler UI](img.png)

@@ -141,6 +141,10 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
             fields.push(`<strong>MTU Value:</strong> ${data.mtu_value}`);
         }
         
+        if (data.link) {
+            fields.push(`<strong>Link:</strong> ${data.link}`);
+        }
+        
         if (data.uptime_seconds) {
             const days = Math.floor(data.uptime_seconds / (24 * 3600));
             const hours = Math.floor((data.uptime_seconds % (24 * 3600)) / 3600);
@@ -206,10 +210,6 @@ ${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
             fields.push(`<strong>Quality:</strong> ${data.quality.toFixed(2)}`);
         }
         
-        if (data.method) {
-            fields.push(`<strong>Method:</strong> ${data.method}`);
-        }
-        
         if (data.host) {
             fields.push(`<strong>Host:</strong> ${data.host}`);
         }
@@ -232,10 +232,6 @@ ${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
         
         if (data.connection) {
             fields.push(`<strong>Connection:</strong> ${data.connection}`);
-        }
-        
-        if (data.status) {
-            fields.push(`<strong>Status:</strong> ${data.status}`);
         }
         
         if (data.server) {
