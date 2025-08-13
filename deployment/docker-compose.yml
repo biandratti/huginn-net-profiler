@@ -9,6 +9,7 @@ services:
       - no-new-privileges:true
     command:
       - "--api.insecure=true"
+      - "--ping=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
@@ -26,6 +27,12 @@ services:
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
       - ./letsencrypt:/letsencrypt
       - ./traefik_dynamic:/etc/traefik/dynamic
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'GET /api/http/routers HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' | nc localhost 8080 | head -1 | grep -q '200 OK' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     networks:
       - huginn-net
 
@@ -35,6 +42,7 @@ services:
     restart: unless-stopped
     volumes:
       - ../static:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`huginn-net.duckdns.org`)"
@@ -42,7 +50,14 @@ services:
       - "traefik.http.routers.frontend.tls=true"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.frontend.tls.options=my-tls-options@file"
+      - "traefik.http.routers.frontend.middlewares=frontend-middleware@file"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    healthcheck:
+      test: ["CMD-SHELL", "pidof nginx > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     depends_on:
       - traefik
     networks:
@@ -64,8 +79,14 @@ services:
       - "traefik.http.routers.profile-assembler.tls.certresolver=letsencrypt"
       - "traefik.http.routers.profile-assembler.tls.options=my-tls-options@file"
       - "traefik.docker.network=huginn-net"
-      - "traefik.http.routers.profile-assembler.middlewares=remote-addr@file"
+      - "traefik.http.routers.profile-assembler.middlewares=api-middleware@file"
       - "traefik.http.services.profile-assembler.loadbalancer.server.port=8000"
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' | nc localhost 8000 | head -1 | grep -q '200 OK' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     depends_on:
       - traefik
     networks:
@@ -83,6 +104,12 @@ services:
       - NET_RAW
     environment:
       - PROFILER_INTERFACE=wlp0s20f3
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' | nc localhost 9003 | head -1 | grep -q '200 OK' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     depends_on:
       - profile-assembler
 
@@ -98,6 +125,12 @@ services:
       - NET_RAW
     environment:
       - PROFILER_INTERFACE=${HUGINN_BRIDGE}
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' | nc localhost 9001 | head -1 | grep -q '200 OK' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     depends_on:
       - profile-assembler
 
@@ -113,6 +146,12 @@ services:
       - NET_RAW
     environment:
       - PROFILER_INTERFACE=wlp0s20f3
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' | nc localhost 9002 | head -1 | grep -q '200 OK' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     depends_on:
       - profile-assembler
 

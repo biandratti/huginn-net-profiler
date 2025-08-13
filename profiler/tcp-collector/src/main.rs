@@ -135,6 +135,24 @@ fn main() {
         }
     });
 
+    thread::spawn(|| {
+        use std::io::Write;
+        use std::net::{TcpListener, TcpStream};
+
+        fn handle_health_request(mut stream: TcpStream) {
+            let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK";
+            let _ = stream.write_all(response.as_bytes());
+        }
+
+        if let Ok(listener) = TcpListener::bind("0.0.0.0:9002") {
+            for stream in listener.incoming() {
+                if let Ok(stream) = stream {
+                    handle_health_request(stream);
+                }
+            }
+        }
+    });
+
     let rt = Runtime::new().unwrap();
     rt.block_on(async move {
         let client = reqwest::Client::new();
