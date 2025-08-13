@@ -2,12 +2,27 @@ FROM rust:1.82 as builder
 
 WORKDIR /usr/src/app
 
-# Copy only this project
-COPY profiler/profile-assembler/Cargo.toml ./
-COPY profiler/profile-assembler/src ./src
+# First, copy only the manifests to leverage Docker cache.
+COPY Cargo.toml Cargo.lock ./
+COPY profiler/http-collector/Cargo.toml ./profiler/http-collector/
+COPY profiler/profile-assembler/Cargo.toml ./profiler/profile-assembler/
+COPY profiler/tcp-collector/Cargo.toml ./profiler/tcp-collector/
+COPY profiler/tls-collector/Cargo.toml ./profiler/tls-collector/
 
-# Build independently 
-RUN cargo build --release
+# Create dummy main.rs files for all binary crates in the workspace.
+RUN mkdir -p profiler/http-collector/src && echo "fn main() {}" > profiler/http-collector/src/main.rs
+RUN mkdir -p profiler/profile-assembler/src && echo "fn main() {}" > profiler/profile-assembler/src/main.rs
+RUN mkdir -p profiler/tcp-collector/src && echo "fn main() {}" > profiler/tcp-collector/src/main.rs
+RUN mkdir -p profiler/tls-collector/src && echo "fn main() {}" > profiler/tls-collector/src/main.rs
+
+# Build and cache all dependencies for the workspace.
+RUN cargo build --release --workspace
+
+# Now, copy the actual source code.
+COPY . .
+
+# Build the specific binary for this service
+RUN cargo build --release -p profile-assembler
 
 # Final stage
 FROM debian:bookworm-slim

@@ -145,10 +145,8 @@ fn main() {
         }
 
         if let Ok(listener) = TcpListener::bind("0.0.0.0:9002") {
-            for stream in listener.incoming() {
-                if let Ok(stream) = stream {
-                    handle_health_request(stream);
-                }
+            for stream in listener.incoming().flatten() {
+                handle_health_request(stream);
             }
         }
     });
