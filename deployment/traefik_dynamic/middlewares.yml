@@ -5,3 +5,31 @@ http:
         remoteaddr:
           headers:
             ip: "X-Real-Ip"
+
+    frontend-rate-limit:
+      rateLimit:
+        average: 2
+        burst: 2
+        period: "1s"
+        sourceCriterion:
+          requestHeaderName: "X-Real-Ip"
+
+    api-rate-limit:
+      rateLimit:
+        average: 2
+        burst: 2
+        period: "1s"
+        sourceCriterion:
+          requestHeaderName: "X-Real-Ip"
+
+    api-middleware:
+      chain:
+        middlewares:
+          - remote-addr
+          - api-rate-limit
+
+    frontend-middleware:
+      chain:
+        middlewares:
+          - remote-addr
+          - frontend-rate-limit
