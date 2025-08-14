@@ -277,7 +277,6 @@ ${content}
         const sourceLabel = tlsClient.source ? `${tlsClient.source.ip}:${tlsClient.source.port}` : (tlsClient.id || 'N/A');
         const destLabel = `${tlsClient.destination.ip}:${tlsClient.destination.port}`;
         
-        // Create global cache for TLS data
         if (!window.tlsDataCache) {
             window.tlsDataCache = {
                 cipherSuites: new Map(),
@@ -288,35 +287,28 @@ ${content}
             };
         }
         
-        // Initialize TLS data from SSL.org if not done yet
         if (!window.tlsDataCache.initialized) {
             await this.initializeTlsData();
         }
         
-        // Decode cipher suites using local JSON data
         const decodedCiphers = tlsClient.observed.cipher_suites.map(code => {
             const hexCode = `0x${code.toString(16).toUpperCase().padStart(4, '0')}`;
             return window.tlsDataCache.cipherSuites.get(hexCode) || 
                    `Cipher Suite ${hexCode}`;
         });
         
-        // Decode extensions using IANA data
         const decodedExtensions = tlsClient.observed.extensions.map(code => 
             window.tlsDataCache.extensions.get(code) || `Extension ${code}`
         );
         
-        // Decode signature algorithms using IANA data
         const decodedSignatures = tlsClient.observed.signature_algorithms.map(code =>
             window.tlsDataCache.signatures.get(code) || 
             `Signature Algorithm 0x${code.toString(16).toUpperCase().padStart(4, '0')}`
         );
         
-        // Decode elliptic curves using IANA data
         const decodedCurves = tlsClient.observed.elliptic_curves.map(code =>
             window.tlsDataCache.curves.get(code) || `Named Group ${code}`
         );
-        
-        // Enhanced security analysis
         const hasTls13 = decodedCiphers.some(name => 
             name.includes('TLS_AES_') || name.includes('TLS_CHACHA20_') || 
             tlsClient.observed.cipher_suites.some(code => code >= 4865 && code <= 4868)

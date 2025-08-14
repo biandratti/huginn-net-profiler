@@ -259,6 +259,10 @@ body {
     border-radius: 12px;
     width: 100%;
     margin-bottom: 0.5rem;
+    position: sticky;
+    top: 80px;
+    z-index: 90;
+    backdrop-filter: blur(8px);
 }
 
 .tab-button {
