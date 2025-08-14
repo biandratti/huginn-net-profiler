@@ -264,6 +264,7 @@ fn main() {
                         .unwrap_or(0.0),
                     timestamp: now,
                 };
+                info!("Sending HTTP request data for {}:{}", ingest.source.ip, ingest.source.port);
                 send_http_request_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
 

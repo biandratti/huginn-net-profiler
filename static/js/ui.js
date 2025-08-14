@@ -9,7 +9,7 @@ class UIManager {
         this.emptyStateElem = document.getElementById('emptyState');
     }
 
-    displayProfile(profile) {
+    async displayProfile(profile) {
         if (!profile || Object.keys(profile).length === 0) {
             this.showEmptyState("Your profile could not be found or is empty. Please generate some traffic and try again.");
             this.profileDisplayElem.classList.remove('visible');
@@ -21,28 +21,37 @@ class UIManager {
 
         const tcpData = this.formatTcpData(profile);
         const httpData = this.formatHttpData(profile);
-        const tlsData = this.formatTlsData(profile);
+        const tlsData = await this.formatTlsData(profile);
 
         this.profileDisplayElem.innerHTML = `
             <div class="profile-header">
                 <div class="profile-ip">${profile.id}</div>
                 <div class="profile-timestamp">Last seen: ${new Date(profile.last_seen).toLocaleString()}</div>
             </div>
-            <div class="profile-data">
-                <div class="data-section tcp">
-                    <div class="data-title">TCP</div>
-                    <div class="data-content">${tcpData}</div>
+            <div class="profile-tabs">
+                <div class="tab-navigation">
+                    <button class="tab-button active" data-tab="tcp">TCP</button>
+                    <button class="tab-button" data-tab="http">HTTP</button>
+                    <button class="tab-button" data-tab="tls">TLS</button>
                 </div>
-                <div class="data-section http">
-                    <div class="data-title">HTTP</div>
-                    <div class="data-content">${httpData}</div>
-                </div>
-                <div class="data-section tls">
-                    <div class="data-title">TLS</div>
-                    <div class="data-content">${tlsData}</div>
+                <div class="tab-content">
+                    <div class="tab-panel active" id="tcp-panel">
+                        <div class="tab-panel-title">TCP Analysis</div>
+                        <div class="tab-panel-content">${tcpData}</div>
+                    </div>
+                    <div class="tab-panel" id="http-panel">
+                        <div class="tab-panel-title">HTTP Analysis</div>
+                        <div class="tab-panel-content">${httpData}</div>
+                    </div>
+                    <div class="tab-panel" id="tls-panel">
+                        <div class="tab-panel-title">TLS Analysis</div>
+                        <div class="tab-panel-content">${tlsData}</div>
+                    </div>
                 </div>
             </div>
         `;
+
+        this.setupTabSwitching();
     }
 
     formatObject(obj) {
@@ -99,11 +108,11 @@ class UIManager {
         return subcards.join('');
     }
 
-    formatTlsData(profile) {
+    async formatTlsData(profile) {
         const subcards = [];
 
         if (profile.tls_client) {
-            subcards.push(this.formatTlsSubcard('TLS (Client)', profile.tls_client));
+            subcards.push(await this.formatTlsSubcard('TLS (Client)', profile.tls_client));
         } else {
             subcards.push(this.formatTlsSubcard('TLS (Client)', null, 'No TLS client data found yet'));
         }
@@ -184,11 +193,12 @@ ${data ? this.formatHttpFields(data) : (emptyMessage || 'No data available')}
 </div>`;
     }
 
-    formatTlsSubcard(title, data, emptyMessage = null) {
+    async formatTlsSubcard(title, data, emptyMessage = null) {
+        const content = data ? await this.formatTlsClient(data) : (emptyMessage || 'No data available');
         return `<div class="tcp-subcard">
 <div class="tcp-subcard-title">${title}</div>
 <div class="tcp-subcard-content">
-${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
+${content}
 </div>
 </div>`;
     }
@@ -263,9 +273,59 @@ ${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
         return fields.join('<br>');
     }
 
-    formatTlsClient(tlsClient) {
+    async formatTlsClient(tlsClient) {
         const sourceLabel = tlsClient.source ? `${tlsClient.source.ip}:${tlsClient.source.port}` : (tlsClient.id || 'N/A');
         const destLabel = `${tlsClient.destination.ip}:${tlsClient.destination.port}`;
+        
+        // Create global cache for TLS data
+        if (!window.tlsDataCache) {
+            window.tlsDataCache = {
+                cipherSuites: new Map(),
+                extensions: new Map(),
+                signatures: new Map(), 
+                curves: new Map(),
+                initialized: false
+            };
+        }
+        
+        // Initialize TLS data from SSL.org if not done yet
+        if (!window.tlsDataCache.initialized) {
+            await this.initializeTlsData();
+        }
+        
+        // Decode cipher suites using local JSON data
+        const decodedCiphers = tlsClient.observed.cipher_suites.map(code => {
+            const hexCode = `0x${code.toString(16).toUpperCase().padStart(4, '0')}`;
+            return window.tlsDataCache.cipherSuites.get(hexCode) || 
+                   `Cipher Suite ${hexCode}`;
+        });
+        
+        // Decode extensions using IANA data
+        const decodedExtensions = tlsClient.observed.extensions.map(code => 
+            window.tlsDataCache.extensions.get(code) || `Extension ${code}`
+        );
+        
+        // Decode signature algorithms using IANA data
+        const decodedSignatures = tlsClient.observed.signature_algorithms.map(code =>
+            window.tlsDataCache.signatures.get(code) || 
+            `Signature Algorithm 0x${code.toString(16).toUpperCase().padStart(4, '0')}`
+        );
+        
+        // Decode elliptic curves using IANA data
+        const decodedCurves = tlsClient.observed.elliptic_curves.map(code =>
+            window.tlsDataCache.curves.get(code) || `Named Group ${code}`
+        );
+        
+        // Enhanced security analysis
+        const hasTls13 = decodedCiphers.some(name => 
+            name.includes('TLS_AES_') || name.includes('TLS_CHACHA20_') || 
+            tlsClient.observed.cipher_suites.some(code => code >= 4865 && code <= 4868)
+        );
+        
+        const hasModernExtensions = tlsClient.observed.extensions.includes(43) || 
+                                   tlsClient.observed.extensions.includes(51) || 
+                                   tlsClient.observed.extensions.includes(41);
+        
         const allInfo = [
             `<strong>Source:</strong> ${sourceLabel}`,
             `<strong>Destination:</strong> ${destLabel}`,
@@ -276,15 +336,65 @@ ${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
             `<strong>Version:</strong> ${tlsClient.observed.version}`,
             `<strong>SNI:</strong> ${tlsClient.observed.sni || 'None'}`,
             `<strong>ALPN:</strong> ${tlsClient.observed.alpn || 'None'}`,
-            `<strong>Cipher Suites:</strong> [${tlsClient.observed.cipher_suites.join(', ')}]`,
-            `<strong>Extensions:</strong> [${tlsClient.observed.extensions.join(', ')}]`,
-            `<strong>Signature Algorithms:</strong> [${tlsClient.observed.signature_algorithms.join(', ')}]`,
-            `<strong>Elliptic Curves:</strong> [${tlsClient.observed.elliptic_curves.join(', ')}]`,
+            `<br><strong>Security Analysis:</strong>`,
+            `&nbsp;&nbsp;TLS 1.3 Support: ${hasTls13 ? '✅ Yes' : '❌ No'}`,
+            `&nbsp;&nbsp;Modern Extensions: ${hasModernExtensions ? '✅ Yes' : '❌ No'}`,
+            `&nbsp;&nbsp;Total Cipher Suites: ${tlsClient.observed.cipher_suites.length}`,
+            `<br><strong>Cipher Suites:</strong>`,
+            ...decodedCiphers.map(cipher => `&nbsp;&nbsp;• ${cipher}`),
+            `<br><strong>Extensions:</strong>`,
+            ...decodedExtensions.map(ext => `&nbsp;&nbsp;• ${ext}`),
+            `<br><strong>Signature Algorithms:</strong>`,
+            ...decodedSignatures.map(sig => `&nbsp;&nbsp;• ${sig}`),
+            `<br><strong>Elliptic Curves:</strong>`,
+            ...decodedCurves.map(curve => `&nbsp;&nbsp;• ${curve}`),
         ].filter(Boolean);
 
         return allInfo.join('<br>');
     }
+
+    async initializeTlsData() {
+        try {
+            // Load all TLS data from local JSON files
+            const [cipherSuites, extensions, signatures, namedGroups] = await Promise.all([
+                fetch('data/tls-cipher-suites.json').then(r => r.json()),
+                fetch('data/tls-extensions.json').then(r => r.json()),
+                fetch('data/tls-signature-algorithms.json').then(r => r.json()),
+                fetch('data/tls-named-groups.json').then(r => r.json())
+            ]);
+            
+            // Populate the cache with loaded data
+            Object.entries(cipherSuites).forEach(([code, name]) => {
+                window.tlsDataCache.cipherSuites.set(code, name);
+            });
+            
+            Object.entries(extensions).forEach(([code, name]) => {
+                window.tlsDataCache.extensions.set(parseInt(code), name);
+            });
+            
+            Object.entries(signatures).forEach(([code, name]) => {
+                window.tlsDataCache.signatures.set(parseInt(code), name);
+            });
+            
+            Object.entries(namedGroups).forEach(([code, name]) => {
+                window.tlsDataCache.curves.set(parseInt(code), name);
+            });
+            
+            console.log('TLS data loaded from local files:', {
+                cipherSuites: window.tlsDataCache.cipherSuites.size,
+                extensions: window.tlsDataCache.extensions.size,
+                signatures: window.tlsDataCache.signatures.size,
+                curves: window.tlsDataCache.curves.size
+            });
+            
+        } catch (e) {
+            console.error('Failed to load TLS data from local files:', e);
+        }
+        
+        window.tlsDataCache.initialized = true;
+    }
     
+
     formatKey(key) {
         return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
@@ -337,5 +447,27 @@ ${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
 
     showError(message) {
         this.showToast(message, 'error');
+    }
+
+    setupTabSwitching() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.getAttribute('data-tab');
+                
+                // Remove active class from all buttons and panels
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabPanels.forEach(panel => panel.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding panel
+                button.classList.add('active');
+                const targetPanel = document.getElementById(`${targetTab}-panel`);
+                if (targetPanel) {
+                    targetPanel.classList.add('active');
+                }
+            });
+        });
     }
 } 
