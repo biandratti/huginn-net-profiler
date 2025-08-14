@@ -133,55 +133,55 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
         const fields = [];
         
         if (data.source) {
-            fields.push(`<strong>Source:</strong> ${data.source.ip}:${data.source.port}`);
+            fields.push(`<div class="key-value-key">Source:</div><div class="key-value-value">${data.source.ip}:${data.source.port}</div>`);
         }
         
         if (data.destination) {
-            fields.push(`<strong>Destination:</strong> ${data.destination.ip}:${data.destination.port}`);
+            fields.push(`<div class="key-value-key">Destination:</div><div class="key-value-value">${data.destination.ip}:${data.destination.port}</div>`);
         }
         
         if (data.signature) {
-            fields.push(`<strong>Signature:</strong> ${data.signature}`);
+            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${data.signature}</div>`);
         }
         
         if (data.os_detected) {
-            fields.push(`<strong>OS:</strong> ${data.os_detected.os} (Quality: ${data.os_detected.quality})`);
+            fields.push(`<div class="key-value-key">OS:</div><div class="key-value-value">${data.os_detected.os} (Quality: ${data.os_detected.quality})</div>`);
         }
         
         if (data.mtu_value) {
-            fields.push(`<strong>MTU Value:</strong> ${data.mtu_value}`);
+            fields.push(`<div class="key-value-key">MTU Value:</div><div class="key-value-value">${data.mtu_value}</div>`);
         }
         
         if (data.link) {
-            fields.push(`<strong>Link:</strong> ${data.link}`);
+            fields.push(`<div class="key-value-key">Link:</div><div class="key-value-value">${data.link}</div>`);
         }
         
         if (data.uptime_seconds) {
             const days = Math.floor(data.uptime_seconds / (24 * 3600));
             const hours = Math.floor((data.uptime_seconds % (24 * 3600)) / 3600);
             const minutes = Math.floor((data.uptime_seconds % 3600) / 60);
-            fields.push(`<strong>Uptime:</strong> ${days}d ${hours}h ${minutes}m`);
+            fields.push(`<div class="key-value-key">Uptime:</div><div class="key-value-value">${days}d ${hours}h ${minutes}m</div>`);
         }
         
         if (data.details) {
-            fields.push(`<strong>Version:</strong> ${data.details.version}`);
-            fields.push(`<strong>TTL:</strong> ${data.details.initial_ttl}`);
+            fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.details.version}</div>`);
+            fields.push(`<div class="key-value-key">TTL:</div><div class="key-value-value">${data.details.initial_ttl}</div>`);
             if (data.details.mss) {
-                fields.push(`<strong>MSS:</strong> ${data.details.mss}`);
+                fields.push(`<div class="key-value-key">MSS:</div><div class="key-value-value">${data.details.mss}</div>`);
             }
-            fields.push(`<strong>Window Size:</strong> ${data.details.window_size}`);
+            fields.push(`<div class="key-value-key">Window Size:</div><div class="key-value-value">${data.details.window_size}</div>`);
             if (data.details.window_scale) {
-                fields.push(`<strong>Window Scale:</strong> ${data.details.window_scale}`);
+                fields.push(`<div class="key-value-key">Window Scale:</div><div class="key-value-value">${data.details.window_scale}</div>`);
             }
             if (data.details.options_layout) {
-                fields.push(`<strong>Options:</strong> ${data.details.options_layout}`);
+                fields.push(`<div class="key-value-key">Options:</div><div class="key-value-value">${data.details.options_layout}</div>`);
             }
             if (data.details.quirks) {
-                fields.push(`<strong>Quirks:</strong> ${data.details.quirks}`);
+                fields.push(`<div class="key-value-key">Quirks:</div><div class="key-value-value">${data.details.quirks}</div>`);
             }
         }
         
-        return fields.join('<br>');
+        return `<div class="key-value-list">${fields.join('')}</div>`;
     }
 
     formatHttpSubcard(title, data, emptyMessage = null) {
@@ -207,70 +207,70 @@ ${content}
         const fields = [];
         
         if (data.source) {
-            fields.push(`<strong>Source:</strong> ${data.source.ip}:${data.source.port}`);
+            fields.push(`<div class="key-value-key">Source:</div><div class="key-value-value">${data.source.ip}:${data.source.port}</div>`);
         }
         
         if (data.destination) {
-            fields.push(`<strong>Destination:</strong> ${data.destination.ip}:${data.destination.port}`);
+            fields.push(`<div class="key-value-key">Destination:</div><div class="key-value-value">${data.destination.ip}:${data.destination.port}</div>`);
         }
         
         if (data.signature) {
-            fields.push(`<strong>Signature:</strong> ${data.signature}`);
+            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${data.signature}</div>`);
         }
         
         if (data.quality !== undefined) {
-            fields.push(`<strong>Quality:</strong> ${data.quality.toFixed(2)}`);
+            fields.push(`<div class="key-value-key">Quality:</div><div class="key-value-value">${data.quality.toFixed(2)}</div>`);
         }
         
         if (data.host) {
-            fields.push(`<strong>Host:</strong> ${data.host}`);
+            fields.push(`<div class="key-value-key">Host:</div><div class="key-value-value">${data.host}</div>`);
         }
         
         if (data.user_agent) {
-            fields.push(`<strong>User-Agent:</strong> ${data.user_agent}`);
+            fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${data.user_agent}</div>`);
         }
         
         if (data.lang) {
-            fields.push(`<strong>Language:</strong> ${data.lang}`);
+            fields.push(`<div class="key-value-key">Language:</div><div class="key-value-value">${data.lang}</div>`);
         }
         
         if (data.accept) {
-            fields.push(`<strong>Accept:</strong> ${data.accept}`);
+            fields.push(`<div class="key-value-key">Accept:</div><div class="key-value-value">${data.accept}</div>`);
         }
         
         if (data.accept_language) {
-            fields.push(`<strong>Accept-Language:</strong> ${data.accept_language}`);
+            fields.push(`<div class="key-value-key">Accept-Language:</div><div class="key-value-value">${data.accept_language}</div>`);
         }
         
         if (data.accept_encoding) {
-            fields.push(`<strong>Accept-Encoding:</strong> ${data.accept_encoding}`);
+            fields.push(`<div class="key-value-key">Accept-Encoding:</div><div class="key-value-value">${data.accept_encoding}</div>`);
         }
         
         if (data.connection) {
-            fields.push(`<strong>Connection:</strong> ${data.connection}`);
+            fields.push(`<div class="key-value-key">Connection:</div><div class="key-value-value">${data.connection}</div>`);
         }
         
         if (data.server) {
-            fields.push(`<strong>Server:</strong> ${data.server}`);
+            fields.push(`<div class="key-value-key">Server:</div><div class="key-value-value">${data.server}</div>`);
         }
         
         if (data.content_type) {
-            fields.push(`<strong>Content-Type:</strong> ${data.content_type}`);
+            fields.push(`<div class="key-value-key">Content-Type:</div><div class="key-value-value">${data.content_type}</div>`);
         }
         
         if (data.content_length) {
-            fields.push(`<strong>Content-Length:</strong> ${data.content_length}`);
+            fields.push(`<div class="key-value-key">Content-Length:</div><div class="key-value-value">${data.content_length}</div>`);
         }
         
         if (data.set_cookie) {
-            fields.push(`<strong>Set-Cookie:</strong> ${data.set_cookie}`);
+            fields.push(`<div class="key-value-key">Set-Cookie:</div><div class="key-value-value">${data.set_cookie}</div>`);
         }
         
         if (data.cache_control) {
-            fields.push(`<strong>Cache-Control:</strong> ${data.cache_control}`);
+            fields.push(`<div class="key-value-key">Cache-Control:</div><div class="key-value-value">${data.cache_control}</div>`);
         }
         
-        return fields.join('<br>');
+        return `<div class="key-value-list">${fields.join('')}</div>`;
     }
 
     async formatTlsClient(tlsClient) {
@@ -318,31 +318,58 @@ ${content}
                                    tlsClient.observed.extensions.includes(51) || 
                                    tlsClient.observed.extensions.includes(41);
         
-        const allInfo = [
-            `<strong>Source:</strong> ${sourceLabel}`,
-            `<strong>Destination:</strong> ${destLabel}`,
-            `<strong>JA4 Hash:</strong> ${tlsClient.ja4}`,
-            `<strong>JA4 Raw:</strong> ${tlsClient.ja4_raw}`,
-            `<strong>JA4 Original:</strong> ${tlsClient.ja4_original}`,
-            `<strong>JA4 Original Raw:</strong> ${tlsClient.ja4_original_raw}`,
-            `<strong>Version:</strong> ${tlsClient.observed.version}`,
-            `<strong>SNI:</strong> ${tlsClient.observed.sni || 'None'}`,
-            `<strong>ALPN:</strong> ${tlsClient.observed.alpn || 'None'}`,
-            `<br><strong>Security Analysis:</strong>`,
-            `&nbsp;&nbsp;TLS 1.3 Support: ${hasTls13 ? '✅ Yes' : '❌ No'}`,
-            `&nbsp;&nbsp;Modern Extensions: ${hasModernExtensions ? '✅ Yes' : '❌ No'}`,
-            `&nbsp;&nbsp;Total Cipher Suites: ${tlsClient.observed.cipher_suites.length}`,
-            `<br><strong>Cipher Suites:</strong>`,
-            ...decodedCiphers.map(cipher => `&nbsp;&nbsp;• ${cipher}`),
-            `<br><strong>Extensions:</strong>`,
-            ...decodedExtensions.map(ext => `&nbsp;&nbsp;• ${ext}`),
-            `<br><strong>Signature Algorithms:</strong>`,
-            ...decodedSignatures.map(sig => `&nbsp;&nbsp;• ${sig}`),
-            `<br><strong>Elliptic Curves:</strong>`,
-            ...decodedCurves.map(curve => `&nbsp;&nbsp;• ${curve}`),
-        ].filter(Boolean);
-
-        return allInfo.join('<br>');
+        return `
+            <div class="key-value-list">
+                <div class="key-value-key">Source:</div>
+                <div class="key-value-value">${sourceLabel}</div>
+                
+                <div class="key-value-key">Destination:</div>
+                <div class="key-value-value">${destLabel}</div>
+                
+                <div class="key-value-key">JA4 Hash:</div>
+                <div class="key-value-value">${tlsClient.ja4}</div>
+                
+                <div class="key-value-key">JA4 Raw:</div>
+                <div class="key-value-value">${tlsClient.ja4_raw}</div>
+                
+                <div class="key-value-key">JA4 Original:</div>
+                <div class="key-value-value">${tlsClient.ja4_original}</div>
+                
+                <div class="key-value-key">JA4 Original Raw:</div>
+                <div class="key-value-value">${tlsClient.ja4_original_raw}</div>
+                
+                <div class="key-value-key">Version:</div>
+                <div class="key-value-value">${tlsClient.observed.version}</div>
+                
+                <div class="key-value-key">SNI:</div>
+                <div class="key-value-value">${tlsClient.observed.sni || 'None'}</div>
+                
+                <div class="key-value-key">ALPN:</div>
+                <div class="key-value-value">${tlsClient.observed.alpn || 'None'}</div>
+                
+                <div class="key-value-section"><strong>Security Analysis:</strong></div>
+                <div class="key-value-key">TLS 1.3 Support:</div>
+                <div class="key-value-value">${hasTls13 ? '✅ Yes' : '❌ No'}</div>
+                
+                <div class="key-value-key">Modern Extensions:</div>
+                <div class="key-value-value">${hasModernExtensions ? '✅ Yes' : '❌ No'}</div>
+                
+                <div class="key-value-key">Total Cipher Suites:</div>
+                <div class="key-value-value">${tlsClient.observed.cipher_suites.length}</div>
+                
+                <div class="key-value-section"><strong>Cipher Suites:</strong></div>
+                ${decodedCiphers.map(cipher => `<div class="key-value-list-item">• ${cipher}</div>`).join('')}
+                
+                <div class="key-value-section"><strong>Extensions:</strong></div>
+                ${decodedExtensions.map(ext => `<div class="key-value-list-item">• ${ext}</div>`).join('')}
+                
+                <div class="key-value-section"><strong>Signature Algorithms:</strong></div>
+                ${decodedSignatures.map(sig => `<div class="key-value-list-item">• ${sig}</div>`).join('')}
+                
+                <div class="key-value-section"><strong>Elliptic Curves:</strong></div>
+                ${decodedCurves.map(curve => `<div class="key-value-list-item">• ${curve}</div>`).join('')}
+            </div>
+        `;
     }
 
     async initializeTlsData() {

@@ -104,7 +104,7 @@ body {
 }
 
 .btn-primary {
-    background: rgba(51, 51, 51, 0.8);
+    background: rgba(17, 17, 17, 0.8);
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
@@ -112,7 +112,7 @@ body {
 }
 
 .btn-primary:hover {
-    background: rgba(68, 68, 68, 0.9);
+    background: rgba(25, 25, 25, 0.9);
     transform: translateY(-2px);
     border-color: rgba(255, 255, 255, 0.3);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
@@ -136,7 +136,7 @@ body {
 /* Controls Section */
 .controls-section {
     padding: 3rem 0;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(17, 17, 17, 0.08));
+    background: rgba(17, 17, 17, 0.8);
     position: relative;
 }
 
@@ -180,11 +180,10 @@ body {
 .profile-display-section {
     flex: 1;
     padding: 1rem 0;
-    background: rgba(0, 0, 0, 0.02);
+    background: rgba(17, 17, 17, 0.8);
 }
 
 .profile-display {
-    background: rgba(17, 17, 17, 0.3);
     padding: 2rem 1rem;
     border-top: 2px solid rgba(255, 255, 255, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -304,12 +303,9 @@ body {
 
 .tab-panel {
     display: none;
-    background: rgba(25, 25, 25, 0.15);
     padding: 1.5rem;
     width: 100%;
     position: relative;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .tab-panel.active {
@@ -469,6 +465,40 @@ body {
 }
 
 /* Responsive Design */
+/* Key-Value Alignment */
+.key-value-list {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1rem;
+    align-items: start;
+}
+
+.key-value-key {
+    font-weight: bold;
+    white-space: nowrap;
+    text-align: right;
+    padding-right: 0.5rem;
+}
+
+.key-value-value {
+    word-break: break-all;
+}
+
+.key-value-section {
+    grid-column: 1 / -1;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.key-value-section:first-child {
+    margin-top: 0;
+}
+
+.key-value-list-item {
+    grid-column: 1 / -1;
+    margin-left: 1rem;
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 0 0.5rem;
