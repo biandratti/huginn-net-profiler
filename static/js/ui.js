@@ -9,7 +9,7 @@ class UIManager {
         this.emptyStateElem = document.getElementById('emptyState');
     }
 
-    displayProfile(profile) {
+    async displayProfile(profile) {
         if (!profile || Object.keys(profile).length === 0) {
             this.showEmptyState("Your profile could not be found or is empty. Please generate some traffic and try again.");
             this.profileDisplayElem.classList.remove('visible');
@@ -21,28 +21,37 @@ class UIManager {
 
         const tcpData = this.formatTcpData(profile);
         const httpData = this.formatHttpData(profile);
-        const tlsData = this.formatTlsData(profile);
+        const tlsData = await this.formatTlsData(profile);
 
         this.profileDisplayElem.innerHTML = `
             <div class="profile-header">
                 <div class="profile-ip">${profile.id}</div>
                 <div class="profile-timestamp">Last seen: ${new Date(profile.last_seen).toLocaleString()}</div>
             </div>
-            <div class="profile-data">
-                <div class="data-section tcp">
-                    <div class="data-title">TCP</div>
-                    <div class="data-content">${tcpData}</div>
+            <div class="profile-tabs">
+                <div class="tab-navigation">
+                    <button class="tab-button active" data-tab="tcp">TCP</button>
+                    <button class="tab-button" data-tab="http">HTTP</button>
+                    <button class="tab-button" data-tab="tls">TLS</button>
                 </div>
-                <div class="data-section http">
-                    <div class="data-title">HTTP</div>
-                    <div class="data-content">${httpData}</div>
-                </div>
-                <div class="data-section tls">
-                    <div class="data-title">TLS</div>
-                    <div class="data-content">${tlsData}</div>
+                <div class="tab-content">
+                    <div class="tab-panel active" id="tcp-panel">
+                        <div class="tab-panel-title">TCP Analysis</div>
+                        <div class="tab-panel-content">${tcpData}</div>
+                    </div>
+                    <div class="tab-panel" id="http-panel">
+                        <div class="tab-panel-title">HTTP Analysis</div>
+                        <div class="tab-panel-content">${httpData}</div>
+                    </div>
+                    <div class="tab-panel" id="tls-panel">
+                        <div class="tab-panel-title">TLS Analysis</div>
+                        <div class="tab-panel-content">${tlsData}</div>
+                    </div>
                 </div>
             </div>
         `;
+
+        this.setupTabSwitching();
     }
 
     formatObject(obj) {
@@ -99,11 +108,11 @@ class UIManager {
         return subcards.join('');
     }
 
-    formatTlsData(profile) {
+    async formatTlsData(profile) {
         const subcards = [];
 
         if (profile.tls_client) {
-            subcards.push(this.formatTlsSubcard('TLS (Client)', profile.tls_client));
+            subcards.push(await this.formatTlsSubcard('TLS (Client)', profile.tls_client));
         } else {
             subcards.push(this.formatTlsSubcard('TLS (Client)', null, 'No TLS client data found yet'));
         }
@@ -124,55 +133,55 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
         const fields = [];
         
         if (data.source) {
-            fields.push(`<strong>Source:</strong> ${data.source.ip}:${data.source.port}`);
+            fields.push(`<div class="key-value-key">Source:</div><div class="key-value-value">${data.source.ip}:${data.source.port}</div>`);
         }
         
         if (data.destination) {
-            fields.push(`<strong>Destination:</strong> ${data.destination.ip}:${data.destination.port}`);
+            fields.push(`<div class="key-value-key">Destination:</div><div class="key-value-value">${data.destination.ip}:${data.destination.port}</div>`);
         }
         
         if (data.signature) {
-            fields.push(`<strong>Signature:</strong> ${data.signature}`);
+            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${data.signature}</div>`);
         }
         
         if (data.os_detected) {
-            fields.push(`<strong>OS:</strong> ${data.os_detected.os} (Quality: ${data.os_detected.quality})`);
+            fields.push(`<div class="key-value-key">OS:</div><div class="key-value-value">${data.os_detected.os} (Quality: ${data.os_detected.quality})</div>`);
         }
         
         if (data.mtu_value) {
-            fields.push(`<strong>MTU Value:</strong> ${data.mtu_value}`);
+            fields.push(`<div class="key-value-key">MTU Value:</div><div class="key-value-value">${data.mtu_value}</div>`);
         }
         
         if (data.link) {
-            fields.push(`<strong>Link:</strong> ${data.link}`);
+            fields.push(`<div class="key-value-key">Link:</div><div class="key-value-value">${data.link}</div>`);
         }
         
         if (data.uptime_seconds) {
             const days = Math.floor(data.uptime_seconds / (24 * 3600));
             const hours = Math.floor((data.uptime_seconds % (24 * 3600)) / 3600);
             const minutes = Math.floor((data.uptime_seconds % 3600) / 60);
-            fields.push(`<strong>Uptime:</strong> ${days}d ${hours}h ${minutes}m`);
+            fields.push(`<div class="key-value-key">Uptime:</div><div class="key-value-value">${days}d ${hours}h ${minutes}m</div>`);
         }
         
         if (data.details) {
-            fields.push(`<strong>Version:</strong> ${data.details.version}`);
-            fields.push(`<strong>TTL:</strong> ${data.details.initial_ttl}`);
+            fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.details.version}</div>`);
+            fields.push(`<div class="key-value-key">TTL:</div><div class="key-value-value">${data.details.initial_ttl}</div>`);
             if (data.details.mss) {
-                fields.push(`<strong>MSS:</strong> ${data.details.mss}`);
+                fields.push(`<div class="key-value-key">MSS:</div><div class="key-value-value">${data.details.mss}</div>`);
             }
-            fields.push(`<strong>Window Size:</strong> ${data.details.window_size}`);
+            fields.push(`<div class="key-value-key">Window Size:</div><div class="key-value-value">${data.details.window_size}</div>`);
             if (data.details.window_scale) {
-                fields.push(`<strong>Window Scale:</strong> ${data.details.window_scale}`);
+                fields.push(`<div class="key-value-key">Window Scale:</div><div class="key-value-value">${data.details.window_scale}</div>`);
             }
             if (data.details.options_layout) {
-                fields.push(`<strong>Options:</strong> ${data.details.options_layout}`);
+                fields.push(`<div class="key-value-key">Options:</div><div class="key-value-value">${data.details.options_layout}</div>`);
             }
             if (data.details.quirks) {
-                fields.push(`<strong>Quirks:</strong> ${data.details.quirks}`);
+                fields.push(`<div class="key-value-key">Quirks:</div><div class="key-value-value">${data.details.quirks}</div>`);
             }
         }
         
-        return fields.join('<br>');
+        return `<div class="key-value-list">${fields.join('')}</div>`;
     }
 
     formatHttpSubcard(title, data, emptyMessage = null) {
@@ -184,11 +193,12 @@ ${data ? this.formatHttpFields(data) : (emptyMessage || 'No data available')}
 </div>`;
     }
 
-    formatTlsSubcard(title, data, emptyMessage = null) {
+    async formatTlsSubcard(title, data, emptyMessage = null) {
+        const content = data ? await this.formatTlsClient(data) : (emptyMessage || 'No data available');
         return `<div class="tcp-subcard">
 <div class="tcp-subcard-title">${title}</div>
 <div class="tcp-subcard-content">
-${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
+${content}
 </div>
 </div>`;
     }
@@ -197,94 +207,213 @@ ${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
         const fields = [];
         
         if (data.source) {
-            fields.push(`<strong>Source:</strong> ${data.source.ip}:${data.source.port}`);
+            fields.push(`<div class="key-value-key">Source:</div><div class="key-value-value">${data.source.ip}:${data.source.port}</div>`);
         }
         
         if (data.destination) {
-            fields.push(`<strong>Destination:</strong> ${data.destination.ip}:${data.destination.port}`);
+            fields.push(`<div class="key-value-key">Destination:</div><div class="key-value-value">${data.destination.ip}:${data.destination.port}</div>`);
         }
         
         if (data.signature) {
-            fields.push(`<strong>Signature:</strong> ${data.signature}`);
+            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${data.signature}</div>`);
         }
         
         if (data.quality !== undefined) {
-            fields.push(`<strong>Quality:</strong> ${data.quality.toFixed(2)}`);
+            fields.push(`<div class="key-value-key">Quality:</div><div class="key-value-value">${data.quality.toFixed(2)}</div>`);
         }
         
         if (data.host) {
-            fields.push(`<strong>Host:</strong> ${data.host}`);
+            fields.push(`<div class="key-value-key">Host:</div><div class="key-value-value">${data.host}</div>`);
         }
         
         if (data.user_agent) {
-            fields.push(`<strong>User-Agent:</strong> ${data.user_agent}`);
+            fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${data.user_agent}</div>`);
         }
         
         if (data.lang) {
-            fields.push(`<strong>Language:</strong> ${data.lang}`);
+            fields.push(`<div class="key-value-key">Language:</div><div class="key-value-value">${data.lang}</div>`);
         }
         
         if (data.accept) {
-            fields.push(`<strong>Accept:</strong> ${data.accept}`);
+            fields.push(`<div class="key-value-key">Accept:</div><div class="key-value-value">${data.accept}</div>`);
         }
         
         if (data.accept_language) {
-            fields.push(`<strong>Accept-Language:</strong> ${data.accept_language}`);
+            fields.push(`<div class="key-value-key">Accept-Language:</div><div class="key-value-value">${data.accept_language}</div>`);
         }
         
         if (data.accept_encoding) {
-            fields.push(`<strong>Accept-Encoding:</strong> ${data.accept_encoding}`);
+            fields.push(`<div class="key-value-key">Accept-Encoding:</div><div class="key-value-value">${data.accept_encoding}</div>`);
         }
         
         if (data.connection) {
-            fields.push(`<strong>Connection:</strong> ${data.connection}`);
+            fields.push(`<div class="key-value-key">Connection:</div><div class="key-value-value">${data.connection}</div>`);
         }
         
         if (data.server) {
-            fields.push(`<strong>Server:</strong> ${data.server}`);
+            fields.push(`<div class="key-value-key">Server:</div><div class="key-value-value">${data.server}</div>`);
         }
         
         if (data.content_type) {
-            fields.push(`<strong>Content-Type:</strong> ${data.content_type}`);
+            fields.push(`<div class="key-value-key">Content-Type:</div><div class="key-value-value">${data.content_type}</div>`);
         }
         
         if (data.content_length) {
-            fields.push(`<strong>Content-Length:</strong> ${data.content_length}`);
+            fields.push(`<div class="key-value-key">Content-Length:</div><div class="key-value-value">${data.content_length}</div>`);
         }
         
         if (data.set_cookie) {
-            fields.push(`<strong>Set-Cookie:</strong> ${data.set_cookie}`);
+            fields.push(`<div class="key-value-key">Set-Cookie:</div><div class="key-value-value">${data.set_cookie}</div>`);
         }
         
         if (data.cache_control) {
-            fields.push(`<strong>Cache-Control:</strong> ${data.cache_control}`);
+            fields.push(`<div class="key-value-key">Cache-Control:</div><div class="key-value-value">${data.cache_control}</div>`);
         }
         
-        return fields.join('<br>');
+        return `<div class="key-value-list">${fields.join('')}</div>`;
     }
 
-    formatTlsClient(tlsClient) {
+    async formatTlsClient(tlsClient) {
         const sourceLabel = tlsClient.source ? `${tlsClient.source.ip}:${tlsClient.source.port}` : (tlsClient.id || 'N/A');
         const destLabel = `${tlsClient.destination.ip}:${tlsClient.destination.port}`;
-        const allInfo = [
-            `<strong>Source:</strong> ${sourceLabel}`,
-            `<strong>Destination:</strong> ${destLabel}`,
-            `<strong>JA4 Hash:</strong> ${tlsClient.ja4}`,
-            `<strong>JA4 Raw:</strong> ${tlsClient.ja4_raw}`,
-            `<strong>JA4 Original:</strong> ${tlsClient.ja4_original}`,
-            `<strong>JA4 Original Raw:</strong> ${tlsClient.ja4_original_raw}`,
-            `<strong>Version:</strong> ${tlsClient.observed.version}`,
-            `<strong>SNI:</strong> ${tlsClient.observed.sni || 'None'}`,
-            `<strong>ALPN:</strong> ${tlsClient.observed.alpn || 'None'}`,
-            `<strong>Cipher Suites:</strong> [${tlsClient.observed.cipher_suites.join(', ')}]`,
-            `<strong>Extensions:</strong> [${tlsClient.observed.extensions.join(', ')}]`,
-            `<strong>Signature Algorithms:</strong> [${tlsClient.observed.signature_algorithms.join(', ')}]`,
-            `<strong>Elliptic Curves:</strong> [${tlsClient.observed.elliptic_curves.join(', ')}]`,
-        ].filter(Boolean);
+        
+        if (!window.tlsDataCache) {
+            window.tlsDataCache = {
+                cipherSuites: new Map(),
+                extensions: new Map(),
+                signatures: new Map(), 
+                curves: new Map(),
+                initialized: false
+            };
+        }
+        
+        if (!window.tlsDataCache.initialized) {
+            await this.initializeTlsData();
+        }
+        
+        const decodedCiphers = tlsClient.observed.cipher_suites.map(code => {
+            const hexCode = `0x${code.toString(16).toUpperCase().padStart(4, '0')}`;
+            return window.tlsDataCache.cipherSuites.get(hexCode) || 
+                   `Cipher Suite ${hexCode}`;
+        });
+        
+        const decodedExtensions = tlsClient.observed.extensions.map(code => 
+            window.tlsDataCache.extensions.get(code) || `Extension ${code}`
+        );
+        
+        const decodedSignatures = tlsClient.observed.signature_algorithms.map(code =>
+            window.tlsDataCache.signatures.get(code) || 
+            `Signature Algorithm 0x${code.toString(16).toUpperCase().padStart(4, '0')}`
+        );
+        
+        const decodedCurves = tlsClient.observed.elliptic_curves.map(code =>
+            window.tlsDataCache.curves.get(code) || `Named Group ${code}`
+        );
+        const hasTls13 = decodedCiphers.some(name => 
+            name.includes('TLS_AES_') || name.includes('TLS_CHACHA20_') || 
+            tlsClient.observed.cipher_suites.some(code => code >= 4865 && code <= 4868)
+        );
+        
+        const hasModernExtensions = tlsClient.observed.extensions.includes(43) || 
+                                   tlsClient.observed.extensions.includes(51) || 
+                                   tlsClient.observed.extensions.includes(41);
+        
+        return `
+            <div class="key-value-list">
+                <div class="key-value-key">Source:</div>
+                <div class="key-value-value">${sourceLabel}</div>
+                
+                <div class="key-value-key">Destination:</div>
+                <div class="key-value-value">${destLabel}</div>
+                
+                <div class="key-value-key">JA4 Hash:</div>
+                <div class="key-value-value">${tlsClient.ja4}</div>
+                
+                <div class="key-value-key">JA4 Raw:</div>
+                <div class="key-value-value">${tlsClient.ja4_raw}</div>
+                
+                <div class="key-value-key">JA4 Original:</div>
+                <div class="key-value-value">${tlsClient.ja4_original}</div>
+                
+                <div class="key-value-key">JA4 Original Raw:</div>
+                <div class="key-value-value">${tlsClient.ja4_original_raw}</div>
+                
+                <div class="key-value-key">Version:</div>
+                <div class="key-value-value">${tlsClient.observed.version}</div>
+                
+                <div class="key-value-key">SNI:</div>
+                <div class="key-value-value">${tlsClient.observed.sni || 'None'}</div>
+                
+                <div class="key-value-key">ALPN:</div>
+                <div class="key-value-value">${tlsClient.observed.alpn || 'None'}</div>
+                
+                <div class="key-value-section"><strong>Security Analysis:</strong></div>
+                <div class="key-value-key">TLS 1.3 Support:</div>
+                <div class="key-value-value">${hasTls13 ? '✅ Yes' : '❌ No'}</div>
+                
+                <div class="key-value-key">Modern Extensions:</div>
+                <div class="key-value-value">${hasModernExtensions ? '✅ Yes' : '❌ No'}</div>
+                
+                <div class="key-value-key">Total Cipher Suites:</div>
+                <div class="key-value-value">${tlsClient.observed.cipher_suites.length}</div>
+                
+                <div class="key-value-section"><strong>Cipher Suites:</strong></div>
+                ${decodedCiphers.map(cipher => `<div class="key-value-list-item">• ${cipher}</div>`).join('')}
+                
+                <div class="key-value-section"><strong>Extensions:</strong></div>
+                ${decodedExtensions.map(ext => `<div class="key-value-list-item">• ${ext}</div>`).join('')}
+                
+                <div class="key-value-section"><strong>Signature Algorithms:</strong></div>
+                ${decodedSignatures.map(sig => `<div class="key-value-list-item">• ${sig}</div>`).join('')}
+                
+                <div class="key-value-section"><strong>Elliptic Curves:</strong></div>
+                ${decodedCurves.map(curve => `<div class="key-value-list-item">• ${curve}</div>`).join('')}
+            </div>
+        `;
+    }
 
-        return allInfo.join('<br>');
+    async initializeTlsData() {
+        try {
+            // Load all TLS data from local JSON files
+            const [cipherSuites, extensions, signatures, namedGroups] = await Promise.all([
+                fetch('data/tls-cipher-suites.json').then(r => r.json()),
+                fetch('data/tls-extensions.json').then(r => r.json()),
+                fetch('data/tls-signature-algorithms.json').then(r => r.json()),
+                fetch('data/tls-named-groups.json').then(r => r.json())
+            ]);
+            
+            // Populate the cache with loaded data
+            Object.entries(cipherSuites).forEach(([code, name]) => {
+                window.tlsDataCache.cipherSuites.set(code, name);
+            });
+            
+            Object.entries(extensions).forEach(([code, name]) => {
+                window.tlsDataCache.extensions.set(parseInt(code), name);
+            });
+            
+            Object.entries(signatures).forEach(([code, name]) => {
+                window.tlsDataCache.signatures.set(parseInt(code), name);
+            });
+            
+            Object.entries(namedGroups).forEach(([code, name]) => {
+                window.tlsDataCache.curves.set(parseInt(code), name);
+            });
+            
+            console.log('TLS data loaded from local files:', {
+                cipherSuites: window.tlsDataCache.cipherSuites.size,
+                extensions: window.tlsDataCache.extensions.size,
+                signatures: window.tlsDataCache.signatures.size,
+                curves: window.tlsDataCache.curves.size
+            });
+            
+        } catch (e) {
+            console.error('Failed to load TLS data from local files:', e);
+        }
+        
+        window.tlsDataCache.initialized = true;
     }
     
+
     formatKey(key) {
         return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
@@ -337,5 +466,27 @@ ${data ? this.formatTlsClient(data) : (emptyMessage || 'No data available')}
 
     showError(message) {
         this.showToast(message, 'error');
+    }
+
+    setupTabSwitching() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.getAttribute('data-tab');
+                
+                // Remove active class from all buttons and panels
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabPanels.forEach(panel => panel.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding panel
+                button.classList.add('active');
+                const targetPanel = document.getElementById(`${targetTab}-panel`);
+                if (targetPanel) {
+                    targetPanel.classList.add('active');
+                }
+            });
+        });
     }
 } 
