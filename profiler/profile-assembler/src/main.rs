@@ -33,8 +33,7 @@ pub struct NetworkEndpoint {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OsDetection {
     pub os: String,
-    pub quality: f64,
-    pub distance: u8,
+    pub quality: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -74,6 +73,8 @@ pub struct UptimeData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
     pub uptime_seconds: u64,
+    pub up_mod_days: u32,
+    pub freq: f64,
     pub timestamp: u64,
 }
 
@@ -84,6 +85,13 @@ type UptimeIngest = UptimeData;
 
 type HttpRequestIngest = HttpRequestData;
 type HttpResponseIngest = HttpResponseData;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BrowserDetection {
+    pub browser: String,
+    pub quality: f32,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HttpRequestData {
     pub source: NetworkEndpoint,
@@ -96,8 +104,14 @@ pub struct HttpRequestData {
     pub connection: Option<String>,
     pub host: Option<String>,
     pub signature: String,
-    pub quality: f64,
+    pub browser: Option<BrowserDetection>,
     pub timestamp: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WebServerDetection {
+    pub web_server: String,
+    pub quality: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -110,7 +124,7 @@ pub struct HttpResponseData {
     pub set_cookie: Option<String>,
     pub cache_control: Option<String>,
     pub signature: String,
-    pub quality: f64,
+    pub web_server: Option<WebServerDetection>,
     pub timestamp: u64,
 }
 

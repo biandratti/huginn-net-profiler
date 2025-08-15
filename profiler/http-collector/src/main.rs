@@ -33,6 +33,12 @@ pub struct NetworkEndpoint {
     pub port: u16,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BrowserDetection {
+    pub browser: String,
+    pub quality: f32,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HttpRequestData {
     pub source: NetworkEndpoint,
@@ -45,8 +51,14 @@ pub struct HttpRequestData {
     pub connection: Option<String>,
     pub host: Option<String>,
     pub signature: String,
-    pub quality: f64,
+    pub browser: Option<BrowserDetection>,
     pub timestamp: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WebServerDetection {
+    pub web_server: String,
+    pub quality: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -59,7 +71,7 @@ pub struct HttpResponseData {
     pub set_cookie: Option<String>,
     pub cache_control: Option<String>,
     pub signature: String,
-    pub quality: f64,
+    pub web_server: Option<WebServerDetection>,
     pub timestamp: u64,
 }
 
@@ -257,11 +269,15 @@ fn main() {
                     connection: extract_header_value_from_horder(&horder_strings, "connection"),
                     host: extract_header_value_from_horder(&horder_strings, "host"),
                     signature: http_req.sig.to_string(),
-                    quality: http_req
-                        .browser_matched
-                        .as_ref()
-                        .map(|m| m.quality as f64)
-                        .unwrap_or(0.0),
+                    browser: http_req.browser_matched.as_ref().map(|m| BrowserDetection {
+                        browser: format!(
+                            "{}/{}/{}",
+                            m.browser.name,
+                            m.browser.family.as_deref().unwrap_or("???"),
+                            m.browser.variant.as_deref().unwrap_or("???")
+                        ),
+                        quality: m.quality,
+                    }),
                     timestamp: now,
                 };
                 info!(
@@ -311,11 +327,18 @@ fn main() {
                         "cache-control",
                     ),
                     signature: http_res.sig.to_string(),
-                    quality: http_res
+                    web_server: http_res
                         .web_server_matched
                         .as_ref()
-                        .map(|m| m.quality as f64)
-                        .unwrap_or(0.0),
+                        .map(|m| WebServerDetection {
+                            web_server: format!(
+                                "{}/{}/{}",
+                                m.web_server.name,
+                                m.web_server.family.as_deref().unwrap_or("???"),
+                                m.web_server.variant.as_deref().unwrap_or("???")
+                            ),
+                            quality: m.quality,
+                        }),
                     timestamp: now,
                 };
                 send_http_response_to_assembler(ingest, &client, &assembler_endpoint).await;

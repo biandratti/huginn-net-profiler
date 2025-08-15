@@ -35,8 +35,7 @@ pub struct NetworkEndpoint {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct OsDetection {
     pub os: String,
-    pub quality: f64,
-    pub distance: u8,
+    pub quality: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -86,6 +85,8 @@ pub struct UptimeData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
     pub uptime_seconds: u64,
+    pub up_mod_days: u32,
+    pub freq: f64,
     pub timestamp: u64,
 }
 
@@ -173,8 +174,7 @@ fn main() {
                     },
                     os_detected: syn.os_matched.as_ref().map(|m| OsDetection {
                         os: format_os_detection(m),
-                        quality: m.quality as f64,
-                        distance: extract_distance(&syn.sig.ittl),
+                        quality: m.quality,
                     }),
                     signature: syn.sig.to_string(),
                     details: to_details(&syn.sig),
@@ -194,8 +194,7 @@ fn main() {
                     },
                     os_detected: syn_ack.os_matched.as_ref().map(|m| OsDetection {
                         os: format_os_detection(m),
-                        quality: m.quality as f64,
-                        distance: extract_distance(&syn_ack.sig.ittl),
+                        quality: m.quality,
                     }),
                     signature: syn_ack.sig.to_string(),
                     details: to_details(&syn_ack.sig),
@@ -233,6 +232,8 @@ fn main() {
                         port: uptime.destination.port,
                     },
                     uptime_seconds: total_seconds,
+                    up_mod_days: uptime.up_mod_days,
+                    freq: uptime.freq,
                     timestamp: now,
                 };
                 send_uptime_to_assembler(ingest, &client, &assembler_endpoint).await;
@@ -244,7 +245,7 @@ fn main() {
 fn to_details(sig: &huginn_net::ObservableTcp) -> TcpDetails {
     TcpDetails {
         version: sig.version.to_string(),
-        initial_ttl: sig.ittl.to_string(),
+        initial_ttl: extract_ttl(&sig.ittl),
         options_length: sig.olen,
         mss: sig.mss,
         window_size: sig.wsize.to_string(),
@@ -265,10 +266,12 @@ fn to_details(sig: &huginn_net::ObservableTcp) -> TcpDetails {
     }
 }
 
-fn extract_distance(ttl: &Ttl) -> u8 {
+fn extract_ttl(ttl: &Ttl) -> String {
     match ttl {
-        Ttl::Distance(_, hops) => *hops,
-        _ => 0,
+        Ttl::Value(v) => format!("{}", v),
+        Ttl::Distance(ttl_value, hops) => format!("{} ({} hops)", ttl_value, hops),
+        Ttl::Guess(v) => format!("{}+", v),
+        Ttl::Bad(v) => format!("{}-", v),
     }
 }
 
