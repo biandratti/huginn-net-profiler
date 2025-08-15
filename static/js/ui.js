@@ -145,7 +145,8 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
         }
         
         if (data.os_detected) {
-            fields.push(`<div class="key-value-key">OS:</div><div class="key-value-value">${data.os_detected.os} (Quality: ${data.os_detected.quality})</div>`);
+            fields.push(`<div class="key-value-key">OS detected:</div><div class="key-value-value">${data.os_detected.os}</div>`);
+            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${data.os_detected.quality}</div>`);
         }
         
         if (data.mtu_value) {
