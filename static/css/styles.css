@@ -476,7 +476,7 @@ body {
 .key-value-key {
     font-weight: bold;
     white-space: nowrap;
-    text-align: right;
+    text-align: left;
     padding-right: 0.5rem;
 }
 
