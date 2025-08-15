@@ -91,18 +91,22 @@ pub struct BrowserDetection {
     pub browser: String,
     pub quality: f32,
 }
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct HttpRequestData {
-    pub source: NetworkEndpoint,
-    pub destination: NetworkEndpoint,
-    pub user_agent: Option<String>,
+pub struct HttpRequestDetails {
     pub lang: Option<String>,
+    pub user_agent: Option<String>,
     pub accept: Option<String>,
     pub accept_language: Option<String>,
     pub accept_encoding: Option<String>,
     pub connection: Option<String>,
     pub host: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HttpRequestData {
+    pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
+    pub details: HttpRequestDetails,
     pub signature: String,
     pub browser: Option<BrowserDetection>,
     pub timestamp: u64,
@@ -115,14 +119,18 @@ pub struct WebServerDetection {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct HttpResponseData {
-    pub source: NetworkEndpoint,
-    pub destination: NetworkEndpoint,
+pub struct HttpResponseDetails {
     pub server: Option<String>,
     pub content_type: Option<String>,
     pub content_length: Option<String>,
     pub set_cookie: Option<String>,
     pub cache_control: Option<String>,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HttpResponseData {
+    pub source: NetworkEndpoint,
+    pub destination: NetworkEndpoint,
+    pub details: HttpResponseDetails,
     pub signature: String,
     pub web_server: Option<WebServerDetection>,
     pub timestamp: u64,

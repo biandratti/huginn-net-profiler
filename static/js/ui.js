@@ -164,6 +164,14 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
             fields.push(`<div class="key-value-key">Uptime:</div><div class="key-value-value">${days}d ${hours}h ${minutes}m</div>`);
         }
         
+        if (data.up_mod_days) {
+            fields.push(`<div class="key-value-key">Wrap-around period:</div><div class="key-value-value">${data.up_mod_days} days</div>`);
+        }
+        
+        if (data.freq) {
+            fields.push(`<div class="key-value-key">Clock frequency:</div><div class="key-value-value">${data.freq.toFixed(2)} Hz</div>`);
+        }
+        
         if (data.details) {
             fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.details.version}</div>`);
             fields.push(`<div class="key-value-key">TTL:</div><div class="key-value-value">${data.details.initial_ttl}</div>`);
@@ -219,56 +227,67 @@ ${content}
             fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${data.signature}</div>`);
         }
         
-        if (data.quality !== undefined) {
-            fields.push(`<div class="key-value-key">Quality:</div><div class="key-value-value">${data.quality.toFixed(2)}</div>`);
+        // Browser detection (for requests)
+        if (data.browser) {
+            fields.push(`<div class="key-value-key">Browser:</div><div class="key-value-value">${data.browser.browser}</div>`);
+            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${data.browser.quality}</div>`);
         }
         
-        if (data.host) {
-            fields.push(`<div class="key-value-key">Host:</div><div class="key-value-value">${data.host}</div>`);
+        // Web server detection (for responses)
+        if (data.web_server) {
+            fields.push(`<div class="key-value-key">Web Server:</div><div class="key-value-value">${data.web_server.web_server}</div>`);
+            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${data.web_server.quality}</div>`);
         }
         
-        if (data.user_agent) {
-            fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${data.user_agent}</div>`);
-        }
-        
-        if (data.lang) {
-            fields.push(`<div class="key-value-key">Language:</div><div class="key-value-value">${data.lang}</div>`);
-        }
-        
-        if (data.accept) {
-            fields.push(`<div class="key-value-key">Accept:</div><div class="key-value-value">${data.accept}</div>`);
-        }
-        
-        if (data.accept_language) {
-            fields.push(`<div class="key-value-key">Accept-Language:</div><div class="key-value-value">${data.accept_language}</div>`);
-        }
-        
-        if (data.accept_encoding) {
-            fields.push(`<div class="key-value-key">Accept-Encoding:</div><div class="key-value-value">${data.accept_encoding}</div>`);
-        }
-        
-        if (data.connection) {
-            fields.push(`<div class="key-value-key">Connection:</div><div class="key-value-value">${data.connection}</div>`);
-        }
-        
-        if (data.server) {
-            fields.push(`<div class="key-value-key">Server:</div><div class="key-value-value">${data.server}</div>`);
-        }
-        
-        if (data.content_type) {
-            fields.push(`<div class="key-value-key">Content-Type:</div><div class="key-value-value">${data.content_type}</div>`);
-        }
-        
-        if (data.content_length) {
-            fields.push(`<div class="key-value-key">Content-Length:</div><div class="key-value-value">${data.content_length}</div>`);
-        }
-        
-        if (data.set_cookie) {
-            fields.push(`<div class="key-value-key">Set-Cookie:</div><div class="key-value-value">${data.set_cookie}</div>`);
-        }
-        
-        if (data.cache_control) {
-            fields.push(`<div class="key-value-key">Cache-Control:</div><div class="key-value-value">${data.cache_control}</div>`);
+        // HTTP details
+        if (data.details) {
+            if (data.details.host) {
+                fields.push(`<div class="key-value-key">Host:</div><div class="key-value-value">${data.details.host}</div>`);
+            }
+            
+            if (data.details.user_agent) {
+                fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${data.details.user_agent}</div>`);
+            }
+            
+            if (data.details.lang) {
+                fields.push(`<div class="key-value-key">Language:</div><div class="key-value-value">${data.details.lang}</div>`);
+            }
+            
+            if (data.details.accept) {
+                fields.push(`<div class="key-value-key">Accept:</div><div class="key-value-value">${data.details.accept}</div>`);
+            }
+            
+            if (data.details.accept_language) {
+                fields.push(`<div class="key-value-key">Accept-Language:</div><div class="key-value-value">${data.details.accept_language}</div>`);
+            }
+            
+            if (data.details.accept_encoding) {
+                fields.push(`<div class="key-value-key">Accept-Encoding:</div><div class="key-value-value">${data.details.accept_encoding}</div>`);
+            }
+            
+            if (data.details.connection) {
+                fields.push(`<div class="key-value-key">Connection:</div><div class="key-value-value">${data.details.connection}</div>`);
+            }
+            
+            if (data.details.server) {
+                fields.push(`<div class="key-value-key">Server:</div><div class="key-value-value">${data.details.server}</div>`);
+            }
+            
+            if (data.details.content_type) {
+                fields.push(`<div class="key-value-key">Content-Type:</div><div class="key-value-value">${data.details.content_type}</div>`);
+            }
+            
+            if (data.details.content_length) {
+                fields.push(`<div class="key-value-key">Content-Length:</div><div class="key-value-value">${data.details.content_length}</div>`);
+            }
+            
+            if (data.details.set_cookie) {
+                fields.push(`<div class="key-value-key">Set-Cookie:</div><div class="key-value-value">${data.details.set_cookie}</div>`);
+            }
+            
+            if (data.details.cache_control) {
+                fields.push(`<div class="key-value-key">Cache-Control:</div><div class="key-value-value">${data.details.cache_control}</div>`);
+            }
         }
         
         return `<div class="key-value-list">${fields.join('')}</div>`;
