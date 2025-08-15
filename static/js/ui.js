@@ -46,7 +46,7 @@ class UIManager {
                     <div class="tab-panel" id="http-panel">
                         <div class="tab-panel-title">HTTP Analysis</div>
                         <div class="tab-panel-content">${httpData}</div>
-                    </div>
+                </div>
                 </div>
             </div>
         `;
@@ -761,7 +761,7 @@ ${content}
         window.tlsDataCache.initialized = true;
     }
     
-
+    
     formatKey(key) {
         return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }

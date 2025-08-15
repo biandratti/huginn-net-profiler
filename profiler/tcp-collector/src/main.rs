@@ -268,10 +268,10 @@ fn to_details(sig: &huginn_net::ObservableTcp) -> TcpDetails {
 
 fn extract_ttl(ttl: &Ttl) -> String {
     match ttl {
-        Ttl::Value(v) => format!("{}", v),
-        Ttl::Distance(ttl_value, hops) => format!("{} ({} hops)", ttl_value, hops),
-        Ttl::Guess(v) => format!("{}+", v),
-        Ttl::Bad(v) => format!("{}-", v),
+        Ttl::Value(v) => format!("{v}"),
+        Ttl::Distance(ttl_value, hops) => format!("{ttl_value} ({hops} hops)"),
+        Ttl::Guess(v) => format!("{v}+"),
+        Ttl::Bad(v) => format!("{v}-"),
     }
 }
 
