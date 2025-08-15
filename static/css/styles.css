@@ -473,6 +473,16 @@ body {
     align-items: start;
 }
 
+.key-value-list > * {
+    padding: 0.4rem 0.5rem;
+    border-radius: 4px;
+}
+
+.key-value-list > *:nth-child(4n+1),
+.key-value-list > *:nth-child(4n+2) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
 .key-value-key {
     font-weight: bold;
     white-space: nowrap;

@@ -31,21 +31,21 @@ class UIManager {
             <div class="profile-tabs">
                 <div class="tab-navigation">
                     <button class="tab-button active" data-tab="tcp">TCP</button>
-                    <button class="tab-button" data-tab="http">HTTP</button>
                     <button class="tab-button" data-tab="tls">TLS</button>
+                    <button class="tab-button" data-tab="http">HTTP</button>
                 </div>
                 <div class="tab-content">
                     <div class="tab-panel active" id="tcp-panel">
                         <div class="tab-panel-title">TCP Analysis</div>
                         <div class="tab-panel-content">${tcpData}</div>
                     </div>
-                    <div class="tab-panel" id="http-panel">
-                        <div class="tab-panel-title">HTTP Analysis</div>
-                        <div class="tab-panel-content">${httpData}</div>
-                    </div>
                     <div class="tab-panel" id="tls-panel">
                         <div class="tab-panel-title">TLS Analysis</div>
                         <div class="tab-panel-content">${tlsData}</div>
+                    </div>
+                    <div class="tab-panel" id="http-panel">
+                        <div class="tab-panel-title">HTTP Analysis</div>
+                        <div class="tab-panel-content">${httpData}</div>
                     </div>
                 </div>
             </div>
