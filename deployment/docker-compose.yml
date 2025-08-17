@@ -27,6 +27,11 @@ services:
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
       - ./letsencrypt:/letsencrypt
       - ./traefik_dynamic:/etc/traefik/dynamic
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "printf 'GET /api/http/routers HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' | nc localhost 8080 | head -1 | grep -q '200 OK' || exit 1"]
       interval: 10s
@@ -52,6 +57,11 @@ services:
       - "traefik.http.routers.frontend.tls.options=my-tls-options@file"
       - "traefik.http.routers.frontend.middlewares=frontend-middleware@file"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pidof nginx > /dev/null || exit 1"]
       interval: 10s
@@ -71,6 +81,11 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.profile-assembler.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/api`)"
@@ -104,6 +119,11 @@ services:
       - NET_RAW
     environment:
       - PROFILER_INTERFACE=wlp0s20f3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "printf 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' | nc localhost 9003 | head -1 | grep -q '200 OK' || exit 1"]
       interval: 10s
@@ -125,6 +145,11 @@ services:
       - NET_RAW
     environment:
       - PROFILER_INTERFACE=${HUGINN_BRIDGE}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "printf 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' | nc localhost 9001 | head -1 | grep -q '200 OK' || exit 1"]
       interval: 10s
@@ -146,6 +171,11 @@ services:
       - NET_RAW
     environment:
       - PROFILER_INTERFACE=wlp0s20f3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "printf 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' | nc localhost 9002 | head -1 | grep -q '200 OK' || exit 1"]
       interval: 10s
