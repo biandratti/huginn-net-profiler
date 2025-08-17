@@ -19,6 +19,11 @@ class UIManager {
         return `<span class="expandable-value collapsed" data-full="${content.replace(/"/g, '&quot;')}" data-preview="${preview.replace(/"/g, '&quot;')}" onclick="toggleExpandable('${id}')" id="${id}">${preview}</span>`;
     }
 
+    formatQuality(quality) {
+        if (quality === null || quality === undefined) return 'N/A';
+        return parseFloat(quality).toFixed(2);
+    }
+
     async displayProfile(profile) {
         if (!profile || Object.keys(profile).length === 0) {
             this.showEmptyState("Your profile could not be found or is empty. Please generate some traffic and try again.");
@@ -151,12 +156,12 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
         }
         
         if (data.signature) {
-            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${data.signature}</div>`);
+            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${this.makeExpandable(data.signature, 60)}</div>`);
         }
         
         if (data.os_detected) {
             fields.push(`<div class="key-value-key">OS detected:</div><div class="key-value-value">${data.os_detected.os}</div>`);
-            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${data.os_detected.quality}</div>`);
+            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${this.formatQuality(data.os_detected.quality)}</div>`);
         }
         
         if (data.mtu_value) {
@@ -240,13 +245,13 @@ ${content}
         // Browser detection (for requests)
         if (data.browser) {
             fields.push(`<div class="key-value-key">Browser detected:</div><div class="key-value-value">${data.browser.browser}</div>`);
-            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${data.browser.quality}</div>`);
+            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${this.formatQuality(data.browser.quality)}</div>`);
         }
         
         // Web server detection (for responses)
         if (data.web_server) {
             fields.push(`<div class="key-value-key">Web Server Detected:</div><div class="key-value-value">${data.web_server.web_server}</div>`);
-            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${data.web_server.quality}</div>`);
+            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${this.formatQuality(data.web_server.quality)}</div>`);
         }
         
         // HTTP details
