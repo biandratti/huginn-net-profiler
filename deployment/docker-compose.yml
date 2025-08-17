@@ -119,6 +119,7 @@ services:
       - NET_RAW
     environment:
       - PROFILER_INTERFACE=wlp0s20f3
+
     logging:
       driver: "json-file"
       options:
@@ -145,6 +146,7 @@ services:
       - NET_RAW
     environment:
       - PROFILER_INTERFACE=${HUGINN_BRIDGE}
+
     logging:
       driver: "json-file"
       options:
@@ -171,6 +173,7 @@ services:
       - NET_RAW
     environment:
       - PROFILER_INTERFACE=wlp0s20f3
+
     logging:
       driver: "json-file"
       options:

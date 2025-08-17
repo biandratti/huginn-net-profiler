@@ -3,7 +3,8 @@ use huginn_net::fingerprint_result::OSQualityMatched;
 use huginn_net::{
     db::Database, fingerprint_result::FingerprintResult, AnalysisConfig, HuginnNet, Ttl,
 };
-use log::{error, info};
+use tracing::{error, info, Level};
+use tracing_subscriber::FmtSubscriber;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::sync::mpsc as std_mpsc;
@@ -96,7 +97,12 @@ type MtuIngest = MtuData;
 type UptimeIngest = UptimeData;
 
 fn main() {
-    env_logger::init();
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::INFO)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    
     let args = Args::parse();
     let interface = args
         .interface
