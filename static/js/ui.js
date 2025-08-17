@@ -407,12 +407,8 @@ ${content}
                 <table class="cipher-table compact">
                     <thead>
                         <tr>
+                            <th>Cipher Suite</th>
                             <th>TLS Ver</th>
-                            <th>Algorithm</th>
-                            <th>Key Size</th>
-                            <th>Mode</th>
-                            <th>Hash</th>
-                            <th>PFS</th>
                             <th>Security</th>
                         </tr>
                     </thead>
@@ -423,14 +419,12 @@ ${content}
             const securityLevel = this.getCipherSecurityLevel(cipher);
             const securityClass = securityLevel.toLowerCase().replace(' ', '-');
             
+            const cipherDescription = `${cipher.algorithm} ${cipher.keySize}/${cipher.mode}/${cipher.hash} ${cipher.pfs ? 'PFS' : ''}`.trim();
+            
             tableHtml += `
                 <tr class="cipher-row ${securityClass}">
+                    <td>${cipherDescription}</td>
                     <td>${cipher.tlsVersion}</td>
-                    <td>${cipher.algorithm}</td>
-                    <td>${cipher.keySize}</td>
-                    <td>${cipher.mode}</td>
-                    <td>${cipher.hash}</td>
-                    <td>${cipher.pfs ? '✅' : '❌'}</td>
                     <td><span class="security-badge ${securityClass}">${securityLevel}</span></td>
                 </tr>
             `;
@@ -556,9 +550,7 @@ ${content}
                 <table class="tls-table compact">
                     <thead>
                         <tr>
-                            <th>Algorithm</th>
-                            <th class="hide-mobile">Type</th>
-                            <th>Hash</th>
+                            <th>Signature Algorithm</th>
                             <th>Security</th>
                         </tr>
                     </thead>
@@ -567,11 +559,11 @@ ${content}
         
         parsedSignatures.forEach(sig => {
             const securityClass = sig.security.toLowerCase();
+            const fullAlgorithm = `${sig.algorithm} ${sig.type} ${sig.hash}`.trim();
+            
             tableHtml += `
                 <tr class="tls-row ${securityClass}">
-                    <td>${sig.algorithm}</td>
-                    <td class="hide-mobile">${sig.type}</td>
-                    <td>${sig.hash}</td>
+                    <td>${fullAlgorithm}</td>
                     <td><span class="security-badge ${securityClass}">${sig.security}</span></td>
                 </tr>
             `;
@@ -589,9 +581,7 @@ ${content}
                 <table class="tls-table compact">
                     <thead>
                         <tr>
-                            <th>Curve</th>
-                            <th class="hide-mobile">Type</th>
-                            <th>Key Size</th>
+                            <th>Elliptic Curve</th>
                             <th>Security</th>
                         </tr>
                     </thead>
@@ -600,11 +590,11 @@ ${content}
         
         parsedCurves.forEach(curve => {
             const securityClass = curve.security.toLowerCase();
+            const curveDetails = `${curve.name} (${curve.type}, ${curve.keySize} bits)`;
+            
             tableHtml += `
                 <tr class="tls-row ${securityClass}">
-                    <td>${curve.name}</td>
-                    <td class="hide-mobile">${curve.type}</td>
-                    <td>${curve.keySize}</td>
+                    <td>${curveDetails}</td>
                     <td><span class="security-badge ${securityClass}">${curve.security}</span></td>
                 </tr>
             `;
