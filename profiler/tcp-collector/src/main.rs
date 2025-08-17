@@ -3,8 +3,6 @@ use huginn_net::fingerprint_result::OSQualityMatched;
 use huginn_net::{
     db::Database, fingerprint_result::FingerprintResult, AnalysisConfig, HuginnNet, Ttl,
 };
-use tracing::{error, info, Level};
-use tracing_subscriber::FmtSubscriber;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::sync::mpsc as std_mpsc;
@@ -12,6 +10,8 @@ use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc as tokio_mpsc;
+use tracing::{error, info, Level};
+use tracing_subscriber::FmtSubscriber;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -102,7 +102,7 @@ fn main() {
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-    
+
     let args = Args::parse();
     let interface = args
         .interface

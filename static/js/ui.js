@@ -9,6 +9,16 @@ class UIManager {
         this.emptyStateElem = document.getElementById('emptyState');
     }
 
+    makeExpandable(content, threshold = 50) {
+        if (content.length <= threshold) {
+            return content;
+        }
+        
+        const id = 'expandable_' + Math.random().toString(36).substr(2, 9);
+        const preview = content.substring(0, threshold);
+        return `<span class="expandable-value collapsed" data-full="${content.replace(/"/g, '&quot;')}" data-preview="${preview.replace(/"/g, '&quot;')}" onclick="toggleExpandable('${id}')" id="${id}">${preview}</span>`;
+    }
+
     async displayProfile(profile) {
         if (!profile || Object.keys(profile).length === 0) {
             this.showEmptyState("Your profile could not be found or is empty. Please generate some traffic and try again.");
@@ -183,10 +193,10 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
                 fields.push(`<div class="key-value-key">Window Scale:</div><div class="key-value-value">${data.details.window_scale}</div>`);
             }
             if (data.details.options_layout) {
-                fields.push(`<div class="key-value-key">Options:</div><div class="key-value-value">${data.details.options_layout}</div>`);
+                fields.push(`<div class="key-value-key">Options:</div><div class="key-value-value">${this.makeExpandable(data.details.options_layout, 40)}</div>`);
             }
             if (data.details.quirks) {
-                fields.push(`<div class="key-value-key">Quirks:</div><div class="key-value-value">${data.details.quirks}</div>`);
+                fields.push(`<div class="key-value-key">Quirks:</div><div class="key-value-value">${this.makeExpandable(data.details.quirks, 40)}</div>`);
             }
         }
         
@@ -224,7 +234,7 @@ ${content}
         }
         
         if (data.signature) {
-            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${data.signature}</div>`);
+            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${this.makeExpandable(data.signature, 60)}</div>`);
         }
         
         // Browser detection (for requests)
@@ -246,7 +256,7 @@ ${content}
             }
             
             if (data.details.user_agent) {
-                fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${data.details.user_agent}</div>`);
+                fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${this.makeExpandable(data.details.user_agent, 80)}</div>`);
             }
             
             if (data.details.lang) {
@@ -254,7 +264,7 @@ ${content}
             }
             
             if (data.details.accept) {
-                fields.push(`<div class="key-value-key">Accept:</div><div class="key-value-value">${data.details.accept}</div>`);
+                fields.push(`<div class="key-value-key">Accept:</div><div class="key-value-value">${this.makeExpandable(data.details.accept, 60)}</div>`);
             }
             
             if (data.details.accept_language) {
@@ -350,13 +360,13 @@ ${content}
                 <div class="key-value-value">${tlsClient.ja4}</div>
                 
                 <div class="key-value-key">JA4 Raw:</div>
-                <div class="key-value-value">${tlsClient.ja4_raw}</div>
+                <div class="key-value-value">${this.makeExpandable(tlsClient.ja4_raw, 60)}</div>
                 
                 <div class="key-value-key">JA4 Original:</div>
                 <div class="key-value-value">${tlsClient.ja4_original}</div>
                 
                 <div class="key-value-key">JA4 Original Raw:</div>
-                <div class="key-value-value">${tlsClient.ja4_original_raw}</div>
+                <div class="key-value-value">${this.makeExpandable(tlsClient.ja4_original_raw, 60)}</div>
                 
                 <div class="key-value-key">Version:</div>
                 <div class="key-value-value">${tlsClient.observed.version}</div>
@@ -836,5 +846,19 @@ ${content}
                 }
             });
         });
+    }
+}
+
+// Global function for expandable elements
+function toggleExpandable(id) {
+    const element = document.getElementById(id);
+    if (element.classList.contains('collapsed')) {
+        element.classList.remove('collapsed');
+        element.classList.add('expanded');
+        element.textContent = element.getAttribute('data-full');
+    } else {
+        element.classList.remove('expanded');
+        element.classList.add('collapsed');
+        element.textContent = element.getAttribute('data-preview');
     }
 } 
