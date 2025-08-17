@@ -2,7 +2,6 @@ use clap::Parser;
 use huginn_net::AnalysisConfig;
 
 use huginn_net::{db::Database, fingerprint_result::FingerprintResult, HuginnNet};
-use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
@@ -12,6 +11,8 @@ use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc as tokio_mpsc;
+use tracing::{error, info, Level};
+use tracing_subscriber::FmtSubscriber;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -156,7 +157,12 @@ fn enforce_connection_limit(connection_map: &ConnectionMap) {
 }
 
 fn main() {
-    env_logger::init();
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::INFO)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     let args = Args::parse();
     let interface = args
         .interface

@@ -9,6 +9,21 @@ class UIManager {
         this.emptyStateElem = document.getElementById('emptyState');
     }
 
+    makeExpandable(content, threshold = 50) {
+        if (content.length <= threshold) {
+            return content;
+        }
+        
+        const id = 'expandable_' + Math.random().toString(36).substr(2, 9);
+        const preview = content.substring(0, threshold);
+        return `<span class="expandable-value collapsed" data-full="${content.replace(/"/g, '&quot;')}" data-preview="${preview.replace(/"/g, '&quot;')}" onclick="toggleExpandable('${id}')" id="${id}">${preview}</span>`;
+    }
+
+    formatQuality(quality) {
+        if (quality === null || quality === undefined) return 'N/A';
+        return parseFloat(quality).toFixed(2);
+    }
+
     async displayProfile(profile) {
         if (!profile || Object.keys(profile).length === 0) {
             this.showEmptyState("Your profile could not be found or is empty. Please generate some traffic and try again.");
@@ -141,12 +156,12 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
         }
         
         if (data.signature) {
-            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${data.signature}</div>`);
+            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${this.makeExpandable(data.signature, 60)}</div>`);
         }
         
         if (data.os_detected) {
             fields.push(`<div class="key-value-key">OS detected:</div><div class="key-value-value">${data.os_detected.os}</div>`);
-            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${data.os_detected.quality}</div>`);
+            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${this.formatQuality(data.os_detected.quality)}</div>`);
         }
         
         if (data.mtu_value) {
@@ -183,10 +198,10 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
                 fields.push(`<div class="key-value-key">Window Scale:</div><div class="key-value-value">${data.details.window_scale}</div>`);
             }
             if (data.details.options_layout) {
-                fields.push(`<div class="key-value-key">Options:</div><div class="key-value-value">${data.details.options_layout}</div>`);
+                fields.push(`<div class="key-value-key">Options:</div><div class="key-value-value">${this.makeExpandable(data.details.options_layout, 40)}</div>`);
             }
             if (data.details.quirks) {
-                fields.push(`<div class="key-value-key">Quirks:</div><div class="key-value-value">${data.details.quirks}</div>`);
+                fields.push(`<div class="key-value-key">Quirks:</div><div class="key-value-value">${this.makeExpandable(data.details.quirks, 40)}</div>`);
             }
         }
         
@@ -224,19 +239,19 @@ ${content}
         }
         
         if (data.signature) {
-            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${data.signature}</div>`);
+            fields.push(`<div class="key-value-key">Signature:</div><div class="key-value-value">${this.makeExpandable(data.signature, 60)}</div>`);
         }
         
         // Browser detection (for requests)
         if (data.browser) {
             fields.push(`<div class="key-value-key">Browser detected:</div><div class="key-value-value">${data.browser.browser}</div>`);
-            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${data.browser.quality}</div>`);
+            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${this.formatQuality(data.browser.quality)}</div>`);
         }
         
         // Web server detection (for responses)
         if (data.web_server) {
             fields.push(`<div class="key-value-key">Web Server Detected:</div><div class="key-value-value">${data.web_server.web_server}</div>`);
-            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${data.web_server.quality}</div>`);
+            fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${this.formatQuality(data.web_server.quality)}</div>`);
         }
         
         // HTTP details
@@ -246,7 +261,7 @@ ${content}
             }
             
             if (data.details.user_agent) {
-                fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${data.details.user_agent}</div>`);
+                fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${this.makeExpandable(data.details.user_agent, 80)}</div>`);
             }
             
             if (data.details.lang) {
@@ -254,7 +269,7 @@ ${content}
             }
             
             if (data.details.accept) {
-                fields.push(`<div class="key-value-key">Accept:</div><div class="key-value-value">${data.details.accept}</div>`);
+                fields.push(`<div class="key-value-key">Accept:</div><div class="key-value-value">${this.makeExpandable(data.details.accept, 60)}</div>`);
             }
             
             if (data.details.accept_language) {
@@ -350,13 +365,13 @@ ${content}
                 <div class="key-value-value">${tlsClient.ja4}</div>
                 
                 <div class="key-value-key">JA4 Raw:</div>
-                <div class="key-value-value">${tlsClient.ja4_raw}</div>
+                <div class="key-value-value">${this.makeExpandable(tlsClient.ja4_raw, 60)}</div>
                 
                 <div class="key-value-key">JA4 Original:</div>
                 <div class="key-value-value">${tlsClient.ja4_original}</div>
                 
                 <div class="key-value-key">JA4 Original Raw:</div>
-                <div class="key-value-value">${tlsClient.ja4_original_raw}</div>
+                <div class="key-value-value">${this.makeExpandable(tlsClient.ja4_original_raw, 60)}</div>
                 
                 <div class="key-value-key">Version:</div>
                 <div class="key-value-value">${tlsClient.observed.version}</div>
@@ -397,12 +412,8 @@ ${content}
                 <table class="cipher-table compact">
                     <thead>
                         <tr>
+                            <th>Cipher Suite</th>
                             <th>TLS Ver</th>
-                            <th>Algorithm</th>
-                            <th>Key Size</th>
-                            <th>Mode</th>
-                            <th>Hash</th>
-                            <th>PFS</th>
                             <th>Security</th>
                         </tr>
                     </thead>
@@ -413,14 +424,12 @@ ${content}
             const securityLevel = this.getCipherSecurityLevel(cipher);
             const securityClass = securityLevel.toLowerCase().replace(' ', '-');
             
+            const cipherDescription = `${cipher.algorithm} ${cipher.keySize}/${cipher.mode}/${cipher.hash} ${cipher.pfs ? 'PFS' : ''}`.trim();
+            
             tableHtml += `
                 <tr class="cipher-row ${securityClass}">
+                    <td>${cipherDescription}</td>
                     <td>${cipher.tlsVersion}</td>
-                    <td>${cipher.algorithm}</td>
-                    <td>${cipher.keySize}</td>
-                    <td>${cipher.mode}</td>
-                    <td>${cipher.hash}</td>
-                    <td>${cipher.pfs ? '✅' : '❌'}</td>
                     <td><span class="security-badge ${securityClass}">${securityLevel}</span></td>
                 </tr>
             `;
@@ -546,9 +555,7 @@ ${content}
                 <table class="tls-table compact">
                     <thead>
                         <tr>
-                            <th>Algorithm</th>
-                            <th class="hide-mobile">Type</th>
-                            <th>Hash</th>
+                            <th>Signature Algorithm</th>
                             <th>Security</th>
                         </tr>
                     </thead>
@@ -557,11 +564,11 @@ ${content}
         
         parsedSignatures.forEach(sig => {
             const securityClass = sig.security.toLowerCase();
+            const fullAlgorithm = `${sig.algorithm} ${sig.type} ${sig.hash}`.trim();
+            
             tableHtml += `
                 <tr class="tls-row ${securityClass}">
-                    <td>${sig.algorithm}</td>
-                    <td class="hide-mobile">${sig.type}</td>
-                    <td>${sig.hash}</td>
+                    <td>${fullAlgorithm}</td>
                     <td><span class="security-badge ${securityClass}">${sig.security}</span></td>
                 </tr>
             `;
@@ -579,9 +586,7 @@ ${content}
                 <table class="tls-table compact">
                     <thead>
                         <tr>
-                            <th>Curve</th>
-                            <th class="hide-mobile">Type</th>
-                            <th>Key Size</th>
+                            <th>Elliptic Curve</th>
                             <th>Security</th>
                         </tr>
                     </thead>
@@ -590,11 +595,11 @@ ${content}
         
         parsedCurves.forEach(curve => {
             const securityClass = curve.security.toLowerCase();
+            const curveDetails = `${curve.name} (${curve.type}, ${curve.keySize} bits)`;
+            
             tableHtml += `
                 <tr class="tls-row ${securityClass}">
-                    <td>${curve.name}</td>
-                    <td class="hide-mobile">${curve.type}</td>
-                    <td>${curve.keySize}</td>
+                    <td>${curveDetails}</td>
                     <td><span class="security-badge ${securityClass}">${curve.security}</span></td>
                 </tr>
             `;
@@ -836,5 +841,19 @@ ${content}
                 }
             });
         });
+    }
+}
+
+// Global function for expandable elements
+function toggleExpandable(id) {
+    const element = document.getElementById(id);
+    if (element.classList.contains('collapsed')) {
+        element.classList.remove('collapsed');
+        element.classList.add('expanded');
+        element.textContent = element.getAttribute('data-full');
+    } else {
+        element.classList.remove('expanded');
+        element.classList.add('collapsed');
+        element.textContent = element.getAttribute('data-preview');
     }
 } 

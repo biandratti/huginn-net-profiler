@@ -10,5 +10,5 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true }
 clap = { workspace = true }
-log = { workspace = true }
-env_logger = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

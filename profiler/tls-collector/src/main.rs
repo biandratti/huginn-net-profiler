@@ -1,6 +1,5 @@
 use clap::Parser;
 use huginn_net::{db::Database, fingerprint_result::FingerprintResult, AnalysisConfig, HuginnNet};
-use log::{error, info};
 use serde::Serialize;
 use std::env;
 use std::sync::mpsc as std_mpsc;
@@ -9,6 +8,8 @@ use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc as tokio_mpsc;
+use tracing::{error, info, Level};
+use tracing_subscriber::FmtSubscriber;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -55,7 +56,12 @@ pub struct NetworkEndpoint {
 }
 
 fn main() {
-    env_logger::init();
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::INFO)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     let args = Args::parse();
     let interface = args
         .interface

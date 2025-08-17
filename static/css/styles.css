@@ -91,6 +91,7 @@ body {
 .btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.75rem;
     padding: 1rem 2rem;
     border: none;
@@ -109,6 +110,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
 }
 
 .btn-primary:hover {
@@ -718,7 +720,7 @@ body {
 /* Key-Value Alignment */
 .key-value-list {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 200px 1fr;
     gap: 0.5rem 1rem;
     align-items: start;
 }
@@ -742,6 +744,39 @@ body {
 
 .key-value-value {
     word-break: break-all;
+    font-family: 'Courier New', monospace;
+}
+
+.expandable-value {
+    position: relative;
+}
+
+.expandable-value.collapsed {
+    cursor: pointer;
+}
+
+.expandable-value.collapsed::after {
+    content: "...";
+    color: #4ade80;
+    font-weight: bold;
+    margin-left: 4px;
+}
+
+.expandable-value.expanded {
+    cursor: pointer;
+}
+
+.expand-toggle {
+    display: inline-block;
+    margin-left: 8px;
+    color: #4ade80;
+    font-size: 0.8em;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.expand-toggle:hover {
+    opacity: 1;
 }
 
 .key-value-section {
