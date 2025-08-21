@@ -256,10 +256,6 @@ ${content}
         
         // HTTP details
         if (data.details) {
-            if (data.details.host) {
-                fields.push(`<div class="key-value-key">Host:</div><div class="key-value-value">${data.details.host}</div>`);
-            }
-            
             if (data.details.user_agent) {
                 fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${this.makeExpandable(data.details.user_agent, 80)}</div>`);
             }
@@ -268,40 +264,32 @@ ${content}
                 fields.push(`<div class="key-value-key">Language:</div><div class="key-value-value">${data.details.lang}</div>`);
             }
             
-            if (data.details.accept) {
-                fields.push(`<div class="key-value-key">Accept:</div><div class="key-value-value">${this.makeExpandable(data.details.accept, 60)}</div>`);
+            if (data.details.method) {
+                fields.push(`<div class="key-value-key">Method:</div><div class="key-value-value">${data.details.method}</div>`);
             }
             
-            if (data.details.accept_language) {
-                fields.push(`<div class="key-value-key">Accept-Language:</div><div class="key-value-value">${data.details.accept_language}</div>`);
+            if (data.details.uri) {
+                fields.push(`<div class="key-value-key">URI:</div><div class="key-value-value">${this.makeExpandable(data.details.uri, 60)}</div>`);
             }
             
-            if (data.details.accept_encoding) {
-                fields.push(`<div class="key-value-key">Accept-Encoding:</div><div class="key-value-value">${data.details.accept_encoding}</div>`);
+            if (data.details.diagnostic) {
+                fields.push(`<div class="key-value-key">Diagnostic:</div><div class="key-value-value">${this.makeExpandable(data.details.diagnostic, 80)}</div>`);
             }
             
-            if (data.details.connection) {
-                fields.push(`<div class="key-value-key">Connection:</div><div class="key-value-value">${data.details.connection}</div>`);
+            if (data.details.version) {
+                fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.details.version}</div>`);
+            }
+            
+            if (data.details.headers) {
+                fields.push(`<div class="key-value-key">Headers:</div><div class="key-value-value">${this.makeExpandable(data.details.headers, 100)}</div>`);
             }
             
             if (data.details.server) {
                 fields.push(`<div class="key-value-key">Server:</div><div class="key-value-value">${data.details.server}</div>`);
             }
             
-            if (data.details.content_type) {
-                fields.push(`<div class="key-value-key">Content-Type:</div><div class="key-value-value">${data.details.content_type}</div>`);
-            }
-            
-            if (data.details.content_length) {
-                fields.push(`<div class="key-value-key">Content-Length:</div><div class="key-value-value">${data.details.content_length}</div>`);
-            }
-            
-            if (data.details.set_cookie) {
-                fields.push(`<div class="key-value-key">Set-Cookie:</div><div class="key-value-value">${data.details.set_cookie}</div>`);
-            }
-            
-            if (data.details.cache_control) {
-                fields.push(`<div class="key-value-key">Cache-Control:</div><div class="key-value-value">${data.details.cache_control}</div>`);
+            if (data.details.status_code) {
+                fields.push(`<div class="key-value-key">Status Code:</div><div class="key-value-value">${data.details.status_code}</div>`);
             }
         }
         

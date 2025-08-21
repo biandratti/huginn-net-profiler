@@ -95,11 +95,11 @@ pub struct BrowserDetection {
 pub struct HttpRequestDetails {
     pub lang: Option<String>,
     pub user_agent: Option<String>,
-    pub accept: Option<String>,
-    pub accept_language: Option<String>,
-    pub accept_encoding: Option<String>,
-    pub connection: Option<String>,
-    pub host: Option<String>,
+    pub diagnostic: String,
+    pub method: Option<String>,
+    pub version: String,
+    pub headers: String,
+    pub uri: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -108,7 +108,7 @@ pub struct HttpRequestData {
     pub destination: NetworkEndpoint,
     pub details: HttpRequestDetails,
     pub signature: String,
-    pub browser: Option<BrowserDetection>,
+    pub browser: BrowserDetection,
     pub timestamp: u64,
 }
 
@@ -121,10 +121,9 @@ pub struct WebServerDetection {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HttpResponseDetails {
     pub server: Option<String>,
-    pub content_type: Option<String>,
-    pub content_length: Option<String>,
-    pub set_cookie: Option<String>,
-    pub cache_control: Option<String>,
+    pub version: String,
+    pub headers: String,
+    pub status_code: Option<u16>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HttpResponseData {
@@ -132,13 +131,12 @@ pub struct HttpResponseData {
     pub destination: NetworkEndpoint,
     pub details: HttpResponseDetails,
     pub signature: String,
-    pub web_server: Option<WebServerDetection>,
+    pub web_server: WebServerDetection,
     pub timestamp: u64,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct TlsClient {
-    pub id: String,
     pub timestamp: u64,
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
@@ -344,7 +342,7 @@ async fn ingest_http_response(
 }
 
 async fn ingest_tls(State(state): State<AppState>, Json(ingest): Json<TlsIngest>) {
-    let ip = ingest.id.clone();
+    let ip = ingest.source.ip.clone();
     info!("Received TLS data for {}", ip);
     let mut profile = state.entry(ip.clone()).or_default();
     profile.id = ip;

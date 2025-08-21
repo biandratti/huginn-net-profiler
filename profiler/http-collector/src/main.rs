@@ -44,11 +44,11 @@ pub struct BrowserDetection {
 pub struct HttpRequestDetails {
     pub lang: Option<String>,
     pub user_agent: Option<String>,
-    pub accept: Option<String>,
-    pub accept_language: Option<String>,
-    pub accept_encoding: Option<String>,
-    pub connection: Option<String>,
-    pub host: Option<String>,
+    pub diagnostic: String,
+    pub method: Option<String>,
+    pub version: String,
+    pub headers: String,
+    pub uri: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -57,7 +57,7 @@ pub struct HttpRequestData {
     pub destination: NetworkEndpoint,
     pub details: HttpRequestDetails,
     pub signature: String,
-    pub browser: Option<BrowserDetection>,
+    pub browser: BrowserDetection,
     pub timestamp: u64,
 }
 
@@ -70,10 +70,9 @@ pub struct WebServerDetection {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HttpResponseDetails {
     pub server: Option<String>,
-    pub content_type: Option<String>,
-    pub content_length: Option<String>,
-    pub set_cookie: Option<String>,
-    pub cache_control: Option<String>,
+    pub version: String,
+    pub headers: String,
+    pub status_code: Option<u16>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -82,7 +81,7 @@ pub struct HttpResponseData {
     pub destination: NetworkEndpoint,
     pub details: HttpResponseDetails,
     pub signature: String,
-    pub web_server: Option<WebServerDetection>,
+    pub web_server: WebServerDetection,
     pub timestamp: u64,
 }
 
@@ -262,7 +261,7 @@ fn main() {
                 }
                 enforce_connection_limit(&connection_map);
 
-                let ingest = HttpRequestIngest {
+                let ingest: HttpRequestData = HttpRequestIngest {
                     source: NetworkEndpoint {
                         ip: real_client_ip,
                         port: http_req.source.port,
@@ -271,22 +270,16 @@ fn main() {
                         ip: http_req.destination.ip.to_string(),
                         port: http_req.destination.port,
                     },
-                    details: HttpRequestDetails {
-                        user_agent: http_req.sig.user_agent.clone(),
-                        lang: extract_header_value_from_horder(&horder_strings, "accept-language"),
-                        accept: extract_header_value_from_horder(&horder_strings, "accept"),
-                        accept_language: extract_header_value_from_horder(
-                            &horder_strings,
-                            "accept-language",
-                        ),
-                        accept_encoding: extract_header_value_from_horder(
-                            &horder_strings,
-                            "accept-encoding",
-                        ),
-                        connection: extract_header_value_from_horder(&horder_strings, "connection"),
-                        host: extract_header_value_from_horder(&horder_strings, "host"),
-                    },
                     signature: http_req.sig.to_string(),
+                    details: HttpRequestDetails {
+                        user_agent: http_req.sig.user_agent,
+                        lang: http_req.lang,
+                        diagnostic: http_req.diagnosis.to_string(),
+                        method: http_req.sig.method,
+                        uri: http_req.sig.uri,
+                        version: http_req.sig.version.to_string(),
+                        headers: http_req.sig.raw_headers.iter().map(|(k, v)| format!("{k}: {v}")).collect::<Vec<String>>().join(", "),
+                    },
                     browser: http_req.browser_matched.as_ref().map(|m| BrowserDetection {
                         browser: format!(
                             "{}/{}/{}",
@@ -295,6 +288,9 @@ fn main() {
                             m.browser.variant.as_deref().unwrap_or("???")
                         ),
                         quality: m.quality,
+                    }).unwrap_or_else(|| BrowserDetection {
+                        browser: "unknown".to_string(),
+                        quality: 0.0,
                     }),
                     timestamp: now,
                 };
@@ -335,19 +331,9 @@ fn main() {
                     },
                     details: HttpResponseDetails {
                         server: extract_header_value_from_horder(&horder_strings, "server"),
-                        content_type: extract_header_value_from_horder(
-                            &horder_strings,
-                            "content-type",
-                        ),
-                        content_length: extract_header_value_from_horder(
-                            &horder_strings,
-                            "content-length",
-                        ),
-                        set_cookie: extract_header_value_from_horder(&horder_strings, "set-cookie"),
-                        cache_control: extract_header_value_from_horder(
-                            &horder_strings,
-                            "cache-control",
-                        ),
+                        version: http_res.sig.version.to_string(),
+                        headers: http_res.sig.raw_headers.iter().map(|(k, v)| format!("{k}: {v}")).collect::<Vec<String>>().join(", "),
+                        status_code: http_res.sig.status_code,
                     },
                     signature: http_res.sig.to_string(),
                     web_server: http_res
@@ -361,6 +347,9 @@ fn main() {
                                 m.web_server.variant.as_deref().unwrap_or("???")
                             ),
                             quality: m.quality,
+                        }).unwrap_or_else(|| WebServerDetection {
+                            web_server: "unknown".to_string(),
+                            quality: 0.0,
                         }),
                     timestamp: now,
                 };
