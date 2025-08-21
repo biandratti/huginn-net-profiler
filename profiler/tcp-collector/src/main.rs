@@ -56,7 +56,7 @@ pub struct TcpDetails {
 pub struct SynPacketData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
-    pub os_detected: Option<OsDetection>,
+    pub os_detected: OsDetection,
     pub signature: String,
     pub details: TcpDetails,
     pub timestamp: u64,
@@ -66,7 +66,7 @@ pub struct SynPacketData {
 pub struct SynAckPacketData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
-    pub os_detected: Option<OsDetection>,
+    pub os_detected: OsDetection,
     pub signature: String,
     pub details: TcpDetails,
     pub timestamp: u64,
@@ -178,10 +178,17 @@ fn main() {
                         ip: syn.destination.ip.to_string(),
                         port: syn.destination.port,
                     },
-                    os_detected: syn.os_matched.as_ref().map(|m| OsDetection {
-                        os: format_os_detection(m),
-                        quality: m.quality,
-                    }),
+                    os_detected: syn
+                        .os_matched
+                        .as_ref()
+                        .map(|m| OsDetection {
+                            os: format_os_detection(m),
+                            quality: m.quality,
+                        })
+                        .unwrap_or(OsDetection {
+                            os: "unknown".to_string(),
+                            quality: 0.0,
+                        }),
                     signature: syn.sig.to_string(),
                     details: to_details(&syn.sig),
                     timestamp: now,
@@ -198,10 +205,17 @@ fn main() {
                         ip: syn_ack.destination.ip.to_string(),
                         port: syn_ack.destination.port,
                     },
-                    os_detected: syn_ack.os_matched.as_ref().map(|m| OsDetection {
-                        os: format_os_detection(m),
-                        quality: m.quality,
-                    }),
+                    os_detected: syn_ack
+                        .os_matched
+                        .as_ref()
+                        .map(|m| OsDetection {
+                            os: format_os_detection(m),
+                            quality: m.quality,
+                        })
+                        .unwrap_or(OsDetection {
+                            os: "unknown".to_string(),
+                            quality: 0.0,
+                        }),
                     signature: syn_ack.sig.to_string(),
                     details: to_details(&syn_ack.sig),
                     timestamp: now,

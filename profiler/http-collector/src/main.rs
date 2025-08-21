@@ -278,20 +278,30 @@ fn main() {
                         method: http_req.sig.method,
                         uri: http_req.sig.uri,
                         version: http_req.sig.version.to_string(),
-                        headers: http_req.sig.raw_headers.iter().map(|(k, v)| format!("{k}: {v}")).collect::<Vec<String>>().join(", "),
+                        headers: http_req
+                            .sig
+                            .raw_headers
+                            .iter()
+                            .map(|(k, v)| format!("{k}: {v}"))
+                            .collect::<Vec<String>>()
+                            .join(", "),
                     },
-                    browser: http_req.browser_matched.as_ref().map(|m| BrowserDetection {
-                        browser: format!(
-                            "{}/{}/{}",
-                            m.browser.name,
-                            m.browser.family.as_deref().unwrap_or("???"),
-                            m.browser.variant.as_deref().unwrap_or("???")
-                        ),
-                        quality: m.quality,
-                    }).unwrap_or_else(|| BrowserDetection {
-                        browser: "unknown".to_string(),
-                        quality: 0.0,
-                    }),
+                    browser: http_req
+                        .browser_matched
+                        .as_ref()
+                        .map(|m| BrowserDetection {
+                            browser: format!(
+                                "{}/{}/{}",
+                                m.browser.name,
+                                m.browser.family.as_deref().unwrap_or("???"),
+                                m.browser.variant.as_deref().unwrap_or("???")
+                            ),
+                            quality: m.quality,
+                        })
+                        .unwrap_or_else(|| BrowserDetection {
+                            browser: "unknown".to_string(),
+                            quality: 0.0,
+                        }),
                     timestamp: now,
                 };
                 info!(
@@ -332,7 +342,13 @@ fn main() {
                     details: HttpResponseDetails {
                         server: extract_header_value_from_horder(&horder_strings, "server"),
                         version: http_res.sig.version.to_string(),
-                        headers: http_res.sig.raw_headers.iter().map(|(k, v)| format!("{k}: {v}")).collect::<Vec<String>>().join(", "),
+                        headers: http_res
+                            .sig
+                            .raw_headers
+                            .iter()
+                            .map(|(k, v)| format!("{k}: {v}"))
+                            .collect::<Vec<String>>()
+                            .join(", "),
                         status_code: http_res.sig.status_code,
                     },
                     signature: http_res.sig.to_string(),
@@ -347,7 +363,8 @@ fn main() {
                                 m.web_server.variant.as_deref().unwrap_or("???")
                             ),
                             quality: m.quality,
-                        }).unwrap_or_else(|| WebServerDetection {
+                        })
+                        .unwrap_or_else(|| WebServerDetection {
                             web_server: "unknown".to_string(),
                             quality: 0.0,
                         }),

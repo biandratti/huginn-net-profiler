@@ -18,7 +18,7 @@ use tracing_subscriber::FmtSubscriber;
 pub struct SynPacketData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
-    pub os_detected: Option<OsDetection>,
+    pub os_detected: OsDetection,
     pub signature: String,
     pub details: TcpDetails,
     pub timestamp: u64,
@@ -53,7 +53,7 @@ pub struct TcpDetails {
 pub struct SynAckPacketData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
-    pub os_detected: Option<OsDetection>,
+    pub os_detected: OsDetection,
     pub signature: String,
     pub details: TcpDetails,
     pub timestamp: u64,

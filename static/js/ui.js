@@ -173,14 +173,13 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
         }
         
         if (data.uptime_seconds) {
-            const days = Math.floor(data.uptime_seconds / (24 * 3600));
-            const hours = Math.floor((data.uptime_seconds % (24 * 3600)) / 3600);
-            const minutes = Math.floor((data.uptime_seconds % 3600) / 60);
-            fields.push(`<div class="key-value-key">Uptime:</div><div class="key-value-value">${days}d ${hours}h ${minutes}m</div>`);
+            const uptimeHours = Math.floor(data.uptime_seconds / 3600);
+            const uptimeDays = Math.floor(uptimeHours / 24);
+            fields.push(`<div class="key-value-key">Uptime:</div><div class="key-value-value">${uptimeDays} days, ${uptimeHours % 24} hours</div>`);
         }
         
         if (data.up_mod_days) {
-            fields.push(`<div class="key-value-key">Wrap-around period:</div><div class="key-value-value">${data.up_mod_days} days</div>`);
+            fields.push(`<div class="key-value-key">Up Mod Days:</div><div class="key-value-value">${data.up_mod_days}</div>`);
         }
         
         if (data.freq) {
