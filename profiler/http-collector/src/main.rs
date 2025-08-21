@@ -234,9 +234,6 @@ fn main() {
                 .as_secs();
 
             if let Some(http_req) = result.http_request {
-                let horder_strings: Vec<String> =
-                    http_req.sig.horder.iter().map(|h| h.to_string()).collect();
-
                 let real_client_ip = extract_client_ip_from_raw_headers(
                     &http_req.sig.raw_headers,
                     &http_req.source.ip.to_string(),
