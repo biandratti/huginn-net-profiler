@@ -173,35 +173,37 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
         }
         
         if (data.uptime_seconds) {
-            const days = Math.floor(data.uptime_seconds / (24 * 3600));
-            const hours = Math.floor((data.uptime_seconds % (24 * 3600)) / 3600);
-            const minutes = Math.floor((data.uptime_seconds % 3600) / 60);
-            fields.push(`<div class="key-value-key">Uptime:</div><div class="key-value-value">${days}d ${hours}h ${minutes}m</div>`);
+            const uptimeHours = Math.floor(data.uptime_seconds / 3600);
+            const uptimeDays = Math.floor(uptimeHours / 24);
+            fields.push(`<div class="key-value-key">Uptime:</div><div class="key-value-value">${uptimeDays} days, ${uptimeHours % 24} hours</div>`);
         }
         
         if (data.up_mod_days) {
-            fields.push(`<div class="key-value-key">Wrap-around period:</div><div class="key-value-value">${data.up_mod_days} days</div>`);
+            fields.push(`<div class="key-value-key">Up Mod Days:</div><div class="key-value-value">${data.up_mod_days}</div>`);
         }
         
         if (data.freq) {
             fields.push(`<div class="key-value-key">Clock frequency:</div><div class="key-value-value">${data.freq.toFixed(2)} Hz</div>`);
         }
         
-        if (data.details) {
-            fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.details.version}</div>`);
-            fields.push(`<div class="key-value-key">TTL:</div><div class="key-value-value">${data.details.initial_ttl}</div>`);
-            if (data.details.mss) {
-                fields.push(`<div class="key-value-key">MSS:</div><div class="key-value-value">${data.details.mss}</div>`);
+        if (data.observed) {
+            fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.observed.version}</div>`);
+            fields.push(`<div class="key-value-key">TTL:</div><div class="key-value-value">${data.observed.initial_ttl}</div>`);
+            if (data.observed.mss) {
+                fields.push(`<div class="key-value-key">MSS:</div><div class="key-value-value">${data.observed.mss}</div>`);
             }
-            fields.push(`<div class="key-value-key">Window Size:</div><div class="key-value-value">${data.details.window_size}</div>`);
-            if (data.details.window_scale) {
-                fields.push(`<div class="key-value-key">Window Scale:</div><div class="key-value-value">${data.details.window_scale}</div>`);
+            fields.push(`<div class="key-value-key">Window Size:</div><div class="key-value-value">${data.observed.window_size}</div>`);
+            if (data.observed.window_scale) {
+                fields.push(`<div class="key-value-key">Window Scale:</div><div class="key-value-value">${data.observed.window_scale}</div>`);
             }
-            if (data.details.options_layout) {
-                fields.push(`<div class="key-value-key">Options:</div><div class="key-value-value">${this.makeExpandable(data.details.options_layout, 40)}</div>`);
+            if (data.observed.options_layout) {
+                fields.push(`<div class="key-value-key">Options:</div><div class="key-value-value">${this.makeExpandable(data.observed.options_layout, 40)}</div>`);
             }
-            if (data.details.quirks) {
-                fields.push(`<div class="key-value-key">Quirks:</div><div class="key-value-value">${this.makeExpandable(data.details.quirks, 40)}</div>`);
+            if (data.observed.quirks) {
+                fields.push(`<div class="key-value-key">Quirks:</div><div class="key-value-value">${this.makeExpandable(data.observed.quirks, 40)}</div>`);
+            }
+            if (data.observed.payload_class) {
+                fields.push(`<div class="key-value-key">Payload Class:</div><div class="key-value-value">${this.makeExpandable(data.observed.payload_class, 40)}</div>`);
             }
         }
         
@@ -254,54 +256,42 @@ ${content}
             fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${this.formatQuality(data.web_server.quality)}</div>`);
         }
         
-        // HTTP details
-        if (data.details) {
-            if (data.details.host) {
-                fields.push(`<div class="key-value-key">Host:</div><div class="key-value-value">${data.details.host}</div>`);
+        // HTTP observed data
+        if (data.observed) {
+            if (data.observed.user_agent) {
+                fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${this.makeExpandable(data.observed.user_agent, 80)}</div>`);
             }
             
-            if (data.details.user_agent) {
-                fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${this.makeExpandable(data.details.user_agent, 80)}</div>`);
+            if (data.observed.lang) {
+                fields.push(`<div class="key-value-key">Language:</div><div class="key-value-value">${data.observed.lang}</div>`);
             }
             
-            if (data.details.lang) {
-                fields.push(`<div class="key-value-key">Language:</div><div class="key-value-value">${data.details.lang}</div>`);
+            if (data.observed.method) {
+                fields.push(`<div class="key-value-key">Method:</div><div class="key-value-value">${data.observed.method}</div>`);
             }
             
-            if (data.details.accept) {
-                fields.push(`<div class="key-value-key">Accept:</div><div class="key-value-value">${this.makeExpandable(data.details.accept, 60)}</div>`);
+            if (data.observed.uri) {
+                fields.push(`<div class="key-value-key">URI:</div><div class="key-value-value">${this.makeExpandable(data.observed.uri, 60)}</div>`);
             }
             
-            if (data.details.accept_language) {
-                fields.push(`<div class="key-value-key">Accept-Language:</div><div class="key-value-value">${data.details.accept_language}</div>`);
+            if (data.observed.diagnostic) {
+                fields.push(`<div class="key-value-key">Diagnostic:</div><div class="key-value-value">${this.makeExpandable(data.observed.diagnostic, 80)}</div>`);
             }
             
-            if (data.details.accept_encoding) {
-                fields.push(`<div class="key-value-key">Accept-Encoding:</div><div class="key-value-value">${data.details.accept_encoding}</div>`);
+            if (data.observed.version) {
+                fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.observed.version}</div>`);
             }
             
-            if (data.details.connection) {
-                fields.push(`<div class="key-value-key">Connection:</div><div class="key-value-value">${data.details.connection}</div>`);
+            if (data.observed.headers) {
+                fields.push(`<div class="key-value-key">Headers:</div><div class="key-value-value">${this.makeExpandable(data.observed.headers, 100)}</div>`);
             }
             
-            if (data.details.server) {
-                fields.push(`<div class="key-value-key">Server:</div><div class="key-value-value">${data.details.server}</div>`);
+            if (data.observed.server) {
+                fields.push(`<div class="key-value-key">Server:</div><div class="key-value-value">${data.observed.server}</div>`);
             }
             
-            if (data.details.content_type) {
-                fields.push(`<div class="key-value-key">Content-Type:</div><div class="key-value-value">${data.details.content_type}</div>`);
-            }
-            
-            if (data.details.content_length) {
-                fields.push(`<div class="key-value-key">Content-Length:</div><div class="key-value-value">${data.details.content_length}</div>`);
-            }
-            
-            if (data.details.set_cookie) {
-                fields.push(`<div class="key-value-key">Set-Cookie:</div><div class="key-value-value">${data.details.set_cookie}</div>`);
-            }
-            
-            if (data.details.cache_control) {
-                fields.push(`<div class="key-value-key">Cache-Control:</div><div class="key-value-value">${data.details.cache_control}</div>`);
+            if (data.observed.status_code) {
+                fields.push(`<div class="key-value-key">Status Code:</div><div class="key-value-value">${data.observed.status_code}</div>`);
             }
         }
         

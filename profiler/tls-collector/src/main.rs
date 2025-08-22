@@ -27,7 +27,6 @@ struct Args {
 
 #[derive(Serialize, Clone, Debug)]
 pub struct TlsClient {
-    pub id: String,
     pub timestamp: u64,
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
@@ -132,7 +131,6 @@ fn main() {
                     .as_secs();
 
                 let ingest: TlsClient = TlsClient {
-                    id: tls_data.source.ip.to_string(),
                     timestamp: now,
                     source: NetworkEndpoint {
                         ip: tls_data.source.ip.to_string(),
@@ -163,20 +161,20 @@ fn main() {
 }
 
 async fn send_tls_to_assembler(data: TlsClient, client: &reqwest::Client, endpoint: &str) {
-    info!("Sending TLS data for {}", data.id);
+    info!("Sending TLS data for {}", data.source.ip);
     match client.post(endpoint).json(&data).send().await {
         Ok(response) => {
             if !response.status().is_success() {
                 error!(
                     "Failed to send TLS data for {}. Status: {}, Body: {:?}",
-                    data.id,
+                    data.source.ip,
                     response.status(),
                     response.text().await
                 );
             }
         }
         Err(e) => {
-            error!("Error sending TLS data for {}: {:?}", data.id, e);
+            error!("Error sending TLS data for {}: {:?}", data.source.ip, e);
         }
     }
 }

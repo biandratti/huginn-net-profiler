@@ -40,7 +40,7 @@ pub struct OsDetection {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct TcpDetails {
+pub struct TcpObserved {
     pub version: String,
     pub initial_ttl: String,
     pub options_length: u8,
@@ -56,9 +56,9 @@ pub struct TcpDetails {
 pub struct SynPacketData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
-    pub os_detected: Option<OsDetection>,
+    pub os_detected: OsDetection,
     pub signature: String,
-    pub details: TcpDetails,
+    pub observed: TcpObserved,
     pub timestamp: u64,
 }
 
@@ -66,9 +66,9 @@ pub struct SynPacketData {
 pub struct SynAckPacketData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
-    pub os_detected: Option<OsDetection>,
+    pub os_detected: OsDetection,
     pub signature: String,
-    pub details: TcpDetails,
+    pub observed: TcpObserved,
     pub timestamp: u64,
 }
 
@@ -178,12 +178,19 @@ fn main() {
                         ip: syn.destination.ip.to_string(),
                         port: syn.destination.port,
                     },
-                    os_detected: syn.os_matched.as_ref().map(|m| OsDetection {
-                        os: format_os_detection(m),
-                        quality: m.quality,
-                    }),
+                    os_detected: syn
+                        .os_matched
+                        .as_ref()
+                        .map(|m| OsDetection {
+                            os: format_os_detection(m),
+                            quality: m.quality,
+                        })
+                        .unwrap_or(OsDetection {
+                            os: "unknown".to_string(),
+                            quality: 0.0,
+                        }),
                     signature: syn.sig.to_string(),
-                    details: to_details(&syn.sig),
+                    observed: to_details(&syn.sig),
                     timestamp: now,
                 };
                 send_syn_to_assembler(ingest, &client, &assembler_endpoint).await;
@@ -198,12 +205,19 @@ fn main() {
                         ip: syn_ack.destination.ip.to_string(),
                         port: syn_ack.destination.port,
                     },
-                    os_detected: syn_ack.os_matched.as_ref().map(|m| OsDetection {
-                        os: format_os_detection(m),
-                        quality: m.quality,
-                    }),
+                    os_detected: syn_ack
+                        .os_matched
+                        .as_ref()
+                        .map(|m| OsDetection {
+                            os: format_os_detection(m),
+                            quality: m.quality,
+                        })
+                        .unwrap_or(OsDetection {
+                            os: "unknown".to_string(),
+                            quality: 0.0,
+                        }),
                     signature: syn_ack.sig.to_string(),
-                    details: to_details(&syn_ack.sig),
+                    observed: to_details(&syn_ack.sig),
                     timestamp: now,
                 };
                 send_syn_ack_to_assembler(ingest, &client, &assembler_endpoint).await;
@@ -248,8 +262,8 @@ fn main() {
     });
 }
 
-fn to_details(sig: &huginn_net::ObservableTcp) -> TcpDetails {
-    TcpDetails {
+fn to_details(sig: &huginn_net::ObservableTcp) -> TcpObserved {
+    TcpObserved {
         version: sig.version.to_string(),
         initial_ttl: extract_ttl(&sig.ittl),
         options_length: sig.olen,
