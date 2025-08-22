@@ -40,7 +40,7 @@ pub struct OsDetection {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct TcpDetails {
+pub struct TcpObserved {
     pub version: String,
     pub initial_ttl: String,
     pub options_length: u8,
@@ -58,7 +58,7 @@ pub struct SynPacketData {
     pub destination: NetworkEndpoint,
     pub os_detected: OsDetection,
     pub signature: String,
-    pub details: TcpDetails,
+    pub observed: TcpObserved,
     pub timestamp: u64,
 }
 
@@ -68,7 +68,7 @@ pub struct SynAckPacketData {
     pub destination: NetworkEndpoint,
     pub os_detected: OsDetection,
     pub signature: String,
-    pub details: TcpDetails,
+    pub observed: TcpObserved,
     pub timestamp: u64,
 }
 
@@ -190,7 +190,7 @@ fn main() {
                             quality: 0.0,
                         }),
                     signature: syn.sig.to_string(),
-                    details: to_details(&syn.sig),
+                    observed: to_details(&syn.sig),
                     timestamp: now,
                 };
                 send_syn_to_assembler(ingest, &client, &assembler_endpoint).await;
@@ -217,7 +217,7 @@ fn main() {
                             quality: 0.0,
                         }),
                     signature: syn_ack.sig.to_string(),
-                    details: to_details(&syn_ack.sig),
+                    observed: to_details(&syn_ack.sig),
                     timestamp: now,
                 };
                 send_syn_ack_to_assembler(ingest, &client, &assembler_endpoint).await;
@@ -262,8 +262,8 @@ fn main() {
     });
 }
 
-fn to_details(sig: &huginn_net::ObservableTcp) -> TcpDetails {
-    TcpDetails {
+fn to_details(sig: &huginn_net::ObservableTcp) -> TcpObserved {
+    TcpObserved {
         version: sig.version.to_string(),
         initial_ttl: extract_ttl(&sig.ittl),
         options_length: sig.olen,

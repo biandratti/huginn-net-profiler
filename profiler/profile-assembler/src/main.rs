@@ -20,7 +20,7 @@ pub struct SynPacketData {
     pub destination: NetworkEndpoint,
     pub os_detected: OsDetection,
     pub signature: String,
-    pub details: TcpDetails,
+    pub observed: TcpObserved,
     pub timestamp: u64,
 }
 
@@ -37,7 +37,7 @@ pub struct OsDetection {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TcpDetails {
+pub struct TcpObserved {
     pub version: String,
     pub initial_ttl: String,
     pub options_length: u8,
@@ -55,7 +55,7 @@ pub struct SynAckPacketData {
     pub destination: NetworkEndpoint,
     pub os_detected: OsDetection,
     pub signature: String,
-    pub details: TcpDetails,
+    pub observed: TcpObserved,
     pub timestamp: u64,
 }
 
@@ -92,7 +92,7 @@ pub struct BrowserDetection {
     pub quality: f32,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct HttpRequestDetails {
+pub struct HttpRequestObserved {
     pub lang: Option<String>,
     pub user_agent: Option<String>,
     pub diagnostic: String,
@@ -106,7 +106,7 @@ pub struct HttpRequestDetails {
 pub struct HttpRequestData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
-    pub details: HttpRequestDetails,
+    pub observed: HttpRequestObserved,
     pub signature: String,
     pub browser: BrowserDetection,
     pub timestamp: u64,
@@ -119,7 +119,7 @@ pub struct WebServerDetection {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct HttpResponseDetails {
+pub struct HttpResponseObserved {
     pub server: Option<String>,
     pub version: String,
     pub headers: String,
@@ -129,7 +129,7 @@ pub struct HttpResponseDetails {
 pub struct HttpResponseData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
-    pub details: HttpResponseDetails,
+    pub observed: HttpResponseObserved,
     pub signature: String,
     pub web_server: WebServerDetection,
     pub timestamp: u64,

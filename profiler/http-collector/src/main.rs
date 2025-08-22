@@ -41,7 +41,7 @@ pub struct BrowserDetection {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct HttpRequestDetails {
+pub struct HttpRequestObserved {
     pub lang: Option<String>,
     pub user_agent: Option<String>,
     pub diagnostic: String,
@@ -55,7 +55,7 @@ pub struct HttpRequestDetails {
 pub struct HttpRequestData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
-    pub details: HttpRequestDetails,
+    pub observed: HttpRequestObserved,
     pub signature: String,
     pub browser: BrowserDetection,
     pub timestamp: u64,
@@ -68,7 +68,7 @@ pub struct WebServerDetection {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct HttpResponseDetails {
+pub struct HttpResponseObserved {
     pub server: Option<String>,
     pub version: String,
     pub headers: String,
@@ -79,7 +79,7 @@ pub struct HttpResponseDetails {
 pub struct HttpResponseData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
-    pub details: HttpResponseDetails,
+    pub observed: HttpResponseObserved,
     pub signature: String,
     pub web_server: WebServerDetection,
     pub timestamp: u64,
@@ -268,7 +268,7 @@ fn main() {
                         port: http_req.destination.port,
                     },
                     signature: http_req.sig.to_string(),
-                    details: HttpRequestDetails {
+                    observed: HttpRequestObserved {
                         user_agent: http_req.sig.user_agent,
                         lang: http_req.lang,
                         diagnostic: http_req.diagnosis.to_string(),
@@ -336,7 +336,7 @@ fn main() {
                         ip: real_client_ip,
                         port: http_res.destination.port,
                     },
-                    details: HttpResponseDetails {
+                    observed: HttpResponseObserved {
                         server: extract_header_value_from_horder(&horder_strings, "server"),
                         version: http_res.sig.version.to_string(),
                         headers: http_res

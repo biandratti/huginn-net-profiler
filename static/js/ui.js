@@ -186,21 +186,24 @@ ${data ? this.formatTcpFields(data) : (emptyMessage || 'No data available')}
             fields.push(`<div class="key-value-key">Clock frequency:</div><div class="key-value-value">${data.freq.toFixed(2)} Hz</div>`);
         }
         
-        if (data.details) {
-            fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.details.version}</div>`);
-            fields.push(`<div class="key-value-key">TTL:</div><div class="key-value-value">${data.details.initial_ttl}</div>`);
-            if (data.details.mss) {
-                fields.push(`<div class="key-value-key">MSS:</div><div class="key-value-value">${data.details.mss}</div>`);
+        if (data.observed) {
+            fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.observed.version}</div>`);
+            fields.push(`<div class="key-value-key">TTL:</div><div class="key-value-value">${data.observed.initial_ttl}</div>`);
+            if (data.observed.mss) {
+                fields.push(`<div class="key-value-key">MSS:</div><div class="key-value-value">${data.observed.mss}</div>`);
             }
-            fields.push(`<div class="key-value-key">Window Size:</div><div class="key-value-value">${data.details.window_size}</div>`);
-            if (data.details.window_scale) {
-                fields.push(`<div class="key-value-key">Window Scale:</div><div class="key-value-value">${data.details.window_scale}</div>`);
+            fields.push(`<div class="key-value-key">Window Size:</div><div class="key-value-value">${data.observed.window_size}</div>`);
+            if (data.observed.window_scale) {
+                fields.push(`<div class="key-value-key">Window Scale:</div><div class="key-value-value">${data.observed.window_scale}</div>`);
             }
-            if (data.details.options_layout) {
-                fields.push(`<div class="key-value-key">Options:</div><div class="key-value-value">${this.makeExpandable(data.details.options_layout, 40)}</div>`);
+            if (data.observed.options_layout) {
+                fields.push(`<div class="key-value-key">Options:</div><div class="key-value-value">${this.makeExpandable(data.observed.options_layout, 40)}</div>`);
             }
-            if (data.details.quirks) {
-                fields.push(`<div class="key-value-key">Quirks:</div><div class="key-value-value">${this.makeExpandable(data.details.quirks, 40)}</div>`);
+            if (data.observed.quirks) {
+                fields.push(`<div class="key-value-key">Quirks:</div><div class="key-value-value">${this.makeExpandable(data.observed.quirks, 40)}</div>`);
+            }
+            if (data.observed.payload_class) {
+                fields.push(`<div class="key-value-key">Payload Class:</div><div class="key-value-value">${this.makeExpandable(data.observed.payload_class, 40)}</div>`);
             }
         }
         
@@ -253,42 +256,42 @@ ${content}
             fields.push(`<div class="key-value-key">Quality matching:</div><div class="key-value-value">${this.formatQuality(data.web_server.quality)}</div>`);
         }
         
-        // HTTP details
-        if (data.details) {
-            if (data.details.user_agent) {
-                fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${this.makeExpandable(data.details.user_agent, 80)}</div>`);
+        // HTTP observed data
+        if (data.observed) {
+            if (data.observed.user_agent) {
+                fields.push(`<div class="key-value-key">User-Agent:</div><div class="key-value-value">${this.makeExpandable(data.observed.user_agent, 80)}</div>`);
             }
             
-            if (data.details.lang) {
-                fields.push(`<div class="key-value-key">Language:</div><div class="key-value-value">${data.details.lang}</div>`);
+            if (data.observed.lang) {
+                fields.push(`<div class="key-value-key">Language:</div><div class="key-value-value">${data.observed.lang}</div>`);
             }
             
-            if (data.details.method) {
-                fields.push(`<div class="key-value-key">Method:</div><div class="key-value-value">${data.details.method}</div>`);
+            if (data.observed.method) {
+                fields.push(`<div class="key-value-key">Method:</div><div class="key-value-value">${data.observed.method}</div>`);
             }
             
-            if (data.details.uri) {
-                fields.push(`<div class="key-value-key">URI:</div><div class="key-value-value">${this.makeExpandable(data.details.uri, 60)}</div>`);
+            if (data.observed.uri) {
+                fields.push(`<div class="key-value-key">URI:</div><div class="key-value-value">${this.makeExpandable(data.observed.uri, 60)}</div>`);
             }
             
-            if (data.details.diagnostic) {
-                fields.push(`<div class="key-value-key">Diagnostic:</div><div class="key-value-value">${this.makeExpandable(data.details.diagnostic, 80)}</div>`);
+            if (data.observed.diagnostic) {
+                fields.push(`<div class="key-value-key">Diagnostic:</div><div class="key-value-value">${this.makeExpandable(data.observed.diagnostic, 80)}</div>`);
             }
             
-            if (data.details.version) {
-                fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.details.version}</div>`);
+            if (data.observed.version) {
+                fields.push(`<div class="key-value-key">Version:</div><div class="key-value-value">${data.observed.version}</div>`);
             }
             
-            if (data.details.headers) {
-                fields.push(`<div class="key-value-key">Headers:</div><div class="key-value-value">${this.makeExpandable(data.details.headers, 100)}</div>`);
+            if (data.observed.headers) {
+                fields.push(`<div class="key-value-key">Headers:</div><div class="key-value-value">${this.makeExpandable(data.observed.headers, 100)}</div>`);
             }
             
-            if (data.details.server) {
-                fields.push(`<div class="key-value-key">Server:</div><div class="key-value-value">${data.details.server}</div>`);
+            if (data.observed.server) {
+                fields.push(`<div class="key-value-key">Server:</div><div class="key-value-value">${data.observed.server}</div>`);
             }
             
-            if (data.details.status_code) {
-                fields.push(`<div class="key-value-key">Status Code:</div><div class="key-value-value">${data.details.status_code}</div>`);
+            if (data.observed.status_code) {
+                fields.push(`<div class="key-value-key">Status Code:</div><div class="key-value-value">${data.observed.status_code}</div>`);
             }
         }
         
