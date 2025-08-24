@@ -1,8 +1,20 @@
+[advisories]
+version = 2
+unmaintained = "all"
+
 [licenses]
+version = 2
 allow = [
     "MIT",
     "Apache-2.0",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
     "Unicode-3.0",
+    "BSD-3-Clause",
 ]
+confidence-threshold = 1.0
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+
+[sources]
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
