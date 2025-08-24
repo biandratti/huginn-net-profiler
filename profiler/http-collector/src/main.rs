@@ -1,6 +1,7 @@
 use clap::Parser;
 use huginn_net::AnalysisConfig;
 
+use huginn_net::http_common::HttpHeader;
 use huginn_net::{db::Database, fingerprint_result::FingerprintResult, HuginnNet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -124,14 +125,16 @@ struct ConnectionInfo {
 
 type ConnectionMap = Arc<Mutex<HashMap<ConnectionKey, ConnectionInfo>>>;
 
-fn extract_client_ip_from_raw_headers(
-    raw_headers: &std::collections::HashMap<String, String>,
-    fallback_ip: &str,
-) -> String {
+fn extract_client_ip_from_raw_headers(raw_headers: &[HttpHeader], fallback_ip: &str) -> String {
     raw_headers
-        .get("x-real-ip")
-        .or_else(|| raw_headers.get("X-Real-IP"))
-        .or_else(|| raw_headers.get("X-Real-Ip"))
+        .iter()
+        .find(|h| {
+            let header_name = h.name.to_lowercase();
+            header_name == "x-real-ip"
+                || header_name == "x-forwarded-for"
+                || header_name == "x-client-ip"
+        })
+        .and_then(|h| h.value.as_ref())
         .cloned()
         .unwrap_or_else(|| fallback_ip.to_string())
 }
@@ -235,7 +238,7 @@ fn main() {
 
             if let Some(http_req) = result.http_request {
                 let real_client_ip = extract_client_ip_from_raw_headers(
-                    &http_req.sig.raw_headers,
+                    &http_req.sig.headers_raw,
                     &http_req.source.ip.to_string(),
                 );
 
@@ -277,9 +280,15 @@ fn main() {
                         version: http_req.sig.version.to_string(),
                         headers: http_req
                             .sig
-                            .raw_headers
+                            .headers_raw
                             .iter()
-                            .map(|(k, v)| format!("{k}: {v}"))
+                            .map(|header| {
+                                format!(
+                                    "{}: {}",
+                                    header.name,
+                                    header.value.as_deref().unwrap_or("")
+                                )
+                            })
                             .collect::<Vec<String>>()
                             .join(", "),
                     },
@@ -341,9 +350,15 @@ fn main() {
                         version: http_res.sig.version.to_string(),
                         headers: http_res
                             .sig
-                            .raw_headers
+                            .headers_raw
                             .iter()
-                            .map(|(k, v)| format!("{k}: {v}"))
+                            .map(|header| {
+                                format!(
+                                    "{}: {}",
+                                    header.name,
+                                    header.value.as_deref().unwrap_or("")
+                                )
+                            })
                             .collect::<Vec<String>>()
                             .join(", "),
                         status_code: http_res.sig.status_code,
