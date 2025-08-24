@@ -199,7 +199,7 @@ async fn main() {
         .route("/api/ingest/http_response", post(ingest_http_response))
         .route("/api/ingest/tls", post(ingest_tls))
         .route("/api/profiles", get(get_profiles))
-        .route("/api/profiles/:id", get(get_profile_by_id))
+        .route("/api/profiles/{id}", get(get_profile_by_id))
         .route("/api/stats", get(get_stats))
         .route("/api/my-profile", get(get_my_profile))
         .route("/health", get(health_check))
