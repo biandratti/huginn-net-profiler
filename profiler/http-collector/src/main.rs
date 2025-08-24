@@ -125,7 +125,7 @@ struct ConnectionInfo {
 
 type ConnectionMap = Arc<Mutex<HashMap<ConnectionKey, ConnectionInfo>>>;
 
-fn extract_client_ip_from_raw_headers(raw_headers: &Vec<HttpHeader>, fallback_ip: &str) -> String {
+fn extract_client_ip_from_raw_headers(raw_headers: &[HttpHeader], fallback_ip: &str) -> String {
     raw_headers
         .iter()
         .find(|h| {
