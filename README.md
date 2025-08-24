@@ -114,20 +114,21 @@ sudo ./target/release/tls-collector --interface eth0
 
 ```
 External Client
-    ↓ (TLS/TCP traffic)
+    ↓
+    ├─── tcp-collector (captures TCP packets)
+    ├─── tls-collector (captures TLS handshakes)
+    ↓
 Traefik (Reverse Proxy)
-    ↓ (HTTP traffic)
+    ↓
+    ├─── http-collector (captures HTTP requests/responses)
+    ↓
 Backend Services
-    ↑                    ↑                    ↑
-tcp-collector       http-collector      tls-collector
-(host interface)   (Docker bridge)     (host interface)
-    ↓                    ↓                    ↓
-            profile-assembler (API)
-                     ↓
-              Web Client / API
-```
 
-## UI as example
-![Huginn Network Profiler UI](image.png)
+All collectors send data to:
+    ↓
+profile-assembler (REST API)
+    ↓
+Web Client / Dashboard
+```
 
 The web interface shows real-time network traffic analysis with detailed TCP, HTTP, and TLS profiling information for connected devices.
