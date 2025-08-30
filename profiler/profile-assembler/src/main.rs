@@ -99,6 +99,8 @@ pub struct HttpRequestObserved {
     pub method: Option<String>,
     pub version: String,
     pub headers: String,
+    pub cookies: String,
+    pub referer: Option<String>,
     pub uri: Option<String>,
 }
 

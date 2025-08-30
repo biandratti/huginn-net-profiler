@@ -286,6 +286,14 @@ ${content}
                 fields.push(`<div class="key-value-key">Headers:</div><div class="key-value-value">${this.makeExpandable(data.observed.headers, 100)}</div>`);
             }
             
+            if (data.observed.cookies) {
+                fields.push(`<div class="key-value-key">Cookies:</div><div class="key-value-value">${this.makeExpandable(data.observed.cookies, 80)}</div>`);
+            }
+            
+            if (data.observed.referer) {
+                fields.push(`<div class="key-value-key">Referer:</div><div class="key-value-value">${this.makeExpandable(data.observed.referer, 60)}</div>`);
+            }
+            
             if (data.observed.server) {
                 fields.push(`<div class="key-value-key">Server:</div><div class="key-value-value">${data.observed.server}</div>`);
             }
