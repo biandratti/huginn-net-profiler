@@ -49,6 +49,8 @@ pub struct HttpRequestObserved {
     pub method: Option<String>,
     pub version: String,
     pub headers: String,
+    pub cookies: String,
+    pub referer: Option<String>,
     pub uri: Option<String>,
 }
 
@@ -125,8 +127,8 @@ struct ConnectionInfo {
 
 type ConnectionMap = Arc<Mutex<HashMap<ConnectionKey, ConnectionInfo>>>;
 
-fn extract_client_ip_from_raw_headers(raw_headers: &[HttpHeader], fallback_ip: &str) -> String {
-    raw_headers
+fn extract_client_ip_from_raw_headers(headers: &[HttpHeader], fallback_ip: &str) -> String {
+    headers
         .iter()
         .find(|h| {
             let header_name = h.name.to_lowercase();
@@ -238,7 +240,7 @@ fn main() {
 
             if let Some(http_req) = result.http_request {
                 let real_client_ip = extract_client_ip_from_raw_headers(
-                    &http_req.sig.headers_raw,
+                    &http_req.sig.headers,
                     &http_req.source.ip.to_string(),
                 );
 
@@ -280,7 +282,7 @@ fn main() {
                         version: http_req.sig.version.to_string(),
                         headers: http_req
                             .sig
-                            .headers_raw
+                            .headers
                             .iter()
                             .map(|header| {
                                 format!(
@@ -291,6 +293,20 @@ fn main() {
                             })
                             .collect::<Vec<String>>()
                             .join(", "),
+                        cookies: http_req
+                            .sig
+                            .cookies
+                            .iter()
+                            .map(|cookie| {
+                                format!(
+                                    "{}: {}",
+                                    cookie.name,
+                                    cookie.value.as_deref().unwrap_or("")
+                                )
+                            })
+                            .collect::<Vec<String>>()
+                            .join(", "),
+                        referer: http_req.sig.referer,
                     },
                     browser: http_req
                         .browser_matched
@@ -350,7 +366,7 @@ fn main() {
                         version: http_res.sig.version.to_string(),
                         headers: http_res
                             .sig
-                            .headers_raw
+                            .headers
                             .iter()
                             .map(|header| {
                                 format!(
