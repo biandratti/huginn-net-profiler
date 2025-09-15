@@ -636,9 +636,9 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "huginn-net"
-version = "1.4.5"
+version = "1.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b89007c1f8081e44840ba7181bfc9685aeba18485acc4a864dadefc0f95dbde"
+checksum = "d8f7e38fc365baef1269109e716e29d2edfccd1756ed58cb94ab99388e56a481"
 dependencies = [
  "hpack-patched",
  "lazy_static",
