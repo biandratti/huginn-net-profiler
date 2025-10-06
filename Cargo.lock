@@ -636,20 +636,72 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "huginn-net"
-version = "1.4.5"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b89007c1f8081e44840ba7181bfc9685aeba18485acc4a864dadefc0f95dbde"
+checksum = "0f72bb6e8504dcba6b4d048720351875d9f5d13c0158829d2996cd3f0230dea4"
 dependencies = [
- "hpack-patched",
+ "huginn-net-db",
+ "huginn-net-http",
+ "huginn-net-tcp",
+ "huginn-net-tls",
  "lazy_static",
- "nom 8.0.0",
  "pcap-file",
  "pnet",
- "sha2",
- "thiserror 2.0.16",
- "tls-parser",
+ "thiserror 2.0.17",
  "tracing",
  "ttl_cache",
+]
+
+[[package]]
+name = "huginn-net-db"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "40d2b3dab124c7535720ebac3b73490a1b73c065943fd2a88f69b8f56ad356cc"
+dependencies = [
+ "nom 8.0.0",
+ "thiserror 2.0.17",
+ "tracing",
+]
+
+[[package]]
+name = "huginn-net-http"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "994eb2ef417479bc2ba46720ae9d67b44f0cc4740e8b205ad1218d71960ffc24"
+dependencies = [
+ "hpack-patched",
+ "huginn-net-db",
+ "lazy_static",
+ "pnet",
+ "thiserror 2.0.17",
+ "tracing",
+ "ttl_cache",
+]
+
+[[package]]
+name = "huginn-net-tcp"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2290ae01232c54206fbf62bd0738f20e58c249559884d2e89e36d47fc6f0b081"
+dependencies = [
+ "huginn-net-db",
+ "pnet",
+ "thiserror 2.0.17",
+ "tracing",
+ "ttl_cache",
+]
+
+[[package]]
+name = "huginn-net-tls"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3e3404e013ea1ce7aebaadb1a9f3e77c5b0a868e2273c5ed793bfa925400d63"
+dependencies = [
+ "pnet",
+ "sha2",
+ "thiserror 2.0.17",
+ "tls-parser",
+ "tracing",
 ]
 
 [[package]]
@@ -1908,11 +1960,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.16"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3467d614147380f2e4e374161426ff399c91084acd2363eaf549172b3d5e60c0"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
 dependencies = [
- "thiserror-impl 2.0.16",
+ "thiserror-impl 2.0.17",
 ]
 
 [[package]]
@@ -1928,9 +1980,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.16"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c5e1be1c48b9172ee610da68fd9cd2770e7a4056cb3fc98710ee6906f0c7960"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",
