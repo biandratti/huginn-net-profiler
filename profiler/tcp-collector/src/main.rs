@@ -1,5 +1,6 @@
 use clap::Parser;
 use huginn_net_db::{Database, MatchQualityType};
+use huginn_net_tcp::OperativeSystem;
 use huginn_net_tcp::{HuginnNetTcp, TcpAnalysisResult};
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -95,6 +96,20 @@ type SynIngest = SynPacketData;
 type SynAckIngest = SynAckPacketData;
 type MtuIngest = MtuData;
 type UptimeIngest = UptimeData;
+
+fn format_os(os: &OperativeSystem) -> String {
+    let mut parts = vec![os.name.as_str()];
+
+    if let Some(family) = &os.family {
+        parts.push(family.as_str());
+    }
+
+    if let Some(variant) = &os.variant {
+        parts.push(variant.as_str());
+    }
+
+    parts.join(" / ")
+}
 
 fn main() {
     let subscriber = FmtSubscriber::builder()
@@ -216,7 +231,7 @@ fn main() {
                         os: syn
                             .os_matched
                             .os
-                            .map(|o| format!("{:?}", o))
+                            .map(|o| format_os(&o))
                             .unwrap_or_else(|| "unknown".to_string()),
                         quality: match syn.os_matched.quality {
                             MatchQualityType::Matched(score) => score,
@@ -244,7 +259,7 @@ fn main() {
                         os: syn_ack
                             .os_matched
                             .os
-                            .map(|o| format!("{:?}", o))
+                            .map(|o| format_os(&o))
                             .unwrap_or_else(|| "unknown".to_string()),
                         quality: match syn_ack.os_matched.quality {
                             MatchQualityType::Matched(score) => score,

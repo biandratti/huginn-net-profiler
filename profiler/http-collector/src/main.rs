@@ -1,9 +1,10 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use huginn_net_db::{Database, MatchQualityType};
 use huginn_net_http::http_common::HttpHeader;
 use huginn_net_http::{HttpAnalysisResult, HuginnNetHttp};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
@@ -16,27 +17,17 @@ use tracing::{debug, error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(author, version, about, long_about = None)]
 struct Args {
-    #[command(subcommand)]
-    command: Commands,
-
-    /// Assembler endpoint
-    #[arg(
-        short = 'e',
-        long = "assembler-endpoint",
+    #[clap(short, long, value_parser)]
+    interface: Option<String>,
+    #[clap(
+        short,
+        long,
+        value_parser,
         default_value = "http://localhost:8000/api/ingest"
     )]
     assembler_endpoint: String,
-}
-
-#[derive(Subcommand, Debug)]
-enum Commands {
-    Live {
-        /// Network interface name
-        #[arg(short = 'i', long)]
-        interface: String,
-    },
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -160,8 +151,12 @@ fn main() {
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     let args = Args::parse();
+    let interface = args
+        .interface
+        .unwrap_or_else(|| env::var("PROFILER_INTERFACE").unwrap_or("wlp0s20f3".to_string()));
+    let assembler_endpoint = args.assembler_endpoint;
 
-    info!("Starting HTTP-only capture");
+    info!("Booting http-collector on interface {interface} pointed to {assembler_endpoint}");
 
     let (sender, receiver): (Sender<HttpAnalysisResult>, Receiver<HttpAnalysisResult>) =
         mpsc::channel();
@@ -178,6 +173,7 @@ fn main() {
         return;
     }
 
+    let analysis_interface = interface.clone();
     thread::spawn(move || {
         let db = match Database::load_default() {
             Ok(db) => db,
@@ -196,14 +192,13 @@ fn main() {
             }
         };
 
-        let result = match args.command {
-            Commands::Live { interface } => {
-                info!("Starting HTTP live capture on interface: {}", interface);
-                analyzer.analyze_network(&interface, sender, Some(thread_cancel_signal))
-            }
-        };
-
-        if let Err(e) = result {
+        info!(
+            "Starting HTTP live capture on interface: {}",
+            analysis_interface
+        );
+        if let Err(e) =
+            analyzer.analyze_network(&analysis_interface, sender, Some(thread_cancel_signal))
+        {
             error!("HTTP analysis failed: {e}");
         }
     });
@@ -227,7 +222,6 @@ fn main() {
 
     let (async_tx, mut async_rx) = tokio_mpsc::channel(1000);
     let connection_map: ConnectionMap = Arc::new(Mutex::new(HashMap::new()));
-    let assembler_endpoint = args.assembler_endpoint;
 
     // Bridge thread to move from sync to async
     thread::spawn(move || {
