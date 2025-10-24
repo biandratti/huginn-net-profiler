@@ -1,13 +1,14 @@
 use clap::Parser;
-use huginn_net::fingerprint_result::OSQualityMatched;
-use huginn_net::{
-    db::Database, fingerprint_result::FingerprintResult, AnalysisConfig, HuginnNet, Ttl,
-};
+use huginn_net_db::{Database, MatchQualityType};
+use huginn_net_tcp::OperativeSystem;
+use huginn_net_tcp::{HuginnNetTcp, TcpAnalysisResult};
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc as std_mpsc;
+use std::sync::Arc;
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc as tokio_mpsc;
 use tracing::{error, info, Level};
@@ -96,6 +97,20 @@ type SynAckIngest = SynAckPacketData;
 type MtuIngest = MtuData;
 type UptimeIngest = UptimeData;
 
+fn format_os(os: &OperativeSystem) -> String {
+    let mut parts = vec![os.name.as_str()];
+
+    if let Some(family) = &os.family {
+        parts.push(family.as_str());
+    }
+
+    if let Some(variant) = &os.variant {
+        parts.push(variant.as_str());
+    }
+
+    parts.join(" / ")
+}
+
 fn main() {
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::INFO)
@@ -111,11 +126,28 @@ fn main() {
 
     info!("Booting tcp-collector on interface {interface} pointed to {assembler_endpoint}");
 
-    let (sync_tx, sync_rx) = std_mpsc::channel::<FingerprintResult>();
+    // Setup graceful shutdown
+    let cancel_signal = Arc::new(AtomicBool::new(false));
+    let ctrl_c_signal = cancel_signal.clone();
+    let processing_cancel_signal = cancel_signal.clone();
+
+    if let Err(e) = ctrlc::set_handler(move || {
+        info!("Received shutdown signal, initiating graceful shutdown...");
+        ctrl_c_signal.store(true, Ordering::Relaxed);
+    }) {
+        error!("Error setting signal handler: {e}");
+        return;
+    }
+
+    let (sync_tx, sync_rx) = std_mpsc::channel::<TcpAnalysisResult>();
     let (async_tx, mut async_rx) = tokio_mpsc::channel(1000);
 
     thread::spawn(move || {
         while let Ok(item) = sync_rx.recv() {
+            if processing_cancel_signal.load(Ordering::Relaxed) {
+                info!("Shutdown signal received, stopping sync-to-async bridge");
+                break;
+            }
             if async_tx.blocking_send(item).is_err() {
                 error!("async channel closed");
                 break;
@@ -124,21 +156,33 @@ fn main() {
     });
 
     let analysis_interface = interface.clone();
-    thread::spawn(move || loop {
-        info!("Starting TCP analysis loop on {analysis_interface}...");
-        let db = Box::leak(Box::new(Database::default()));
-        let mut huginn = HuginnNet::new(
-            Some(db),
-            1024,
-            Some(AnalysisConfig {
-                http_enabled: false,
-                tcp_enabled: true,
-                tls_enabled: false,
-            }),
-        );
-        if let Err(e) = huginn.analyze_network(&analysis_interface, sync_tx.clone()) {
-            error!("Huginn-net (TCP) analysis failed: {e}. Restarting in 5s...");
-            thread::sleep(Duration::from_secs(5));
+    let analysis_cancel_signal = cancel_signal.clone();
+
+    thread::spawn(move || {
+        info!("Starting TCP analysis on interface {analysis_interface}...");
+
+        let db = match Database::load_default() {
+            Ok(db) => db,
+            Err(e) => {
+                error!("Failed to load default database: {}", e);
+                return;
+            }
+        };
+
+        let mut tcp_analyzer = match HuginnNetTcp::new(Some(&db), 1000) {
+            Ok(analyzer) => analyzer,
+            Err(e) => {
+                error!("Failed to create HuginnNetTcp analyzer: {}", e);
+                return;
+            }
+        };
+
+        if let Err(e) =
+            tcp_analyzer.analyze_network(&analysis_interface, sync_tx, Some(analysis_cancel_signal))
+        {
+            error!("Huginn-net-tcp analysis failed: {e}");
+        } else {
+            info!("TCP analysis finished cleanly.");
         }
     });
 
@@ -162,13 +206,18 @@ fn main() {
     rt.block_on(async move {
         let client = reqwest::Client::new();
         info!("Starting TCP result processor...");
-        while let Some(result) = async_rx.recv().await {
+
+        while let Some(tcp_result) = async_rx.recv().await {
+            if cancel_signal.load(Ordering::Relaxed) {
+                info!("Shutdown signal received, stopping result processing");
+                break;
+            }
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs();
 
-            if let Some(syn) = result.syn {
+            if let Some(syn) = tcp_result.syn {
                 let ingest = SynIngest {
                     source: NetworkEndpoint {
                         ip: syn.source.ip.to_string(),
@@ -178,24 +227,25 @@ fn main() {
                         ip: syn.destination.ip.to_string(),
                         port: syn.destination.port,
                     },
-                    os_detected: syn
-                        .os_matched
-                        .as_ref()
-                        .map(|m| OsDetection {
-                            os: format_os_detection(m),
-                            quality: m.quality,
-                        })
-                        .unwrap_or(OsDetection {
-                            os: "unknown".to_string(),
-                            quality: 0.0,
-                        }),
+                    os_detected: OsDetection {
+                        os: syn
+                            .os_matched
+                            .os
+                            .map(|o| format_os(&o))
+                            .unwrap_or_else(|| "unknown".to_string()),
+                        quality: match syn.os_matched.quality {
+                            MatchQualityType::Matched(score) => score,
+                            MatchQualityType::NotMatched => 0.0,
+                            MatchQualityType::Disabled => 0.0,
+                        },
+                    },
                     signature: syn.sig.to_string(),
                     observed: to_details(&syn.sig),
                     timestamp: now,
                 };
                 send_syn_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
-            if let Some(syn_ack) = result.syn_ack {
+            if let Some(syn_ack) = tcp_result.syn_ack {
                 let ingest = SynAckIngest {
                     source: NetworkEndpoint {
                         ip: syn_ack.source.ip.to_string(),
@@ -205,24 +255,25 @@ fn main() {
                         ip: syn_ack.destination.ip.to_string(),
                         port: syn_ack.destination.port,
                     },
-                    os_detected: syn_ack
-                        .os_matched
-                        .as_ref()
-                        .map(|m| OsDetection {
-                            os: format_os_detection(m),
-                            quality: m.quality,
-                        })
-                        .unwrap_or(OsDetection {
-                            os: "unknown".to_string(),
-                            quality: 0.0,
-                        }),
+                    os_detected: OsDetection {
+                        os: syn_ack
+                            .os_matched
+                            .os
+                            .map(|o| format_os(&o))
+                            .unwrap_or_else(|| "unknown".to_string()),
+                        quality: match syn_ack.os_matched.quality {
+                            MatchQualityType::Matched(score) => score,
+                            MatchQualityType::NotMatched => 0.0,
+                            MatchQualityType::Disabled => 0.0,
+                        },
+                    },
                     signature: syn_ack.sig.to_string(),
                     observed: to_details(&syn_ack.sig),
                     timestamp: now,
                 };
                 send_syn_ack_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
-            if let Some(mtu) = result.mtu {
+            if let Some(mtu) = tcp_result.mtu {
                 let ingest = MtuIngest {
                     source: NetworkEndpoint {
                         ip: mtu.source.ip.to_string(),
@@ -232,13 +283,13 @@ fn main() {
                         ip: mtu.destination.ip.to_string(),
                         port: mtu.destination.port,
                     },
-                    link: mtu.link,
+                    link: format!("{:?}", mtu.link.link),
                     mtu_value: mtu.mtu,
                     timestamp: now,
                 };
                 send_mtu_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
-            if let Some(uptime) = result.uptime {
+            if let Some(uptime) = tcp_result.uptime {
                 let total_seconds = (uptime.days as u64 * 24 * 3600)
                     + (uptime.hours as u64 * 3600)
                     + (uptime.min as u64 * 60);
@@ -259,58 +310,35 @@ fn main() {
                 send_uptime_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
         }
+
+        info!("TCP collector shutdown completed");
     });
 }
 
-fn to_details(sig: &huginn_net::ObservableTcp) -> TcpObserved {
+fn to_details(sig: &huginn_net_tcp::ObservableTcp) -> TcpObserved {
     TcpObserved {
-        version: sig.version.to_string(),
-        initial_ttl: extract_ttl(&sig.ittl),
-        options_length: sig.olen,
-        mss: sig.mss,
-        window_size: sig.wsize.to_string(),
-        window_scale: sig.wscale,
+        version: format!("{}", sig.matching.version),
+        initial_ttl: format!("{}", sig.matching.ittl),
+        options_length: sig.matching.olen,
+        mss: sig.matching.mss,
+        window_size: format!("{}", sig.matching.wsize),
+        window_scale: sig.matching.wscale,
         options_layout: sig
+            .matching
             .olayout
             .iter()
             .map(|o| format!("{o:?}"))
             .collect::<Vec<_>>()
             .join(","),
         quirks: sig
+            .matching
             .quirks
             .iter()
             .map(|q| format!("{q:?}"))
             .collect::<Vec<_>>()
             .join(","),
-        payload_class: sig.pclass.to_string(),
+        payload_class: format!("{}", sig.matching.pclass),
     }
-}
-
-fn extract_ttl(ttl: &Ttl) -> String {
-    match ttl {
-        Ttl::Value(v) => format!("{v}"),
-        Ttl::Distance(ttl_value, hops) => format!("{ttl_value} ({hops} hops)"),
-        Ttl::Guess(v) => format!("{v}+"),
-        Ttl::Bad(v) => format!("{v}-"),
-    }
-}
-
-fn format_os_detection(os_match: &OSQualityMatched) -> String {
-    let mut parts = vec![os_match.os.name.clone()];
-
-    if let Some(family) = &os_match.os.family {
-        if !family.is_empty() {
-            parts.push(family.clone());
-        }
-    }
-
-    if let Some(variant) = &os_match.os.variant {
-        if !variant.is_empty() {
-            parts.push(variant.clone());
-        }
-    }
-
-    parts.join("/")
 }
 
 async fn send_syn_to_assembler(data: SynIngest, client: &reqwest::Client, endpoint: &str) {

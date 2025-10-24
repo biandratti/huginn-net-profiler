@@ -6,10 +6,11 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 tokio = { workspace = true }
-huginn-net = { workspace = true }
+huginn-net-tls = "1.5.1"
 serde = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true }
 clap = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+ctrlc = { workspace = true }
