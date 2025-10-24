@@ -12,21 +12,14 @@ use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc as tokio_mpsc;
-use tracing::{debug, error, info};
-use tracing_appender::rolling::{RollingFileAppender, Rotation};
-use tracing_subscriber::fmt;
-use tracing_subscriber::fmt::writer::MakeWriterExt;
-use tracing_subscriber::EnvFilter;
+use tracing::{debug, error, info, Level};
+use tracing_subscriber::FmtSubscriber;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
     #[command(subcommand)]
     command: Commands,
-
-    /// Log file path
-    #[arg(short = 'l', long = "log-file")]
-    log_file: Option<String>,
 
     /// Assembler endpoint
     #[arg(
@@ -126,30 +119,6 @@ type ConnectionMap = Arc<Mutex<HashMap<ConnectionKey, ConnectionInfo>>>;
 
 const MAX_CONNECTIONS: usize = 100;
 
-fn initialize_logging(log_file: Option<String>) {
-    let console_writer = std::io::stdout.with_max_level(tracing::Level::INFO);
-
-    let file_appender = if let Some(log_file) = log_file {
-        RollingFileAppender::new(Rotation::NEVER, ".", log_file)
-            .with_max_level(tracing::Level::INFO)
-    } else {
-        RollingFileAppender::new(Rotation::NEVER, ".", "http-capture.log")
-            .with_max_level(tracing::Level::INFO)
-    };
-
-    let writer = console_writer.and(file_appender);
-
-    let subscriber = fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .with_writer(writer)
-        .finish();
-
-    if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
-        eprintln!("Failed to set subscriber: {e}");
-        std::process::exit(1);
-    }
-}
-
 fn extract_client_ip_from_headers(headers: &[HttpHeader], fallback_ip: &str) -> String {
     headers
         .iter()
@@ -184,8 +153,13 @@ fn enforce_connection_limit(connection_map: &ConnectionMap) {
 }
 
 fn main() {
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::INFO)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     let args = Args::parse();
-    initialize_logging(args.log_file.clone());
 
     info!("Starting HTTP-only capture");
 
