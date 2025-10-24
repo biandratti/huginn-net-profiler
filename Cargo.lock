@@ -1903,7 +1903,9 @@ name = "tcp-collector"
 version = "0.1.0"
 dependencies = [
  "clap",
- "huginn-net",
+ "ctrlc",
+ "huginn-net-db",
+ "huginn-net-tcp",
  "reqwest",
  "serde",
  "serde_json",
