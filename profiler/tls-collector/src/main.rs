@@ -84,7 +84,7 @@ fn main() {
 
     let (sync_tx, sync_rx) = std_mpsc::channel::<TlsClientOutput>();
     let (async_tx, mut async_rx) = tokio_mpsc::channel(1000);
-    
+
     thread::spawn(move || {
         while let Ok(item) = sync_rx.recv() {
             if processing_cancel_signal.load(Ordering::Relaxed) {
@@ -100,12 +100,14 @@ fn main() {
 
     let analysis_interface = interface.clone();
     let analysis_cancel_signal = cancel_signal.clone();
-    
+
     thread::spawn(move || {
         info!("Starting TLS analysis on interface {analysis_interface}...");
         let mut tls_analyzer = HuginnNetTls::new();
 
-        if let Err(e) = tls_analyzer.analyze_network(&analysis_interface, sync_tx, Some(analysis_cancel_signal)) {
+        if let Err(e) =
+            tls_analyzer.analyze_network(&analysis_interface, sync_tx, Some(analysis_cancel_signal))
+        {
             error!("Huginn-net-tls analysis failed: {e}");
         } else {
             info!("TLS analysis finished cleanly.");
@@ -170,7 +172,7 @@ fn main() {
             };
             send_tls_to_assembler(ingest, &client, &assembler_endpoint).await;
         }
-        
+
         info!("TLS collector shutdown completed");
     });
 }

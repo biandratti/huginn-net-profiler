@@ -142,10 +142,10 @@ fn main() {
 
     let analysis_interface = interface.clone();
     let analysis_cancel_signal = cancel_signal.clone();
-    
+
     thread::spawn(move || {
         info!("Starting TCP analysis on interface {analysis_interface}...");
-        
+
         let db = match Database::load_default() {
             Ok(db) => db,
             Err(e) => {
@@ -162,7 +162,9 @@ fn main() {
             }
         };
 
-        if let Err(e) = tcp_analyzer.analyze_network(&analysis_interface, sync_tx, Some(analysis_cancel_signal)) {
+        if let Err(e) =
+            tcp_analyzer.analyze_network(&analysis_interface, sync_tx, Some(analysis_cancel_signal))
+        {
             error!("Huginn-net-tcp analysis failed: {e}");
         } else {
             info!("TCP analysis finished cleanly.");
@@ -189,7 +191,7 @@ fn main() {
     rt.block_on(async move {
         let client = reqwest::Client::new();
         info!("Starting TCP result processor...");
-        
+
         while let Some(tcp_result) = async_rx.recv().await {
             if cancel_signal.load(Ordering::Relaxed) {
                 info!("Shutdown signal received, stopping result processing");
@@ -211,7 +213,11 @@ fn main() {
                         port: syn.destination.port,
                     },
                     os_detected: OsDetection {
-                        os: syn.os_matched.os.map(|o| format!("{:?}", o)).unwrap_or_else(|| "unknown".to_string()),
+                        os: syn
+                            .os_matched
+                            .os
+                            .map(|o| format!("{:?}", o))
+                            .unwrap_or_else(|| "unknown".to_string()),
                         quality: match syn.os_matched.quality {
                             MatchQualityType::Matched(score) => score,
                             MatchQualityType::NotMatched => 0.0,
@@ -235,7 +241,11 @@ fn main() {
                         port: syn_ack.destination.port,
                     },
                     os_detected: OsDetection {
-                        os: syn_ack.os_matched.os.map(|o| format!("{:?}", o)).unwrap_or_else(|| "unknown".to_string()),
+                        os: syn_ack
+                            .os_matched
+                            .os
+                            .map(|o| format!("{:?}", o))
+                            .unwrap_or_else(|| "unknown".to_string()),
                         quality: match syn_ack.os_matched.quality {
                             MatchQualityType::Matched(score) => score,
                             MatchQualityType::NotMatched => 0.0,
@@ -285,7 +295,7 @@ fn main() {
                 send_uptime_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
         }
-        
+
         info!("TCP collector shutdown completed");
     });
 }
@@ -299,13 +309,15 @@ fn to_details(sig: &huginn_net_tcp::ObservableTcp) -> TcpObserved {
         window_size: format!("{}", sig.matching.wsize),
         window_scale: sig.matching.wscale,
         options_layout: sig
-            .matching.olayout
+            .matching
+            .olayout
             .iter()
             .map(|o| format!("{o:?}"))
             .collect::<Vec<_>>()
             .join(","),
         quirks: sig
-            .matching.quirks
+            .matching
+            .quirks
             .iter()
             .map(|q| format!("{q:?}"))
             .collect::<Vec<_>>()
@@ -313,7 +325,6 @@ fn to_details(sig: &huginn_net_tcp::ObservableTcp) -> TcpObserved {
         payload_class: format!("{}", sig.matching.pclass),
     }
 }
-
 
 async fn send_syn_to_assembler(data: SynIngest, client: &reqwest::Client, endpoint: &str) {
     info!(
