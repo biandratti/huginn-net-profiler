@@ -290,6 +290,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-channel"
+version = "0.5.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-utils"
 version = "0.8.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -664,10 +673,11 @@ dependencies = [
 
 [[package]]
 name = "huginn-net-tls"
-version = "1.5.1"
+version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71fbc96f6dc4d2e42fa51a27d6e9d3487104c9913c045efe2dae07b49c1f55e0"
+checksum = "aa46780c220b4df65742647981bec1899715dd4696fe937c3d67cae4c845e041"
 dependencies = [
+ "crossbeam-channel",
  "pcap-file",
  "pnet",
  "sha2",
