@@ -658,9 +658,9 @@ dependencies = [
 
 [[package]]
 name = "huginn-net-http"
-version = "1.5.1"
+version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5de4d00a44b13ee4bf3c51526f0a924f118462f1c88c9445efe144c620e4d04f"
+checksum = "c9bb5ff672b8b19707d3afa3236551ddbe0cb969a557f01480757ce0c58dabda"
 dependencies = [
  "hpack-patched",
  "huginn-net-db",
