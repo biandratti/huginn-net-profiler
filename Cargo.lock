@@ -674,10 +674,11 @@ dependencies = [
 
 [[package]]
 name = "huginn-net-tcp"
-version = "1.5.1"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f154e78313d876b39047a4c45aaf2667b65c764d1aa30f17230e5a2768d25c60"
+checksum = "ed866f29284c9f83a9f4b37455a35b7f6c8af51adc0ee81de62eda542c7a1a24"
 dependencies = [
+ "crossbeam-channel",
  "huginn-net-db",
  "pcap-file",
  "pnet",
