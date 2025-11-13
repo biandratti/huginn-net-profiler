@@ -1,4 +1,5 @@
 use clap::Parser;
+use crossbeam_channel::unbounded;
 use huginn_net_db::{Database, MatchQualityType};
 use huginn_net_http::http_common::HttpHeader;
 use huginn_net_http::{HttpAnalysisResult, HuginnNetHttp};
@@ -6,8 +7,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -158,8 +157,7 @@ fn main() {
 
     info!("Booting http-collector on interface {interface} pointed to {assembler_endpoint}");
 
-    let (sender, receiver): (Sender<HttpAnalysisResult>, Receiver<HttpAnalysisResult>) =
-        mpsc::channel();
+    let (sender, receiver) = unbounded::<HttpAnalysisResult>();
 
     let cancel_signal = Arc::new(AtomicBool::new(false));
     let ctrl_c_signal = cancel_signal.clone();
@@ -184,7 +182,7 @@ fn main() {
         };
         debug!("Loaded database: {:?}", db);
 
-        let mut analyzer = match HuginnNetHttp::new(Some(&db), 1000) {
+        let mut analyzer = match HuginnNetHttp::new(Some(Arc::new(db)), 1000) {
             Ok(analyzer) => analyzer,
             Err(e) => {
                 error!("Failed to create HuginnNetHttp analyzer: {}", e);

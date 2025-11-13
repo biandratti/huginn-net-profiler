@@ -1,8 +1,8 @@
 use clap::Parser;
-use huginn_net_db::{Database, MatchQualityType};
+use huginn_net_db::MatchQualityType;
 use huginn_net_tcp::OperativeSystem;
 use huginn_net_tcp::{HuginnNetTcp, TcpAnalysisResult};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc as std_mpsc;
@@ -28,19 +28,19 @@ struct Args {
     assembler_endpoint: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct NetworkEndpoint {
     pub ip: String,
     pub port: u16,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct OsDetection {
     pub os: String,
     pub quality: f32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct TcpObserved {
     pub version: String,
     pub initial_ttl: String,
@@ -53,7 +53,7 @@ pub struct TcpObserved {
     pub payload_class: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct SynPacketData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
@@ -63,7 +63,7 @@ pub struct SynPacketData {
     pub timestamp: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct SynAckPacketData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
@@ -73,7 +73,7 @@ pub struct SynAckPacketData {
     pub timestamp: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct MtuData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
@@ -82,7 +82,7 @@ pub struct MtuData {
     pub timestamp: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct UptimeData {
     pub source: NetworkEndpoint,
     pub destination: NetworkEndpoint,
@@ -160,16 +160,7 @@ fn main() {
 
     thread::spawn(move || {
         info!("Starting TCP analysis on interface {analysis_interface}...");
-
-        let db = match Database::load_default() {
-            Ok(db) => db,
-            Err(e) => {
-                error!("Failed to load default database: {}", e);
-                return;
-            }
-        };
-
-        let mut tcp_analyzer = match HuginnNetTcp::new(Some(&db), 1000) {
+        let mut tcp_analyzer = match HuginnNetTcp::new(None, 1000) {
             Ok(analyzer) => analyzer,
             Err(e) => {
                 error!("Failed to create HuginnNetTcp analyzer: {}", e);
@@ -289,22 +280,42 @@ fn main() {
                 };
                 send_mtu_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
-            if let Some(uptime) = tcp_result.uptime {
-                let total_seconds = (uptime.days as u64 * 24 * 3600)
-                    + (uptime.hours as u64 * 3600)
-                    + (uptime.min as u64 * 60);
+            if let Some(client_uptime) = tcp_result.client_uptime {
+                let total_seconds = (client_uptime.days as u64 * 24 * 3600)
+                    + (client_uptime.hours as u64 * 3600)
+                    + (client_uptime.min as u64 * 60);
                 let ingest = UptimeIngest {
                     source: NetworkEndpoint {
-                        ip: uptime.source.ip.to_string(),
-                        port: uptime.source.port,
+                        ip: client_uptime.source.ip.to_string(),
+                        port: client_uptime.source.port,
                     },
                     destination: NetworkEndpoint {
-                        ip: uptime.destination.ip.to_string(),
-                        port: uptime.destination.port,
+                        ip: client_uptime.destination.ip.to_string(),
+                        port: client_uptime.destination.port,
                     },
                     uptime_seconds: total_seconds,
-                    up_mod_days: uptime.up_mod_days,
-                    freq: uptime.freq,
+                    up_mod_days: client_uptime.up_mod_days,
+                    freq: client_uptime.freq,
+                    timestamp: now,
+                };
+                send_uptime_to_assembler(ingest, &client, &assembler_endpoint).await;
+            }
+            if let Some(server_uptime) = tcp_result.server_uptime {
+                let total_seconds = (server_uptime.days as u64 * 24 * 3600)
+                    + (server_uptime.hours as u64 * 3600)
+                    + (server_uptime.min as u64 * 60);
+                let ingest = UptimeIngest {
+                    source: NetworkEndpoint {
+                        ip: server_uptime.source.ip.to_string(),
+                        port: server_uptime.source.port,
+                    },
+                    destination: NetworkEndpoint {
+                        ip: server_uptime.destination.ip.to_string(),
+                        port: server_uptime.destination.port,
+                    },
+                    uptime_seconds: total_seconds,
+                    up_mod_days: server_uptime.up_mod_days,
+                    freq: server_uptime.freq,
                     timestamp: now,
                 };
                 send_uptime_to_assembler(ingest, &client, &assembler_endpoint).await;
