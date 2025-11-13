@@ -96,10 +96,16 @@ class UIManager {
             subcards.push(this.formatTcpSubcard('MTU Detection', null, 'No MTU discovery data found yet'));
         }
 
-        if (profile.uptime) {
-            subcards.push(this.formatTcpSubcard('Uptime Detection', profile.uptime));
+        if (profile.client_uptime) {
+            subcards.push(this.formatTcpSubcard('Client Uptime Detection', profile.client_uptime));
         } else {
-            subcards.push(this.formatTcpSubcard('Uptime Detection', null, 'No uptime detection data found yet'));
+            subcards.push(this.formatTcpSubcard('Client Uptime Detection', null, 'No client uptime detection data found yet'));
+        }
+
+        if (profile.server_uptime) {
+            subcards.push(this.formatTcpSubcard('Server Uptime Detection', profile.server_uptime));
+        } else {
+            subcards.push(this.formatTcpSubcard('Server Uptime Detection', null, 'No server uptime detection data found yet'));
         }
 
         return subcards.join('');
