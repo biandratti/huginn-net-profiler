@@ -16,7 +16,7 @@ reqwest = { version = "0.12.24", features = ["json"] }
 clap = { version = "4.5.52", features = ["derive"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
-axum = "0.8.6"
+axum = "0.8.7"
 chrono = { version = "0.4.42", features = ["serde"] }
 dashmap = "6.1.0"
 tower-http = { version = "0.6.6", features = ["cors"] }
