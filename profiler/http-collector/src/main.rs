@@ -1,5 +1,4 @@
 use clap::Parser;
-use crossbeam_channel::unbounded;
 use huginn_net_db::{Database, MatchQualityType};
 use huginn_net_http::http_common::HttpHeader;
 use huginn_net_http::{HttpAnalysisResult, HuginnNetHttp};
@@ -7,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc as std_mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -157,7 +157,7 @@ fn main() {
 
     info!("Booting http-collector on interface {interface} pointed to {assembler_endpoint}");
 
-    let (sender, receiver) = unbounded::<HttpAnalysisResult>();
+    let (sender, receiver) = std_mpsc::channel::<HttpAnalysisResult>();
 
     let cancel_signal = Arc::new(AtomicBool::new(false));
     let ctrl_c_signal = cancel_signal.clone();
