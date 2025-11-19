@@ -21,4 +21,3 @@ chrono = { version = "0.4.42", features = ["serde"] }
 dashmap = "6.1.0"
 tower-http = { version = "0.6.6", features = ["cors"] }
 ctrlc = "3.5.1"
-crossbeam-channel = "0.5.15"
