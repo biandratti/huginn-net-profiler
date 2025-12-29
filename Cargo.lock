@@ -647,9 +647,9 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "huginn-net-db"
-version = "1.7.0"
+version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3728dfd1d7da9bd99bd24bcdb444fd6f753cfa64eef2fdc6528bf153f95fdd2"
+checksum = "ee763daebe50bdd64f1a512790b30d6962ff6656706015d3705e2cdd0818f5aa"
 dependencies = [
  "nom 8.0.0",
  "thiserror 2.0.17",
