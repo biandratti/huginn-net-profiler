@@ -17,7 +17,7 @@ clap = { version = "4.5.54", features = ["derive"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 axum = "0.8.8"
-chrono = { version = "0.4.42", features = ["serde"] }
+chrono = { version = "0.4.43", features = ["serde"] }
 dashmap = "6.1.0"
 tower-http = { version = "0.6.8", features = ["cors"] }
 ctrlc = "3.5.1"
