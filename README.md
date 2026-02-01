@@ -4,18 +4,10 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.80+-orange.svg)](https://www.rust-lang.org/)
 
-## Introduction
-
-This project was built to provide an easy-to-use, web-based interface for testing and profiling TCP, HTTP and TLS connections using the [huginn-net](https://github.com/biandratti/huginn-net) library. The motivation behind this project is to enable researchers, network engineers, and enthusiasts to analyze  connection characteristics in real time, without the need for complex command-line tools or manual packet analysis.
-
-By exposing the huginn-net library through a simple web application, users can:
-- Instantly view detailed TCP, HTTP and TLS connection profiles for their own or specified IP addresses.
-- Experiment with different network scenarios and observe how signatures and metadata change.
-- Use the tool for demonstrations, or diagnostics in real-world environments.
-
-This project aims to make advanced profiling accessible and interactive, helping users better understand network behaviors and improve their own tools or research.
+Web-based interface for testing and profiling TCP, HTTP and TLS connections using the [huginn-net](https://github.com/biandratti/huginn-net) library.
 
 ## Architecture
+
 ```
 huginn-net-profiler/
 ├── profiler/
@@ -27,36 +19,42 @@ huginn-net-profiler/
 └── static/                   # Web UI assets
 ```
 
-## Modules
+## Quick Start
 
-### profile-assembler
-Central service that aggregates fingerprinting data from all collectors.
-- REST API for profile management (`/api/profiles`, `/api/my-profile`)
-- Real-time data ingestion from collectors
-- Profile correlation by client IP address
-- Statistics and health endpoints
-- CORS support for web applications
+1. Navigate to deployment directory:
+```bash
+cd deployment/
+```
 
-### tcp-collector
-Specialized collector for TCP fingerprinting using huginn-net.
-- SYN packet analysis and OS detection
-- SYN-ACK response profiling
-- MTU discovery and uptime detection
-- Sends data to profile-assembler via HTTP API
+2. Generate SSL certificates (first time only):
+```bash
+# Install mkcert if not already installed
+# Linux: sudo apt install libnss3-tools && wget https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-linux-amd64 -O mkcert && chmod +x mkcert && sudo mv mkcert /usr/local/bin/
+# macOS: brew install mkcert
+# Windows: choco install mkcert
 
-### http-collector
-HTTP traffic analysis with client IP correlation.
-- HTTP request/response fingerprinting
-- Real client IP extraction from X-Real-IP headers
-- User-Agent, Accept headers, and method detection
-- Monitors Docker bridge network for internal traffic
+# Install local CA (one-time setup)
+mkcert -install
 
-### tls-collector
-TLS handshake analysis and JA4 fingerprinting.
-- TLS client hello analysis
-- JA4 ingerprint generation
-- SNI and ALPN extraction
-- Cipher suite and extension profiling
+# Generate trusted certificate for localhost
+./generate-local-certs.sh
+```
+
+3. Configure network interface in `docker-compose.yml`:
+```yaml
+environment:
+  - PROFILER_INTERFACE=your_interface_name  # e.g., eth0, wlan0
+```
+
+4. Deploy all services:
+```bash
+docker-compose up -d --build
+```
+
+5. Access the application:
+- **Web interface**: https://localhost
+- **API**: https://localhost/api
+- **Traefik Dashboard**: http://localhost:8080
 
 ## System Requirements
 
@@ -64,71 +62,17 @@ TLS handshake analysis and JA4 fingerprinting.
 - Network interface access (requires privileged containers)
 - Linux host (for network capture capabilities)
 
-## Quick Start
+## Development
 
-### 1. Navigate to deployment directory
-```bash
-cd deployment/
-```
-
-### 2. Configure network interface
-Edit `docker-compose.yml` to set your network interface:
-```yaml
-environment:
-  - PROFILER_INTERFACE=your_interface_name  # e.g., eth0, wlan0
-```
-
-### 3. Deploy all services
-```bash
-docker-compose up -d --build
-```
-
-### 4. Access the application
-- **Web interface**: https://huginn-net.duckdns.org (or your configured domain)
-- **API**: https://huginn-net.duckdns.org/api
-- **Traefik Dashboard**: http://localhost:8080
-
-## Development Setup
-
-### Build manually (without Docker)
+Build manually:
 ```bash
 cargo build --workspace --release
 ```
 
-### Run individual collectors
+Run individual collectors:
 ```bash
-# TCP collector (monitors host interface)
 sudo ./target/release/tcp-collector --interface eth0
-
-# HTTP collector (monitors Docker bridge)
 sudo ./target/release/http-collector --interface br-xxxxx
-
-# TLS collector (monitors host interface)  
 sudo ./target/release/tls-collector --interface eth0
-
-# Profile assembler (API server)
 ./target/release/profile-assembler
 ```
-
-## Data Flow
-
-```
-External Client
-    ↓
-    ├─── tcp-collector (captures TCP packets)
-    ├─── tls-collector (captures TLS handshakes)
-    ↓
-Traefik (Reverse Proxy)
-    ↓
-    ├─── http-collector (captures HTTP requests/responses)
-    ↓
-Backend Services
-
-All collectors send data to:
-    ↓
-profile-assembler (REST API)
-    ↓
-Web Client / Dashboard
-```
-
-The web interface shows real-time network traffic analysis with detailed TCP, HTTP, and TLS profiling information for connected devices.
