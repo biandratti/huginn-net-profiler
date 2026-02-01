@@ -25,7 +25,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./letsencrypt:/letsencrypt
+      - ./certs:/certs:ro
       - ./traefik_dynamic:/etc/traefik/dynamic
     logging:
       driver: "json-file"
@@ -50,10 +50,9 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`huginn-net.duckdns.org`)"
+      - "traefik.http.routers.frontend.rule=Host(`localhost`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls=true"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.frontend.tls.options=my-tls-options@file"
       - "traefik.http.routers.frontend.middlewares=frontend-middleware@file"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
@@ -88,10 +87,9 @@ services:
         max-file: "3"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.profile-assembler.rule=Host(`huginn-net.duckdns.org`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.profile-assembler.rule=Host(`localhost`) && PathPrefix(`/api`)"
       - "traefik.http.routers.profile-assembler.entrypoints=websecure"
       - "traefik.http.routers.profile-assembler.tls=true"
-      - "traefik.http.routers.profile-assembler.tls.certresolver=letsencrypt"
       - "traefik.http.routers.profile-assembler.tls.options=my-tls-options@file"
       - "traefik.docker.network=huginn-net"
       - "traefik.http.routers.profile-assembler.middlewares=api-middleware@file"

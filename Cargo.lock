@@ -735,9 +735,9 @@ dependencies = [
 
 [[package]]
 name = "huginn-net-tls"
-version = "1.7.1"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f88994dc0188914f2d22b9478c1abf37898731c95f596a0ade7655f41bb8dc90"
+checksum = "b2248b2a305567968726a8a93d474f4f1982121275b4a3be557d7921f7a36ec7"
 dependencies = [
  "crossbeam-channel",
  "pcap-file",
@@ -746,6 +746,7 @@ dependencies = [
  "thiserror 2.0.17",
  "tls-parser",
  "tracing",
+ "ttl_cache",
 ]
 
 [[package]]

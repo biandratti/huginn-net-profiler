@@ -11,7 +11,7 @@ use chrono::Utc;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{debug, info, warn, Level};
+use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -186,7 +186,10 @@ async fn main() {
         .with_max_level(Level::INFO)
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
+        eprintln!("Failed to set default subscriber: {e}");
+        return;
+    }
 
     info!("Initializing Profile Assembler");
 
@@ -215,8 +218,16 @@ async fn main() {
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     info!("Profile Assembler listening on {}", addr);
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(listener) => listener,
+        Err(e) => {
+            error!("Failed to bind to address {}: {e}", addr);
+            return;
+        }
+    };
+    if let Err(e) = axum::serve(listener, app).await {
+        error!("Server error: {e}");
+    }
 }
 
 async fn health_check() -> StatusCode {
@@ -250,15 +261,66 @@ async fn get_my_profile(
 
     if let Some(ip) = client_ip {
         info!("Fetching profile for client IP from headers: {}", ip);
-        if let Some(profile) = state.get(&ip) {
+
+        // Map Docker gateway IPs to real client IPs for local development
+        let target_ip = if is_docker_gateway_ip(&ip) {
+            let real_ip = map_gateway_to_real_ip(&state, &ip);
+            if real_ip != ip {
+                info!(
+                    "Gateway IP {} detected, mapping to real client IP: {}",
+                    ip, real_ip
+                );
+            }
+            real_ip
+        } else {
+            ip.clone()
+        };
+
+        if let Some(profile) = state.get(&target_ip) {
             Ok(Json(profile.value().clone()))
         } else {
-            warn!("No profile found for client IP: {}", ip);
-            Err(StatusCode::NOT_FOUND)
+            // If not found, try to find IPv4/IPv6 variant of the same IP
+            // This handles cases where browser uses IPv6 but collectors captured IPv4 (or vice versa)
+            let is_ipv6 = target_ip.contains(':');
+            let variant_profile = if is_ipv6 {
+                // For IPv6, try to find corresponding IPv4 profile (same client, different protocol)
+                // Look for IPv4 profiles that might correspond to the same client
+                state
+                    .iter()
+                    .filter(|entry| {
+                        let key = entry.key();
+                        !key.contains(':') && !is_docker_gateway_ip(key)
+                    })
+                    .max_by_key(|entry| entry.value().last_seen.clone())
+            } else {
+                // For IPv4, try to find corresponding IPv6 profile
+                state
+                    .iter()
+                    .filter(|entry| {
+                        let key = entry.key();
+                        key.contains(':') && !is_docker_gateway_ip(key)
+                    })
+                    .max_by_key(|entry| entry.value().last_seen.clone())
+            };
+
+            if let Some(entry) = variant_profile {
+                let variant_ip = entry.key();
+                info!(
+                    "Profile not found for {}, using IPv4/IPv6 variant: {}",
+                    target_ip, variant_ip
+                );
+                Ok(Json(entry.value().clone()))
+            } else {
+                warn!(
+                    "No profile found for client IP: {} (target: {})",
+                    ip, target_ip
+                );
+                Ok(Json(Profile::default()))
+            }
         }
     } else {
         warn!("X-Real-Ip or X-Forwarded-For header not found or invalid.");
-        Err(StatusCode::BAD_REQUEST)
+        Ok(Json(Profile::default()))
     }
 }
 
@@ -321,8 +383,23 @@ async fn ingest_uptime(State(state): State<AppState>, Json(ingest): Json<UptimeI
 async fn ingest_http_request(State(state): State<AppState>, Json(ingest): Json<HttpRequestIngest>) {
     let ip = ingest.source.ip.clone();
     info!("Received HTTP request data for {}", ip);
-    let mut profile = state.entry(ip.clone()).or_default();
-    profile.id = ip;
+
+    // Map Docker gateway IPs to real client IPs for local development
+    let target_ip = if is_docker_gateway_ip(&ip) {
+        let real_ip = map_gateway_to_real_ip(&state, &ip);
+        if real_ip != ip {
+            info!(
+                "Mapping Docker gateway IP {} to real client IP {}",
+                ip, real_ip
+            );
+        }
+        real_ip
+    } else {
+        ip
+    };
+
+    let mut profile = state.entry(target_ip.clone()).or_default();
+    profile.id = target_ip;
     profile.http_request = Some(ingest);
     profile.last_seen = now_rfc3339();
     drop(profile);
@@ -335,8 +412,23 @@ async fn ingest_http_response(
 ) {
     let client_ip = ingest.destination.ip.clone();
     info!("Received HTTP response data for client {}", client_ip);
-    let mut profile = state.entry(client_ip.clone()).or_default();
-    profile.id = client_ip;
+
+    // Map Docker gateway IPs to real client IPs for local development
+    let target_ip = if is_docker_gateway_ip(&client_ip) {
+        let real_ip = map_gateway_to_real_ip(&state, &client_ip);
+        if real_ip != client_ip {
+            info!(
+                "Mapping Docker gateway IP {} to real client IP {} for HTTP response",
+                client_ip, real_ip
+            );
+        }
+        real_ip
+    } else {
+        client_ip
+    };
+
+    let mut profile = state.entry(target_ip.clone()).or_default();
+    profile.id = target_ip;
     profile.http_response = Some(ingest);
     profile.last_seen = now_rfc3339();
     drop(profile);
@@ -358,6 +450,36 @@ fn now_rfc3339() -> String {
     Utc::now().to_rfc3339()
 }
 
+/// Maps Docker gateway IPs to real client IPs for local development.
+/// In Docker Compose, HTTP traffic is captured with gateway IP (172.x.x.x),
+/// while TLS/TCP traffic is captured with the real client IP.
+/// This function finds the most recent profile with TLS/TCP data.
+fn map_gateway_to_real_ip(state: &AppState, gateway_ip: &str) -> String {
+    state
+        .iter()
+        .filter(|entry| {
+            let profile = entry.value();
+            let key = entry.key();
+
+            // Skip the gateway IP itself and other Docker internal IPs
+            if key == gateway_ip || is_docker_gateway_ip(key) {
+                return false;
+            }
+
+            // Prefer profiles with TLS/TCP data (real client traffic)
+            profile.tls_client.is_some() || profile.syn.is_some() || profile.syn_ack.is_some()
+        })
+        .max_by_key(|entry| entry.value().last_seen.clone())
+        .map(|entry| entry.key().clone())
+        .unwrap_or_else(|| gateway_ip.to_string())
+}
+
+/// Checks if an IP is a Docker internal IP (172.x.x.x range).
+/// In Docker Compose, HTTP traffic captured on the bridge uses Docker internal IPs.
+fn is_docker_gateway_ip(ip: &str) -> bool {
+    ip.starts_with("172.")
+}
+
 fn enforce_profile_limit(state: &AppState) {
     if state.len() <= MAX_PROFILES {
         return;
@@ -370,7 +492,7 @@ fn enforce_profile_limit(state: &AppState) {
 
     profiles.sort_by(|a, b| a.1.cmp(&b.1));
 
-    let to_remove = state.len() - MAX_PROFILES;
+    let to_remove = state.len().saturating_sub(MAX_PROFILES);
     for (ip, _) in profiles.iter().take(to_remove) {
         state.remove(ip);
         debug!(

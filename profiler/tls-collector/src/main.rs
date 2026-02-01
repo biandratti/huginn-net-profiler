@@ -60,7 +60,10 @@ fn main() {
         .with_max_level(Level::INFO)
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
+        eprintln!("Failed to set default subscriber: {e}");
+        return;
+    }
 
     let args = Args::parse();
     let interface = args
@@ -98,15 +101,14 @@ fn main() {
         }
     });
 
-    let analysis_interface = interface.clone();
     let analysis_cancel_signal = cancel_signal.clone();
 
     thread::spawn(move || {
-        info!("Starting TLS analysis on interface {analysis_interface}...");
-        let mut tls_analyzer = HuginnNetTls::new();
+        info!("Starting TLS analysis on interface {interface}...");
+        let mut tls_analyzer = HuginnNetTls::new(1000);
 
         if let Err(e) =
-            tls_analyzer.analyze_network(&analysis_interface, sync_tx, Some(analysis_cancel_signal))
+            tls_analyzer.analyze_network(&interface, sync_tx, Some(analysis_cancel_signal))
         {
             error!("Huginn-net-tls analysis failed: {e}");
         } else {
@@ -130,7 +132,13 @@ fn main() {
         }
     });
 
-    let rt = Runtime::new().unwrap();
+    let rt = match Runtime::new() {
+        Ok(rt) => rt,
+        Err(e) => {
+            error!("Failed to create tokio runtime: {e}");
+            return;
+        }
+    };
     rt.block_on(async {
         let client = reqwest::Client::new();
         info!("Starting TLS result processor...");

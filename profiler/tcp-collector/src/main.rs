@@ -116,7 +116,10 @@ fn main() {
         .with_max_level(Level::INFO)
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
+        eprintln!("Failed to set default subscriber: {e}");
+        return;
+    }
 
     let args = Args::parse();
     let interface = args
@@ -155,11 +158,10 @@ fn main() {
         }
     });
 
-    let analysis_interface = interface.clone();
     let analysis_cancel_signal = cancel_signal.clone();
 
     thread::spawn(move || {
-        info!("Starting TCP analysis on interface {analysis_interface}...");
+        info!("Starting TCP analysis on interface {interface}...");
         let mut tcp_analyzer = match HuginnNetTcp::new(None, 1000) {
             Ok(analyzer) => analyzer,
             Err(e) => {
@@ -169,7 +171,7 @@ fn main() {
         };
 
         if let Err(e) =
-            tcp_analyzer.analyze_network(&analysis_interface, sync_tx, Some(analysis_cancel_signal))
+            tcp_analyzer.analyze_network(&interface, sync_tx, Some(analysis_cancel_signal))
         {
             error!("Huginn-net-tcp analysis failed: {e}");
         } else {
@@ -193,7 +195,13 @@ fn main() {
         }
     });
 
-    let rt = Runtime::new().unwrap();
+    let rt = match Runtime::new() {
+        Ok(rt) => rt,
+        Err(e) => {
+            error!("Failed to create tokio runtime: {e}");
+            return;
+        }
+    };
     rt.block_on(async move {
         let client = reqwest::Client::new();
         info!("Starting TCP result processor...");
@@ -281,9 +289,11 @@ fn main() {
                 send_mtu_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
             if let Some(client_uptime) = tcp_result.client_uptime {
-                let total_seconds = (client_uptime.days as u64 * 24 * 3600)
-                    + (client_uptime.hours as u64 * 3600)
-                    + (client_uptime.min as u64 * 60);
+                let total_seconds = (client_uptime.days as u64)
+                    .saturating_mul(24)
+                    .saturating_mul(3600)
+                    .saturating_add((client_uptime.hours as u64).saturating_mul(3600))
+                    .saturating_add((client_uptime.min as u64).saturating_mul(60));
                 let ingest = UptimeIngest {
                     source: NetworkEndpoint {
                         ip: client_uptime.source.ip.to_string(),
@@ -301,9 +311,11 @@ fn main() {
                 send_uptime_to_assembler(ingest, &client, &assembler_endpoint).await;
             }
             if let Some(server_uptime) = tcp_result.server_uptime {
-                let total_seconds = (server_uptime.days as u64 * 24 * 3600)
-                    + (server_uptime.hours as u64 * 3600)
-                    + (server_uptime.min as u64 * 60);
+                let total_seconds = (server_uptime.days as u64)
+                    .saturating_mul(24)
+                    .saturating_mul(3600)
+                    .saturating_add((server_uptime.hours as u64).saturating_mul(3600))
+                    .saturating_add((server_uptime.min as u64).saturating_mul(60));
                 let ingest = UptimeIngest {
                     source: NetworkEndpoint {
                         ip: server_uptime.source.ip.to_string(),
