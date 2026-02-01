@@ -10,6 +10,27 @@ Each collector monitors a specific network interface via `PROFILER_INTERFACE`:
 
 ## How to Run
 
+### 1. Generate Local SSL Certificates (first time only)
+
+For browser testing without security warnings, use `mkcert` to generate locally-trusted certificates:
+
+```bash
+cd deployment/
+
+# Install mkcert (if not already installed)
+# Linux: sudo apt install libnss3-tools && wget https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-linux-amd64 -O mkcert && chmod +x mkcert && sudo mv mkcert /usr/local/bin/
+# macOS: brew install mkcert
+# Windows: choco install mkcert
+
+# Install local CA (one-time setup)
+mkcert -install
+
+# Generate trusted certificate for localhost
+./generate-local-certs.sh
+```
+
+### 2. Start Services
+
 ```bash
 cd deployment/
 
@@ -24,6 +45,6 @@ docker compose up -d --build
 
 ## Access
 
-- **Web interface**: https://huginn-net.duckdns.org
-- **API**: https://huginn-net.duckdns.org/api
+- **Web interface**: https://localhost
+- **API**: https://localhost/api
 - **Traefik Dashboard**: http://localhost:8080

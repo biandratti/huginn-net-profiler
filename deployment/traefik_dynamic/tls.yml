@@ -1,4 +1,7 @@
 tls:
+  certificates:
+    - certFile: /certs/server.crt
+      keyFile: /certs/server.key
   options:
     my-tls-options:
       minVersion: VersionTLS12

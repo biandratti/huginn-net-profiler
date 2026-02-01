@@ -23,14 +23,6 @@ providers:
     directory: /etc/traefik/dynamic
     watch: true
 
-certificatesResolvers:
-  letsencrypt:
-    acme:
-      email: maxibiandra@gmail.com
-      storage: /letsencrypt/acme.json
-      httpChallenge:
-        entryPoint: web
-
 experimental:
   plugins:
     remoteaddr:

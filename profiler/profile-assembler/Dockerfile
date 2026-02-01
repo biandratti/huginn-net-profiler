@@ -1,4 +1,4 @@
-FROM rust:1.82 as builder
+FROM rust:1.83 as builder
 
 WORKDIR /usr/src/app
 
@@ -27,8 +27,8 @@ RUN cargo build --release -p profile-assembler
 # Final stage
 FROM debian:bookworm-slim
 
-# Install netcat for healthcheck
-RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
+# Install netcat for healthcheck and ca-certificates
+RUN apt-get update && apt-get install -y netcat-openbsd ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy binary
 COPY --from=builder /usr/src/app/target/release/profile-assembler /usr/local/bin/profile-assembler

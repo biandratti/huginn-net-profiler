@@ -1,6 +1,6 @@
 # Stage 1: Builder
 # Use a modern Rust version based on Debian Bookworm
-FROM rust:1.82 as builder
+FROM rust:1.83 as builder
 
 WORKDIR /usr/src/app
 
@@ -37,7 +37,7 @@ RUN cargo build --release -p tls-collector
 FROM debian:bookworm-slim
 
 # Install runtime dependencies
-RUN apt-get update && apt-get install -y libpcap0.8 libssl3 netcat-openbsd && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libpcap0.8 libssl3 netcat-openbsd ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy the compiled binary from the builder stage
 COPY --from=builder /usr/src/app/target/release/tls-collector /usr/local/bin/tls-collector
