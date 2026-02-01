@@ -253,10 +253,17 @@ fn main() {
                 .as_secs();
 
             if let Some(http_request) = result.http_request {
-                let real_client_ip = extract_client_ip_from_headers(
-                    &http_request.sig.headers,
-                    &http_request.source.ip.to_string(),
-                );
+                let source_ip = http_request.source.ip.to_string();
+                let real_client_ip =
+                    extract_client_ip_from_headers(&http_request.sig.headers, &source_ip);
+
+                // Log when using source IP instead of header IP (profile-assembler will handle gateway IP mapping)
+                if real_client_ip == source_ip && source_ip.starts_with("172.") {
+                    debug!(
+                        "Using source IP {} (no X-Real-Ip/X-Forwarded-For in headers)",
+                        source_ip
+                    );
+                }
 
                 // Store connection mapping for responses
                 let conn_key = ConnectionKey {

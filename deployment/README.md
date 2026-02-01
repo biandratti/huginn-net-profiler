@@ -34,6 +34,10 @@ mkcert -install
 ```bash
 cd deployment/
 
+# Option A: Use the start script (recommended - auto-detects bridge)
+./start.sh
+
+# Option B: Manual start (detect bridge first)
 docker compose up --no-start  # Create networks first
 
 # Auto-detect Docker bridge (most reliable)
