@@ -124,7 +124,10 @@ fn extract_client_ip_from_headers(headers: &[HttpHeader], fallback_ip: &str) -> 
 }
 
 fn enforce_connection_limit(connection_map: &ConnectionMap) {
-    let mut map = connection_map.lock().unwrap();
+    let Ok(mut map) = connection_map.lock() else {
+        error!("Failed to acquire lock on connection map");
+        return;
+    };
     if map.len() <= MAX_CONNECTIONS {
         return;
     }
@@ -136,7 +139,7 @@ fn enforce_connection_limit(connection_map: &ConnectionMap) {
 
     connections.sort_by(|a, b| a.1.cmp(&b.1));
 
-    let to_remove = map.len() - MAX_CONNECTIONS;
+    let to_remove = map.len().saturating_sub(MAX_CONNECTIONS);
     for (key, _) in connections.iter().take(to_remove) {
         map.remove(key);
     }
@@ -147,7 +150,10 @@ fn main() {
         .with_max_level(Level::INFO)
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
+        eprintln!("Failed to set default subscriber: {e}");
+        return;
+    }
 
     let args = Args::parse();
     let interface = args
@@ -171,7 +177,6 @@ fn main() {
         return;
     }
 
-    let analysis_interface = interface.clone();
     thread::spawn(move || {
         let db = match Database::load_default() {
             Ok(db) => db,
@@ -190,13 +195,8 @@ fn main() {
             }
         };
 
-        info!(
-            "Starting HTTP live capture on interface: {}",
-            analysis_interface
-        );
-        if let Err(e) =
-            analyzer.analyze_network(&analysis_interface, sender, Some(thread_cancel_signal))
-        {
+        info!("Starting HTTP live capture on interface: {}", interface);
+        if let Err(e) = analyzer.analyze_network(&interface, sender, Some(thread_cancel_signal)) {
             error!("HTTP analysis failed: {e}");
         }
     });
@@ -235,7 +235,13 @@ fn main() {
         }
     });
 
-    let rt = Runtime::new().unwrap();
+    let rt = match Runtime::new() {
+        Ok(rt) => rt,
+        Err(e) => {
+            error!("Failed to create tokio runtime: {e}");
+            return;
+        }
+    };
     rt.block_on(async {
         let client = reqwest::Client::new();
         info!("Starting HTTP result processor...");

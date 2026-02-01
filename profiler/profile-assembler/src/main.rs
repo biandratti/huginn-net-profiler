@@ -11,7 +11,7 @@ use chrono::Utc;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{debug, info, warn, Level};
+use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -186,7 +186,10 @@ async fn main() {
         .with_max_level(Level::INFO)
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
+        eprintln!("Failed to set default subscriber: {e}");
+        return;
+    }
 
     info!("Initializing Profile Assembler");
 
@@ -215,8 +218,16 @@ async fn main() {
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     info!("Profile Assembler listening on {}", addr);
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(listener) => listener,
+        Err(e) => {
+            error!("Failed to bind to address {}: {e}", addr);
+            return;
+        }
+    };
+    if let Err(e) = axum::serve(listener, app).await {
+        error!("Server error: {e}");
+    }
 }
 
 async fn health_check() -> StatusCode {
@@ -370,7 +381,7 @@ fn enforce_profile_limit(state: &AppState) {
 
     profiles.sort_by(|a, b| a.1.cmp(&b.1));
 
-    let to_remove = state.len() - MAX_PROFILES;
+    let to_remove = state.len().saturating_sub(MAX_PROFILES);
     for (ip, _) in profiles.iter().take(to_remove) {
         state.remove(ip);
         debug!(
