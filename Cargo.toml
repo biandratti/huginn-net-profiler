@@ -20,4 +20,4 @@ axum = "0.8.8"
 chrono = { version = "0.4.43", features = ["serde"] }
 dashmap = "6.1.0"
 tower-http = { version = "0.6.8", features = ["cors"] }
-ctrlc = "3.5.1"
+ctrlc = "3.5.2"
